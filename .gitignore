@@ -216,3 +216,26 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# .gitignore
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+venv/
+env/
+.env
+
+# AI Model Weights (CRITICAL to ignore)
+*.gguf
+*.bin
+*.pt
+*.safetensors
+models/
+
+# OS generated files
+.DS_Store
+Thumbs.db

@@ -1,0 +1,51 @@
+name: OracleForge Nightly Engine
+
+on:
+  schedule:
+    # 23:00 UTC is 6:00 PM CDT (Central Daylight Time). 
+    # Adjust this if you want it running later in the evening.
+    - cron: '0 23 * * 1-5'
+  
+  # This allows you to manually click a "Run Workflow" button in GitHub's UI
+  workflow_dispatch: 
+
+jobs:
+  execute_loop:
+    # This specifically targets your local machine's runner
+    runs-on: nvidia-gpu 
+
+    # Grants the runner permission to push the JSON state files back to GitHub
+    permissions:
+      contents: write 
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12' # Matching your WSL environment
+          cache: 'pip'
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Fetch Latest S&P 500 Tickers
+        run: python update_tickers.py --limit 50
+
+      - name: Execute OracleForge AI Inference
+        # This will communicate with your local Ollama instance
+        run: python forge_loop.py 
+
+      - name: Commit and Push State
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add config/tickers.json state/analyst_scores.json history/
+          
+          # The diff check prevents the workflow from crashing if it runs on a market holiday
+          # where no new data was generated and there is nothing to commit.
+          git diff --quiet && git diff --staged --quiet || (git commit -m "Automated OracleForge nightly run" && git push)
