@@ -34,7 +34,7 @@ jobs:
           pip install -r requirements.txt
 
       - name: Fetch Latest S&P 500 Tickers
-        run: python update_tickers.py --limit 50
+        run: python update_tickers.py --limit 500
 
       - name: Execute OracleForge AI Inference
         # This will communicate with your local Ollama instance
