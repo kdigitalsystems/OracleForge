@@ -1,22 +1,35 @@
 # forge_loop.py
+import argparse
 import json
 import os
 import re
+import sys
 from collections import defaultdict
 from datetime import datetime, timedelta
 
 import requests
 import yfinance as yf
 
+from signals import (
+    build_enriched_predictions,
+    build_signals_report,
+    extract_model_predictions,
+    parse_ticker_list,
+    print_signals_table,
+    save_json as save_signals_json,
+)
+
 # --- Configuration ---
 CONFIG_FILE = 'config/tickers.json'
 SCORES_FILE = 'state/analyst_scores.json'
 HISTORY_DIR = 'history/'
+REPORTS_DIR = 'reports/'
 MAX_PREDICTION_LOOKBACK_DAYS = 10
 
 os.makedirs('config', exist_ok=True)
 os.makedirs('state', exist_ok=True)
 os.makedirs(HISTORY_DIR, exist_ok=True)
+os.makedirs(REPORTS_DIR, exist_ok=True)
 
 
 def load_json(filepath, default_data):
@@ -174,18 +187,32 @@ def fetch_latest_session_bar(stock):
 
 
 def main():
+    parser = argparse.ArgumentParser(description='Run the OracleForge daily inference loop.')
+    parser.add_argument(
+        '--tickers',
+        help='Comma-separated watchlist (e.g. NVDA,AAPL,MSFT). Overrides config/tickers.json.',
+    )
+    args = parser.parse_args()
+
     print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Starting OracleForge Loop...")
 
-    tickers = load_json(CONFIG_FILE, [])
+    config_tickers = load_json(CONFIG_FILE, [])
+    watchlist = parse_ticker_list(args.tickers)
+    tickers = watchlist if watchlist else config_tickers
     scores = load_json(SCORES_FILE, {})
 
     if not tickers:
-        print("No tickers found. Run update_tickers.py first.")
-        return
+        print("ERROR: No tickers found. Run update_tickers.py or pass --tickers NVDA,AAPL.")
+        sys.exit(1)
+
+    if watchlist:
+        print(f"Watchlist mode: {len(tickers)} tickers ({', '.join(tickers)})")
+    else:
+        print(f"Processing {len(tickers)} tickers from {CONFIG_FILE}")
 
     if not scores:
-        print("No models found in state/analyst_scores.json.")
-        return
+        print("ERROR: No models found in state/analyst_scores.json.")
+        sys.exit(1)
 
     today_date = datetime.now().strftime('%Y-%m-%d')
     today_log_path = os.path.join(HISTORY_DIR, f'predictions_{today_date}.json')
@@ -215,17 +242,17 @@ def main():
             market_data[ticker] = bar['close']
             today_predictions[ticker] = {}
 
-            if ticker in prior_predictions:
-                for model_name, past_pred in prior_predictions[ticker].items():
-                    if model_name not in scores:
-                        continue
-                    delta = evaluate_prediction(
-                        open_price=bar['open'],
-                        high_price=bar['high'],
-                        low_price=bar['low'],
-                        predicted_price=past_pred,
-                    )
-                    score_deltas[model_name].append(delta)
+            prior_models = extract_model_predictions(prior_predictions.get(ticker, {}))
+            for model_name, past_pred in prior_models.items():
+                if model_name not in scores:
+                    continue
+                delta = evaluate_prediction(
+                    open_price=bar['open'],
+                    high_price=bar['high'],
+                    low_price=bar['low'],
+                    predicted_price=past_pred,
+                )
+                score_deltas[model_name].append(delta)
 
         except Exception as e:
             print(f"  Error fetching data for {ticker}: {e}")
@@ -233,8 +260,8 @@ def main():
     apply_score_deltas(scores, score_deltas)
 
     if not market_data:
-        print("No market data retrieved for any ticker. Aborting inference.")
-        return
+        print("ERROR: No market data retrieved for any ticker. Aborting inference.")
+        sys.exit(1)
 
     # --- PHASE 2: MODEL INFERENCE (HARDWARE OPTIMIZED) ---
     print("\n--- PHASE 2: AI Inference (Model by Model) ---")
@@ -246,12 +273,25 @@ def main():
             prediction = call_local_llm(ticker, current_price, model_name)
             today_predictions[ticker][model_name] = prediction
 
-    # --- PHASE 3: SAVE STATE ---
-    print("\nSaving new scores and daily predictions...")
+    # --- PHASE 3: SIGNALS & SAVE STATE ---
+    print("\n--- PHASE 3: Signals & Persistence ---")
+    enriched = build_enriched_predictions(today_predictions, market_data, scores)
+    report = build_signals_report(enriched, today_date)
+    report_path = os.path.join(REPORTS_DIR, f'signals_{today_date}.json')
+
+    if not enriched:
+        print("ERROR: No enriched predictions produced.")
+        sys.exit(1)
+
     save_json(SCORES_FILE, scores)
-    save_json(today_log_path, today_predictions)
+    save_json(today_log_path, enriched)
+    save_signals_json(report_path, report)
+    print_signals_table(report)
+    print(f"\nSaved predictions to {today_log_path}")
+    print(f"Saved signals report to {report_path}")
+    print(f"Generated {len(enriched)} ticker records ({report['summary']['watch']} WATCH).")
     print("OracleForge Loop Complete. Ready for Git Commit.")
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()

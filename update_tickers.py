@@ -3,6 +3,7 @@ import argparse
 import io
 import json
 import os
+import sys
 import time
 
 import pandas as pd
@@ -64,9 +65,9 @@ def fetch_top_tickers(limit):
                 "ERROR: Could not fetch market cap data. "
                 f"Leaving existing {len(existing)} tickers in {CONFIG_FILE}."
             )
-        else:
-            print("ERROR: Could not fetch market cap data and no existing ticker list to keep.")
-        return
+            sys.exit(0)
+        print("ERROR: Could not fetch market cap data and no existing ticker list to keep.")
+        sys.exit(1)
 
     sorted_tickers = sorted(ticker_data, key=lambda x: x['market_cap'], reverse=True)
     top_tickers = [item['ticker'] for item in sorted_tickers[:limit]]
