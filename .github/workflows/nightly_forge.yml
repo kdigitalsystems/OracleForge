@@ -32,9 +32,20 @@ jobs:
 
       - name: Start Ollama
         run: |
-          ollama serve &
-          sleep 5
-          ollama list
+          OLLAMA=$(which ollama 2>/dev/null \
+            || ls /usr/local/bin/ollama /usr/bin/ollama "$HOME/.local/bin/ollama" 2>/dev/null | head -1)
+          if [ -z "$OLLAMA" ]; then
+            echo "ERROR: ollama binary not found. Install from https://ollama.com"
+            exit 1
+          fi
+          echo "Found ollama at: $OLLAMA"
+          if curl -sf http://localhost:11434/api/tags > /dev/null 2>&1; then
+            echo "Ollama already running."
+          else
+            $OLLAMA serve &
+            sleep 8
+          fi
+          $OLLAMA list
 
       - name: Build ticker universe from Alpaca
         run: python update_tickers.py
