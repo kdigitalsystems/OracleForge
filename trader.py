@@ -158,11 +158,24 @@ def run_open(dry_run: bool = False) -> None:
         print(f"No ACTIVE setups for {today}. Nothing to order.")
         return
 
+    # Best upside first — ensures top setups are funded if buying power runs out
+    active_rows.sort(key=lambda r: float(r.get('upside_pct', 0)), reverse=True)
+
     open_orders = load_json(OPEN_ORDERS_FILE, {})
     positions = {} if dry_run else alpaca_client.get_positions(client)
     positions_meta = load_json(POSITIONS_META_FILE, {})
 
-    print(f"[{now_et()}] OracleForge --open | {len(active_rows)} ACTIVE setups")
+    # Check available buying power upfront
+    remaining_bp = float('inf')
+    if not dry_run:
+        try:
+            account = client.get_account()
+            remaining_bp = float(account.buying_power)
+            print(f"  Available buying power: ${remaining_bp:.2f}")
+        except Exception as e:
+            print(f"  [!] Could not fetch buying power: {e} — will attempt orders anyway")
+
+    print(f"[{now_et()}] OracleForge --open | {len(active_rows)} ACTIVE setups (sorted by upside)")
     if dry_run:
         print("  -- DRY RUN: no orders will be placed --")
 
@@ -191,6 +204,10 @@ def run_open(dry_run: bool = False) -> None:
             log(f"{ticker}: order qty {qty} below minimum, skipping")
             continue
 
+        if order_size > remaining_bp:
+            log(f"Buying power exhausted (${remaining_bp:.2f} left, need ${order_size:.2f}). Stopping.")
+            break
+
         if dry_run:
             log(f"DRY BUY {ticker}: DAY limit {qty} shares @ ${buy_high:.2f} (${order_size:.2f})")
             placed += 1
@@ -208,6 +225,7 @@ def run_open(dry_run: bool = False) -> None:
             }
             log(f"BUY {ticker}: DAY limit {qty} shares @ ${buy_high:.2f} (${order_size:.2f}) — order {order.id}")
             placed += 1
+            remaining_bp -= order_size
             time.sleep(ORDER_SUBMIT_DELAY)
         except Exception as e:
             log(f"[!] Buy order failed for {ticker}: {e}")
