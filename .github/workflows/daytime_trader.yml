@@ -9,7 +9,7 @@ on:
 
 jobs:
   trade:
-    runs-on: nvidia-gpu
+    runs-on: self-hosted
     # 7 hours covers the full 9:30 AM – 4:00 PM ET session with buffer
     timeout-minutes: 420
 
