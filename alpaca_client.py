@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 
+from alpaca.data.historical import StockHistoricalDataClient
 from alpaca.trading.client import TradingClient
 from alpaca.trading.enums import OrderSide, TimeInForce
 from alpaca.trading.requests import MarketOrderRequest
@@ -11,7 +12,7 @@ from alpaca.trading.requests import MarketOrderRequest
 KEYS_FILE = os.path.expanduser('~/.ssh/alpaca_paper_keys')
 
 
-def _load_keys() -> tuple[str, str, str]:
+def load_keys() -> tuple[str, str, str]:
     """Parse the colon-delimited key file: Key, Secret_Key, URL."""
     keys: dict[str, str] = {}
     with open(KEYS_FILE) as f:
@@ -24,8 +25,13 @@ def _load_keys() -> tuple[str, str, str]:
 
 
 def get_trading_client() -> TradingClient:
-    api_key, secret_key, base_url = _load_keys()
+    api_key, secret_key, base_url = load_keys()
     return TradingClient(api_key, secret_key, url_override=base_url)
+
+
+def get_data_client() -> StockHistoricalDataClient:
+    api_key, secret_key, _ = load_keys()
+    return StockHistoricalDataClient(api_key, secret_key)
 
 
 def get_positions(client: TradingClient) -> dict[str, float]:

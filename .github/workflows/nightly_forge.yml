@@ -10,7 +10,7 @@ on:
 jobs:
   execute_loop:
     runs-on: nvidia-gpu
-    timeout-minutes: 360
+    timeout-minutes: 720
 
     permissions:
       contents: write
@@ -30,8 +30,23 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Fetch Latest S&P 500 Tickers
-        run: python update_tickers.py --limit 50
+      # update_tickers.py now uses Alpaca to build the universe
+      - name: Write Alpaca paper keys
+        env:
+          ALPACA_KEY: ${{ secrets.ALPACA_PAPER_API_KEY }}
+          ALPACA_SECRET: ${{ secrets.ALPACA_PAPER_SECRET_KEY }}
+          ALPACA_URL: ${{ secrets.ALPACA_PAPER_URL }}
+        run: |
+          mkdir -p ~/.ssh
+          {
+            echo "Key:${ALPACA_KEY}"
+            echo "Secret_Key:${ALPACA_SECRET}"
+            echo "URL:${ALPACA_URL}"
+          } > ~/.ssh/alpaca_paper_keys
+          chmod 600 ~/.ssh/alpaca_paper_keys
+
+      - name: Build ticker universe from Alpaca
+        run: python update_tickers.py
 
       - name: Verify ticker list
         run: |
