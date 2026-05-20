@@ -1,0 +1,56 @@
+name: OracleForge Evening Cleanup
+
+on:
+  schedule:
+    # Weekdays 20:05 UTC = 4:05 PM ET (5 min after market close)
+    - cron: '5 20 * * 1-5'
+
+  workflow_dispatch:
+
+jobs:
+  close:
+    runs-on: self-hosted
+    timeout-minutes: 10
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Verify Alpaca connection
+        run: |
+          python -c "
+          import alpaca_client
+          client = alpaca_client.get_trading_client()
+          positions = alpaca_client.get_positions(client)
+          print(f'OK: connected to Alpaca — {len(positions)} open position(s)')
+          "
+
+      - name: Settle fills and update journal
+        run: python trader.py --close
+
+      - name: Commit settlement state
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add state/ history/trade_journal.json reports/
+
+          if git diff --staged --quiet; then
+            echo "No fills to record today."
+          else
+            git commit -m "Evening settlement $(date -u '+%Y-%m-%d')"
+            git push
+          fi

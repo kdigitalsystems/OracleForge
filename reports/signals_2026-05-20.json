@@ -1,0 +1,41 @@
+{
+    "date": "2026-05-20",
+    "generated_at": "2026-05-20T12:35:27",
+    "config": {
+        "min_upside_pct": 1.5,
+        "min_range_width_pct": 0.5,
+        "max_spread_pct": 3.0,
+        "min_bullish_models": 2
+    },
+    "summary": {
+        "total": 2,
+        "active": 1,
+        "skip": 1,
+        "stale": 0
+    },
+    "active": [
+        {
+            "ticker": "NVDA",
+            "close": 220.61,
+            "buy_low": 216.0,
+            "buy_high": 219.33,
+            "sell_low": 225.0,
+            "sell_high": 229.67,
+            "upside_pct": 1.99,
+            "signal": "ACTIVE"
+        }
+    ],
+    "skip": [
+        {
+            "ticker": "AAPL",
+            "close": 298.97,
+            "buy_low": 295.0,
+            "buy_high": 297.67,
+            "sell_low": 300.33,
+            "sell_high": 303.0,
+            "upside_pct": 0.45,
+            "signal": "SKIP"
+        }
+    ],
+    "stale": []
+}
