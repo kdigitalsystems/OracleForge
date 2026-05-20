@@ -1,0 +1,90 @@
+name: OracleForge Daytime Trader
+
+on:
+  schedule:
+    # Weekdays 13:25 UTC = 9:25 AM ET (5 min before market open)
+    - cron: '25 13 * * 1-5'
+
+  workflow_dispatch:
+
+jobs:
+  trade:
+    runs-on: nvidia-gpu
+    # 7 hours covers the full 9:30 AM – 4:00 PM ET session with buffer
+    timeout-minutes: 420
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      # Writes Key/Secret_Key/URL in the format alpaca_client.py expects.
+      # For live trading, swap these three secrets for ALPACA_LIVE_* equivalents.
+      - name: Write Alpaca paper keys
+        env:
+          ALPACA_KEY: ${{ secrets.ALPACA_PAPER_API_KEY }}
+          ALPACA_SECRET: ${{ secrets.ALPACA_PAPER_SECRET_KEY }}
+          ALPACA_URL: ${{ secrets.ALPACA_PAPER_URL }}
+        run: |
+          mkdir -p ~/.ssh
+          {
+            echo "Key:${ALPACA_KEY}"
+            echo "Secret_Key:${ALPACA_SECRET}"
+            echo "URL:${ALPACA_URL}"
+          } > ~/.ssh/alpaca_paper_keys
+          chmod 600 ~/.ssh/alpaca_paper_keys
+
+      - name: Verify Alpaca connection
+        run: |
+          python -c "
+          import alpaca_client
+          client = alpaca_client.get_trading_client()
+          positions = alpaca_client.get_positions(client)
+          print(f'OK: connected to Alpaca — {len(positions)} open positions')
+          "
+
+      - name: Check today's signals exist
+        run: |
+          python -c "
+          import json, os, sys
+          from datetime import datetime
+          today = datetime.now().strftime('%Y-%m-%d')
+          path = f'reports/signals_{today}.json'
+          if not os.path.exists(path):
+              print(f'ERROR: {path} not found.')
+              print('The nightly forge must run before the daytime trader.')
+              print('Check that the OracleForge Nightly Engine workflow succeeded today.')
+              sys.exit(1)
+          report = json.load(open(path))
+          active = report.get('summary', {}).get('active', 0)
+          print(f'OK: {active} ACTIVE setups for {today} — trader will proceed')
+          "
+
+      - name: Run OracleForge Trader
+        run: python trader.py
+
+      - name: Commit trade logs
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add reports/
+
+          if git diff --staged --quiet; then
+            echo "No trade logs to commit."
+          else
+            git commit -m "Automated OracleForge trade log $(date -u '+%Y-%m-%d')"
+            git push
+          fi

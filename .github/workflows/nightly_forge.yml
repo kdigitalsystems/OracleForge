@@ -2,21 +2,18 @@ name: OracleForge Nightly Engine
 
 on:
   schedule:
-    # 23:00 UTC is 6:00 PM CDT (Central Daylight Time). 
-    # Adjust this if you want it running later in the evening.
+    # Weekdays 23:00 UTC — after US market close
     - cron: '0 23 * * 1-5'
-  
-  # This allows you to manually click a "Run Workflow" button in GitHub's UI
-  workflow_dispatch: 
+
+  workflow_dispatch:
 
 jobs:
   execute_loop:
-    # This specifically targets your local machine's runner
-    runs-on: nvidia-gpu 
+    runs-on: nvidia-gpu
+    timeout-minutes: 720
 
-    # Grants the runner permission to push the JSON state files back to GitHub
     permissions:
-      contents: write 
+      contents: write
 
     steps:
       - name: Checkout Repository
@@ -25,7 +22,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.12' # Matching your WSL environment
+          python-version: '3.12'
           cache: 'pip'
 
       - name: Install Dependencies
@@ -33,19 +30,49 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Fetch Latest S&P 500 Tickers
-        run: python update_tickers.py --limit 500
+      # update_tickers.py now uses Alpaca to build the universe
+      - name: Write Alpaca paper keys
+        env:
+          ALPACA_KEY: ${{ secrets.ALPACA_PAPER_API_KEY }}
+          ALPACA_SECRET: ${{ secrets.ALPACA_PAPER_SECRET_KEY }}
+          ALPACA_URL: ${{ secrets.ALPACA_PAPER_URL }}
+        run: |
+          mkdir -p ~/.ssh
+          {
+            echo "Key:${ALPACA_KEY}"
+            echo "Secret_Key:${ALPACA_SECRET}"
+            echo "URL:${ALPACA_URL}"
+          } > ~/.ssh/alpaca_paper_keys
+          chmod 600 ~/.ssh/alpaca_paper_keys
+
+      - name: Build ticker universe from Alpaca
+        run: python update_tickers.py
+
+      - name: Verify ticker list
+        run: |
+          python -c "
+          import json, sys
+          tickers = json.load(open('config/tickers.json'))
+          assert isinstance(tickers, list) and len(tickers) > 0, 'config/tickers.json is empty'
+          print(f'OK: {len(tickers)} tickers ready')
+          "
 
       - name: Execute OracleForge AI Inference
-        # This will communicate with your local Ollama instance
-        run: python forge_loop.py 
+        run: python forge_loop.py
+
+      - name: Validate outputs
+        run: python scripts/validate_outputs.py
 
       - name: Commit and Push State
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          git add config/tickers.json state/analyst_scores.json history/
-          
-          # The diff check prevents the workflow from crashing if it runs on a market holiday
-          # where no new data was generated and there is nothing to commit.
-          git diff --quiet && git diff --staged --quiet || (git commit -m "Automated OracleForge nightly run" && git push)
+          git add config/ state/analyst_scores.json history/ reports/
+
+          if git diff --quiet && git diff --staged --quiet; then
+            echo "ERROR: No changes to commit after a successful forge run."
+            exit 1
+          fi
+
+          git commit -m "Automated OracleForge nightly run"
+          git push
