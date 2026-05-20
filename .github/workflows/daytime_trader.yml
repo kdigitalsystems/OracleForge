@@ -56,7 +56,7 @@ jobs:
           print(f'OK: connected to Alpaca — {len(positions)} open positions')
           "
 
-      - name: Check today's signals
+      - name: Check today's signals exist
         run: |
           python -c "
           import json, os, sys
@@ -64,11 +64,13 @@ jobs:
           today = datetime.now().strftime('%Y-%m-%d')
           path = f'reports/signals_{today}.json'
           if not os.path.exists(path):
-              print(f'WARNING: {path} not found — no signals to trade today')
-              sys.exit(0)
+              print(f'ERROR: {path} not found.')
+              print('The nightly forge must run before the daytime trader.')
+              print('Check that the OracleForge Nightly Engine workflow succeeded today.')
+              sys.exit(1)
           report = json.load(open(path))
           active = report.get('summary', {}).get('active', 0)
-          print(f'OK: {active} ACTIVE setups for {today}')
+          print(f'OK: {active} ACTIVE setups for {today} — trader will proceed')
           "
 
       - name: Run OracleForge Trader
