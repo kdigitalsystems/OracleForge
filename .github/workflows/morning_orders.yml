@@ -1,17 +1,16 @@
-name: OracleForge Daytime Trader
+name: OracleForge Morning Orders
 
 on:
   schedule:
-    # Weekdays 13:25 UTC = 9:25 AM ET (5 min before market open)
-    - cron: '25 13 * * 1-5'
+    # Weekdays 13:30 UTC = 9:30 AM ET (market open)
+    - cron: '30 13 * * 1-5'
 
   workflow_dispatch:
 
 jobs:
-  trade:
+  open:
     runs-on: self-hosted
-    # 7 hours covers the full 9:30 AM – 4:00 PM ET session with buffer
-    timeout-minutes: 420
+    timeout-minutes: 10
 
     permissions:
       contents: write
@@ -37,7 +36,7 @@ jobs:
           import alpaca_client
           client = alpaca_client.get_trading_client()
           positions = alpaca_client.get_positions(client)
-          print(f'OK: connected to Alpaca — {len(positions)} open positions')
+          print(f'OK: connected to Alpaca — {len(positions)} open position(s)')
           "
 
       - name: Check today's signals exist
@@ -49,26 +48,25 @@ jobs:
           path = f'reports/signals_{today}.json'
           if not os.path.exists(path):
               print(f'ERROR: {path} not found.')
-              print('The nightly forge must run before the daytime trader.')
-              print('Check that the OracleForge Nightly Engine workflow succeeded today.')
+              print('The nightly forge must run before the morning orders job.')
               sys.exit(1)
           report = json.load(open(path))
           active = report.get('summary', {}).get('active', 0)
-          print(f'OK: {active} ACTIVE setups for {today} — trader will proceed')
+          print(f'OK: {active} ACTIVE setups for {today}')
           "
 
-      - name: Run OracleForge Trader
-        run: python trader.py
+      - name: Place limit buy orders
+        run: python trader.py --open
 
-      - name: Commit trade logs
+      - name: Commit order state
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          git add reports/
+          git add state/open_orders.json
 
           if git diff --staged --quiet; then
-            echo "No trade logs to commit."
+            echo "No new orders placed."
           else
-            git commit -m "Automated OracleForge trade log $(date -u '+%Y-%m-%d')"
+            git commit -m "Morning orders $(date -u '+%Y-%m-%d')"
             git push
           fi

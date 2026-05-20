@@ -33,32 +33,38 @@ Each night, three local Ollama models independently analyse every ticker on the 
    - **STALE** — price has already moved above the sell range (missed opportunity).
 6. **Persist** — saves enriched predictions to `history/predictions_YYYY-MM-DD.json`, signals report to `reports/signals_YYYY-MM-DD.json`, updated model scores to `state/analyst_scores.json`.
 
-### Daytime (trader.py)
+### Daytime (trader.py — two short jobs, no polling)
 
-Runs during market hours (9:30–16:00 ET, weekdays), polling every 60 seconds:
-
+**Morning (`trader.py --open`, 9:30 AM ET):**
 ```
 For each ACTIVE ticker:
+  if no position cap breached AND no order placed today:
+    qty = min($2, $8 - existing_position) / buy_high
+    place DAY limit buy @ buy_high
 
-  price = live Alpaca price
-
-  BUY  if  buy_low ≤ price ≤ buy_high
-         AND current position < $8
-       → place fractional order up to $2
-       → if already holding, average down (up to $8 cap)
-
-  SELL if  price ≥ sell_low
-         AND holding a position
-       → close entire position
-       → record P&L to history/trade_journal.json
+For each existing position without a sell order:
+  place GTC limit sell @ consensus sell_low
 ```
 
-**Position limits** (configurable in `config/trading.json`):
-- Max $2 per individual order
-- Max $8 total position per ticker
-- Fractional shares via Alpaca `notional` order type
+**Evening (`trader.py --close`, 4:05 PM ET):**
+```
+For each tracked buy order:
+  if FILLED  → record entry price, place GTC sell @ sell_low
+  if EXPIRED → remove from order state
 
-**Stop-loss** (built into scoring, not a placed order): if the low of day breaches `buy_high × 0.98`, the prediction is scored as a loss and the model's score is penalised.
+For each tracked sell order:
+  if FILLED  → record P&L to history/trade_journal.json
+  if OPEN    → leave as GTC (carries to next session)
+```
+
+Alpaca handles execution during the day. No process stays alive.
+
+**Position limits** (configurable in `config/trading.json`):
+- Max $2 per order
+- Max $8 total position per ticker
+- Fractional shares via Alpaca limit orders (qty-based)
+
+**Stop-loss** (built into scoring): if the low of day breaches `buy_high × 0.98`, the prediction is scored as a loss and the model's score is penalised.
 
 ### Feedback loop
 
@@ -99,7 +105,8 @@ streamlit run dashboard.py
 | Workflow | Schedule | What it does |
 |---|---|---|
 | [Nightly Forge](.github/workflows/nightly_forge.yml) | 23:00 UTC weekdays | `update_tickers.py` → `forge_loop.py` → commit state |
-| [Daytime Trader](.github/workflows/daytime_trader.yml) | 13:25 UTC weekdays (9:25 AM ET) | Runs `trader.py` for the full market session, commits trade logs |
+| [Morning Orders](.github/workflows/morning_orders.yml) | 13:30 UTC weekdays (9:30 AM ET) | Places DAY limit buy orders + GTC sell orders for held positions (~30 sec) |
+| [Evening Cleanup](.github/workflows/evening_cleanup.yml) | 20:05 UTC weekdays (4:05 PM ET) | Detects fills, records P&L to journal, cancels expired orders (~30 sec) |
 
 Both workflows run on a self-hosted runner and read Alpaca keys directly from `~/.ssh/alpaca_paper_keys` (colon-delimited: `Key:`, `Secret_Key:`, `URL:`).
 
@@ -113,8 +120,10 @@ Both workflows run on a self-hosted runner and read Alpaca keys directly from `~
 | `python update_tickers.py --limit 50 --min-price 20 --max-vol 3.0` | Custom filters |
 | `python forge_loop.py` | Overnight analysis for all tickers |
 | `python forge_loop.py --tickers NVDA,AAPL` | Watchlist mode — selected tickers only |
-| `python trader.py` | Live trading session |
-| `python trader.py --dry-run` | Simulate trades without placing orders |
+| `python trader.py --open` | Place limit buy orders at market open |
+| `python trader.py --close` | Settle fills and update P&L journal |
+| `python trader.py --open --dry-run` | Preview orders without placing them |
+| `python trader.py --close --dry-run` | Preview settlement without writing state |
 | `python backtest.py` | Score historical predictions vs realized OHLC |
 | `streamlit run dashboard.py` | Web UI |
 

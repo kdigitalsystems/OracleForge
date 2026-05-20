@@ -1,27 +1,33 @@
-# trader.py — daytime price monitor and order executor
+# trader.py — GTC limit order placement and end-of-day settlement
 """
-Polls live prices every N seconds during market hours.
-Buys when price enters the buy range (up to $8 position, $2 at a time).
-Sells the entire position when price hits the sell range.
-Records every buy/sell with entry price, exit price, and P&L to
-history/trade_journal.json so models can learn from actual outcomes.
+Two short jobs replace the old polling loop:
+
+  python trader.py --open   (9:30 AM ET)
+    Reads today's ACTIVE signals and places DAY limit buy orders at buy_high.
+    Also places GTC sell orders for any existing positions without one.
+
+  python trader.py --close  (4:05 PM ET)
+    Checks fills for open buy orders → records entry, places GTC sell.
+    Checks fills for open sell orders → records P&L to trade journal.
+    Cancels any unfilled DAY buy orders that expired.
+
+State is persisted to state/open_orders.json so it survives between the two jobs.
 """
 from __future__ import annotations
 
 import argparse
 import json
 import os
-import time
-from datetime import datetime, date
+from datetime import date, datetime
 
 import pytz
-from alpaca.data.requests import StockLatestBarRequest
 
 import alpaca_client
 
 REPORTS_DIR = 'reports/'
 HISTORY_DIR = 'history/'
 CONFIG_FILE = 'config/trading.json'
+OPEN_ORDERS_FILE = 'state/open_orders.json'
 POSITIONS_META_FILE = 'state/open_positions_meta.json'
 TRADE_JOURNAL_FILE = 'history/trade_journal.json'
 
@@ -30,8 +36,10 @@ ET = pytz.timezone('America/New_York')
 DEFAULT_TRADING_CONFIG = {
     'max_per_trade_usd': 2.0,
     'max_position_usd': 8.0,
-    'poll_interval_sec': 60,
 }
+
+FILLED_STATUSES = {'filled', 'partially_filled'}
+DEAD_STATUSES = {'cancelled', 'expired', 'done_for_day', 'rejected', 'suspended'}
 
 
 def load_json(filepath: str, default):
@@ -48,62 +56,36 @@ def save_json(filepath: str, data) -> None:
 
 
 def load_trading_config() -> dict:
-    config = load_json(CONFIG_FILE, {})
-    return {**DEFAULT_TRADING_CONFIG, **config}
+    return {**DEFAULT_TRADING_CONFIG, **load_json(CONFIG_FILE, {})}
 
 
-def is_market_open(cfg: dict) -> bool:
-    now_et = datetime.now(ET)
-    if now_et.weekday() >= 5:
-        return False
-    open_h, open_m = map(int, cfg.get('market_open', '09:30').split(':'))
-    close_h, close_m = map(int, cfg.get('market_close', '16:00').split(':'))
-    t = now_et.time()
-    from datetime import time as dt_time
-    return dt_time(open_h, open_m) <= t <= dt_time(close_h, close_m)
+def today_str() -> str:
+    return date.today().strftime('%Y-%m-%d')
 
 
-def get_prices(tickers: list[str]) -> dict[str, float]:
-    """Batch-fetch latest bar price for all tickers via Alpaca."""
-    try:
-        data_client = alpaca_client.get_data_client()
-        req = StockLatestBarRequest(symbol_or_symbols=tickers)
-        bars = data_client.get_stock_latest_bar(req)
-        return {sym: float(bar.close) for sym, bar in bars.items()}
-    except Exception as e:
-        print(f"  [!] Price fetch failed: {e}")
-        return {}
+def now_et() -> str:
+    return datetime.now(ET).isoformat(timespec='seconds')
 
 
-def load_todays_signals() -> dict:
-    today = date.today().strftime('%Y-%m-%d')
-    path = os.path.join(REPORTS_DIR, f'signals_{today}.json')
-    return load_json(path, {})
+def load_todays_signals() -> list[dict]:
+    path = os.path.join(REPORTS_DIR, f'signals_{today_str()}.json')
+    report = load_json(path, {})
+    return [
+        r for r in report.get('active', [])
+        if r.get('buy_high') and r.get('sell_low')
+    ]
 
 
-def load_trade_log(today: str) -> list[dict]:
-    path = os.path.join(REPORTS_DIR, f'trades_{today}.json')
-    return load_json(path, [])
-
-
-def save_trade_log(today: str, log: list[dict]) -> None:
-    path = os.path.join(REPORTS_DIR, f'trades_{today}.json')
-    save_json(path, log)
-
-
-def get_predicting_models(ticker: str, today: str) -> list[str]:
-    """Return model names that predicted valid ranges for this ticker today."""
-    path = os.path.join(HISTORY_DIR, f'predictions_{today}.json')
+def get_predicting_models(ticker: str, pred_date: str) -> list[str]:
+    path = os.path.join(HISTORY_DIR, f'predictions_{pred_date}.json')
     predictions = load_json(path, {})
     models = predictions.get(ticker, {}).get('models', {})
     return [m for m, r in models.items() if isinstance(r, dict) and r.get('sell_low', 0) > 0]
 
 
 def record_buy(meta: dict, ticker: str, price: float, usd_amount: float,
-               today: str, signals_row: dict) -> None:
-    """Track entry price and invested amount for an open position."""
+               pred_date: str, buy_high: float, sell_low: float) -> None:
     if ticker in meta:
-        # Average down into existing position
         existing = meta[ticker]
         total = existing['usd_invested'] + usd_amount
         existing['entry_price'] = (
@@ -114,28 +96,25 @@ def record_buy(meta: dict, ticker: str, price: float, usd_amount: float,
         meta[ticker] = {
             'entry_price': price,
             'usd_invested': round(usd_amount, 4),
-            'entry_date': today,
-            'predicting_models': get_predicting_models(ticker, today),
-            'consensus_buy_high': signals_row.get('buy_high'),
-            'consensus_sell_low': signals_row.get('sell_low'),
+            'entry_date': pred_date,
+            'predicting_models': get_predicting_models(ticker, pred_date),
+            'consensus_buy_high': buy_high,
+            'consensus_sell_low': sell_low,
         }
     save_json(POSITIONS_META_FILE, meta)
 
 
 def record_sell(meta: dict, journal: list, ticker: str,
-                exit_price: float, position_value: float, today: str) -> dict | None:
-    """Compute P&L for a closed position and append to the trade journal."""
+                exit_price: float, usd_returned: float, close_date: str) -> dict | None:
     if ticker not in meta:
         return None
-
     entry = meta.pop(ticker)
     usd_invested = entry['usd_invested']
-    usd_returned = round(position_value, 4)
+    usd_returned = round(usd_returned, 4)
     pnl_usd = round(usd_returned - usd_invested, 4)
     pnl_pct = round((pnl_usd / usd_invested) * 100, 2) if usd_invested else 0.0
-
     trade = {
-        'close_date': today,
+        'close_date': close_date,
         'ticker': ticker,
         'entry_date': entry['entry_date'],
         'entry_price': entry['entry_price'],
@@ -155,123 +134,235 @@ def record_sell(meta: dict, journal: list, ticker: str,
     return trade
 
 
-def log_trade(trade_log: list, today: str, action: str, ticker: str,
-              price: float, amount: float, reason: str) -> None:
-    entry = {
-        'timestamp': datetime.now(ET).isoformat(timespec='seconds'),
-        'action': action,
-        'ticker': ticker,
-        'price': price,
-        'amount_usd': amount,
-        'reason': reason,
-    }
-    trade_log.append(entry)
-    save_trade_log(today, trade_log)
-    print(
-        f"  [{entry['timestamp']}] {action} {ticker} @ ${price:.2f} "
-        f"(${amount:.2f}) — {reason}"
-    )
+def log(msg: str) -> None:
+    print(f"  [{now_et()}] {msg}")
 
 
-def run_trading_loop(dry_run: bool = False) -> None:
+# ---------------------------------------------------------------------------
+# --open: place orders at market open
+# ---------------------------------------------------------------------------
+
+def run_open(dry_run: bool = False) -> None:
     cfg = load_trading_config()
     max_per_trade = float(cfg['max_per_trade_usd'])
     max_position = float(cfg['max_position_usd'])
-    poll_interval = int(cfg['poll_interval_sec'])
 
     client = None if dry_run else alpaca_client.get_trading_client()
-    today = date.today().strftime('%Y-%m-%d')
-    trade_log = load_trade_log(today)
+    today = today_str()
+
+    active_rows = load_todays_signals()
+    if not active_rows:
+        print(f"No ACTIVE setups for {today}. Nothing to order.")
+        return
+
+    open_orders = load_json(OPEN_ORDERS_FILE, {})
+    positions = {} if dry_run else alpaca_client.get_positions(client)
     positions_meta = load_json(POSITIONS_META_FILE, {})
-    trade_journal = load_json(TRADE_JOURNAL_FILE, [])
 
-    print(f"[{datetime.now(ET).strftime('%Y-%m-%d %H:%M:%S %Z')}] OracleForge Trader started.")
+    print(f"[{now_et()}] OracleForge --open | {len(active_rows)} ACTIVE setups")
     if dry_run:
-        print("  -- DRY RUN MODE: no orders will be placed --")
+        print("  -- DRY RUN: no orders will be placed --")
 
-    while True:
-        if not is_market_open(cfg):
-            now_et = datetime.now(ET)
-            if now_et.weekday() >= 5 or now_et.hour >= 16:
-                print(f"[{now_et.strftime('%H:%M %Z')}] Market closed. Trader shutting down.")
-                break
-            print(f"[{now_et.strftime('%H:%M %Z')}] Pre-market. Waiting for open...")
-            time.sleep(60)
+    placed = 0
+
+    # --- Place buy orders for ACTIVE tickers ---
+    for row in active_rows:
+        ticker = row['ticker']
+        buy_high = float(row['buy_high'])
+        sell_low = float(row['sell_low'])
+
+        # Skip if we already placed a buy order today
+        existing = open_orders.get(ticker, {})
+        if existing.get('buy_order_id') and existing.get('date') == today:
+            log(f"{ticker}: buy order already placed today, skipping")
             continue
 
-        signals = load_todays_signals()
-        active_rows = [
-            r for r in signals.get('active', [])
-            if r.get('buy_low') and r.get('buy_high') and r.get('sell_low')
-        ]
-
-        if not active_rows:
-            print(f"[{datetime.now(ET).strftime('%H:%M')}] No ACTIVE setups today.")
-            time.sleep(poll_interval)
+        pos_val = positions.get(ticker, 0.0)
+        if pos_val >= max_position:
+            log(f"{ticker}: position ${pos_val:.2f} already at cap, skipping")
             continue
 
-        positions = {} if dry_run else alpaca_client.get_positions(client)
-        price_map = get_prices([r['ticker'] for r in active_rows])
+        order_size = min(max_per_trade, max_position - pos_val)
+        qty = round(order_size / buy_high, 6)
+        if qty < 0.001:
+            log(f"{ticker}: order qty {qty} below minimum, skipping")
+            continue
 
-        for row in active_rows:
-            ticker = row['ticker']
-            buy_low = row['buy_low']
-            buy_high = row['buy_high']
-            sell_low = row['sell_low']
+        if dry_run:
+            log(f"DRY BUY {ticker}: DAY limit {qty} shares @ ${buy_high:.2f} (${order_size:.2f})")
+            placed += 1
+            continue
 
-            price = price_map.get(ticker)
-            if price is None:
-                print(f"  [!] Could not fetch price for {ticker}")
-                continue
+        try:
+            order = alpaca_client.place_limit_buy(client, ticker, qty, buy_high, 'day')
+            open_orders[ticker] = {
+                'buy_order_id': str(order.id),
+                'sell_order_id': None,
+                'buy_limit': buy_high,
+                'sell_limit': sell_low,
+                'qty': qty,
+                'date': today,
+            }
+            log(f"BUY {ticker}: DAY limit {qty} shares @ ${buy_high:.2f} (${order_size:.2f}) — order {order.id}")
+            placed += 1
+        except Exception as e:
+            log(f"[!] Buy order failed for {ticker}: {e}")
 
-            position_value = positions.get(ticker, 0.0)
+    # --- Place sell orders for positions that don't have one yet ---
+    for ticker, meta_entry in positions_meta.items():
+        entry = open_orders.get(ticker, {})
+        if entry.get('sell_order_id'):
+            continue  # already have a sell order
 
-            # Sell logic
-            if price >= sell_low and position_value > 0:
-                if dry_run:
-                    log_trade(trade_log, today, 'SELL', ticker, price, position_value,
-                              'Hit sell target (dry run)')
-                else:
-                    try:
-                        alpaca_client.sell_all(client, ticker)
-                        trade = record_sell(positions_meta, trade_journal, ticker,
-                                            price, position_value, today)
-                        pnl_str = f"P&L: ${trade['pnl_usd']:+.4f} ({trade['pnl_pct']:+.2f}%)" if trade else ''
-                        log_trade(trade_log, today, 'SELL', ticker, price, position_value,
-                                  f'Hit sell target. {pnl_str}')
-                        positions[ticker] = 0.0
-                    except Exception as e:
-                        print(f"  [!] Sell failed for {ticker}: {e}")
-                continue
+        qty = 0.0 if dry_run else alpaca_client.get_position_qty(client, ticker)
+        if qty <= 0:
+            continue
 
-            # Buy logic
-            if buy_low <= price <= buy_high and position_value < max_position:
-                order_size = min(max_per_trade, max_position - position_value)
-                if order_size < 0.01:
-                    continue
+        sell_limit = entry.get('sell_limit') or meta_entry.get('consensus_sell_low')
+        if not sell_limit:
+            continue
 
-                if dry_run:
-                    log_trade(trade_log, today, 'BUY', ticker, price, order_size,
-                              f'In buy range [{buy_low}-{buy_high}] (dry run)')
-                else:
-                    try:
-                        alpaca_client.buy(client, ticker, order_size)
-                        record_buy(positions_meta, ticker, price, order_size, today, row)
-                        log_trade(trade_log, today, 'BUY', ticker, price, order_size,
-                                  f'In buy range [{buy_low}-{buy_high}]')
-                        positions[ticker] = position_value + order_size
-                    except Exception as e:
-                        print(f"  [!] Buy failed for {ticker}: {e}")
+        if dry_run:
+            log(f"DRY SELL {ticker}: GTC limit {qty} shares @ ${sell_limit:.2f}")
+            continue
 
-        time.sleep(poll_interval)
+        try:
+            order = alpaca_client.place_limit_sell(client, ticker, qty, sell_limit)
+            if ticker not in open_orders:
+                open_orders[ticker] = {}
+            open_orders[ticker]['sell_order_id'] = str(order.id)
+            log(f"SELL {ticker}: GTC limit {qty} shares @ ${sell_limit:.2f} — order {order.id}")
+        except Exception as e:
+            log(f"[!] Sell order failed for {ticker}: {e}")
 
+    if not dry_run:
+        save_json(OPEN_ORDERS_FILE, open_orders)
+
+    print(f"\nDone. {placed} buy order(s) placed.")
+
+
+# ---------------------------------------------------------------------------
+# --close: settle fills and update journal
+# ---------------------------------------------------------------------------
+
+def run_close(dry_run: bool = False) -> None:
+    client = None if dry_run else alpaca_client.get_trading_client()
+    today = today_str()
+
+    open_orders = load_json(OPEN_ORDERS_FILE, {})
+    positions_meta = load_json(POSITIONS_META_FILE, {})
+    journal = load_json(TRADE_JOURNAL_FILE, [])
+
+    if not open_orders:
+        print(f"[{now_et()}] No open orders on record. Nothing to settle.")
+        return
+
+    print(f"[{now_et()}] OracleForge --close | settling {len(open_orders)} tracked ticker(s)")
+    if dry_run:
+        print("  -- DRY RUN: no state will be written --")
+
+    to_delete = []
+
+    for ticker, entry in open_orders.items():
+        buy_oid = entry.get('buy_order_id')
+        sell_oid = entry.get('sell_order_id')
+
+        # --- Check buy order ---
+        if buy_oid and not sell_oid:
+            if dry_run:
+                log(f"DRY CHECK buy order {buy_oid} for {ticker}")
+            else:
+                try:
+                    order = alpaca_client.get_order(client, buy_oid)
+                    status = str(order.status).lower().replace('orderstatus.', '')
+
+                    if status in FILLED_STATUSES:
+                        fill_price = float(order.filled_avg_price or entry['buy_limit'])
+                        fill_qty = float(order.filled_qty or entry['qty'])
+                        usd_filled = round(fill_price * fill_qty, 4)
+
+                        record_buy(
+                            positions_meta, ticker, fill_price, usd_filled,
+                            entry.get('date', today),
+                            entry['buy_limit'], entry['sell_limit'],
+                        )
+                        log(f"BUY FILLED {ticker}: {fill_qty} shares @ ${fill_price:.2f} (${usd_filled:.2f})")
+
+                        # Place GTC sell for the filled quantity
+                        try:
+                            sell_order = alpaca_client.place_limit_sell(
+                                client, ticker, fill_qty, entry['sell_limit']
+                            )
+                            entry['sell_order_id'] = str(sell_order.id)
+                            log(f"SELL {ticker}: GTC limit {fill_qty} shares @ ${entry['sell_limit']:.2f} — order {sell_order.id}")
+                        except Exception as e:
+                            log(f"[!] Could not place sell for {ticker}: {e}")
+
+                    elif status in DEAD_STATUSES:
+                        log(f"BUY EXPIRED {ticker}: order {buy_oid} status={status}, removing")
+                        to_delete.append(ticker)
+
+                    else:
+                        log(f"{ticker}: buy order {buy_oid} still open (status={status})")
+
+                except Exception as e:
+                    log(f"[!] Could not fetch buy order {buy_oid} for {ticker}: {e}")
+
+        # --- Check sell order ---
+        if sell_oid:
+            if dry_run:
+                log(f"DRY CHECK sell order {sell_oid} for {ticker}")
+            else:
+                try:
+                    order = alpaca_client.get_order(client, sell_oid)
+                    status = str(order.status).lower().replace('orderstatus.', '')
+
+                    if status in FILLED_STATUSES:
+                        fill_price = float(order.filled_avg_price or entry['sell_limit'])
+                        fill_qty = float(order.filled_qty or entry.get('qty', 0))
+                        usd_returned = round(fill_price * fill_qty, 4)
+
+                        trade = record_sell(
+                            positions_meta, journal, ticker, fill_price, usd_returned, today
+                        )
+                        if trade:
+                            log(
+                                f"SELL FILLED {ticker}: {fill_qty} shares @ ${fill_price:.2f} "
+                                f"— P&L ${trade['pnl_usd']:+.4f} ({trade['pnl_pct']:+.2f}%)"
+                            )
+                        to_delete.append(ticker)
+
+                    else:
+                        log(f"{ticker}: sell order {sell_oid} still open (status={status}) — GTC carries over")
+
+                except Exception as e:
+                    log(f"[!] Could not fetch sell order {sell_oid} for {ticker}: {e}")
+
+    for ticker in set(to_delete):
+        open_orders.pop(ticker, None)
+
+    if not dry_run:
+        save_json(OPEN_ORDERS_FILE, open_orders)
+
+    print(f"\nDone. {len(set(to_delete))} position(s) closed.")
+
+
+# ---------------------------------------------------------------------------
+# Entry point
+# ---------------------------------------------------------------------------
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description='OracleForge daytime trader.')
-    parser.add_argument('--dry-run', action='store_true',
-                        help='Log what would be traded without placing real orders.')
+    parser = argparse.ArgumentParser(description='OracleForge GTC order manager.')
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument('--open', action='store_true', help='Place limit buy orders (run at market open).')
+    group.add_argument('--close', action='store_true', help='Settle fills and update journal (run after close).')
+    parser.add_argument('--dry-run', action='store_true', help='Log actions without placing or recording anything.')
     args = parser.parse_args()
-    run_trading_loop(dry_run=args.dry_run)
+
+    if args.open:
+        run_open(dry_run=args.dry_run)
+    else:
+        run_close(dry_run=args.dry_run)
 
 
 if __name__ == '__main__':
