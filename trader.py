@@ -13,7 +13,7 @@ import time
 from datetime import datetime, date
 
 import pytz
-import yfinance as yf
+from alpaca.data.requests import StockLatestBarRequest
 
 import alpaca_client
 
@@ -58,15 +58,16 @@ def is_market_open(cfg: dict) -> bool:
     return dt_time(open_h, open_m) <= t <= dt_time(close_h, close_m)
 
 
-def get_price(ticker: str) -> float | None:
-    """Fetch latest price via yfinance 1-minute bar."""
+def get_prices(tickers: list[str]) -> dict[str, float]:
+    """Batch-fetch latest bar price for all tickers via Alpaca."""
     try:
-        hist = yf.Ticker(ticker).history(period='1d', interval='1m')
-        if hist.empty:
-            return None
-        return round(float(hist['Close'].iloc[-1]), 4)
-    except Exception:
-        return None
+        data_client = alpaca_client.get_data_client()
+        req = StockLatestBarRequest(symbol_or_symbols=tickers)
+        bars = data_client.get_stock_latest_bar(req)
+        return {sym: float(bar.close) for sym, bar in bars.items()}
+    except Exception as e:
+        print(f"  [!] Price fetch failed: {e}")
+        return {}
 
 
 def load_todays_signals() -> dict:
@@ -137,16 +138,20 @@ def run_trading_loop(dry_run: bool = False) -> None:
 
         positions = {} if dry_run else alpaca_client.get_positions(client)
 
-        for row in signals.get('active', []):
+        active_rows = [r for r in signals.get('active', []) if r.get('buy_low') and r.get('buy_high') and r.get('sell_low')]
+        if not active_rows:
+            time.sleep(poll_interval)
+            continue
+
+        price_map = get_prices([r['ticker'] for r in active_rows])
+
+        for row in active_rows:
             ticker = row['ticker']
             buy_low = row.get('buy_low')
             buy_high = row.get('buy_high')
             sell_low = row.get('sell_low')
 
-            if not all([buy_low, buy_high, sell_low]):
-                continue
-
-            price = get_price(ticker)
+            price = price_map.get(ticker)
             if price is None:
                 print(f"  [!] Could not fetch price for {ticker}")
                 continue

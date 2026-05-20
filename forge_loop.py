@@ -8,8 +8,10 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 
 import requests
-import yfinance as yf
+from alpaca.data.requests import StockBarsRequest
+from alpaca.data.timeframe import TimeFrame
 
+import alpaca_client
 from signals import (
     build_enriched_predictions,
     build_signals_report,
@@ -79,6 +81,7 @@ def _headline_from_news_item(item):
 
 def fetch_recent_news(ticker):
     try:
+        import yfinance as yf
         stock = yf.Ticker(ticker)
         news_items = stock.news
         if not news_items:
@@ -230,17 +233,36 @@ All values must be positive numbers. buy_high must be less than sell_low."""
         return _fallback_range(current_price)
 
 
-def fetch_latest_session_bar(stock) -> dict | None:
-    hist = stock.history(period='5d')
-    if hist.empty:
-        return None
-    row = hist.iloc[-1]
-    return {
-        'open': float(row['Open']),
-        'high': float(row['High']),
-        'low': float(row['Low']),
-        'close': float(row['Close']),
-    }
+def fetch_all_bars(tickers: list[str]) -> dict[str, dict]:
+    """Batch-fetch the latest daily session bar for all tickers via Alpaca."""
+    data_client = alpaca_client.get_data_client()
+    end = datetime.now()
+    start = end - timedelta(days=10)  # buffer for weekends/holidays
+
+    result: dict[str, dict] = {}
+    batch_size = 200
+    for i in range(0, len(tickers), batch_size):
+        batch = tickers[i:i + batch_size]
+        try:
+            req = StockBarsRequest(
+                symbol_or_symbols=batch,
+                timeframe=TimeFrame.Day,
+                start=start.strftime('%Y-%m-%d'),
+                end=end.strftime('%Y-%m-%d'),
+            )
+            bars = data_client.get_stock_bars(req)
+            for sym, sym_bars in bars.data.items():
+                if sym_bars:
+                    b = sym_bars[-1]
+                    result[sym] = {
+                        'open': float(b.open),
+                        'high': float(b.high),
+                        'low': float(b.low),
+                        'close': float(b.close),
+                    }
+        except Exception as e:
+            print(f"  [!] Market data batch failed: {e}")
+    return result
 
 
 def main():
@@ -290,31 +312,30 @@ def main():
 
     # --- PHASE 1: FETCH MARKET DATA & EVALUATE PRIOR RANGE PREDICTIONS ---
     print("\n--- PHASE 1: Market Data & Evaluation ---")
+    print(f"Batch-fetching latest bars for {len(tickers)} tickers via Alpaca...")
+    all_bars = fetch_all_bars(tickers)
+    print(f"  Received data for {len(all_bars)} tickers.")
+
     for ticker in tickers:
-        try:
-            stock = yf.Ticker(ticker)
-            bar = fetch_latest_session_bar(stock)
-            if bar is None:
-                print(f"  Skipping {ticker}: no recent market data.")
+        bar = all_bars.get(ticker)
+        if bar is None:
+            print(f"  Skipping {ticker}: no recent market data.")
+            continue
+
+        market_data[ticker] = bar['close']
+        today_predictions[ticker] = {}
+
+        prior_models = extract_model_predictions(prior_predictions.get(ticker, {}))
+        for model_name, past_pred in prior_models.items():
+            if model_name not in scores:
                 continue
-
-            market_data[ticker] = bar['close']
-            today_predictions[ticker] = {}
-
-            prior_models = extract_model_predictions(prior_predictions.get(ticker, {}))
-            for model_name, past_pred in prior_models.items():
-                if model_name not in scores:
-                    continue
-                delta = evaluate_range_prediction(
-                    open_price=bar['open'],
-                    high_price=bar['high'],
-                    low_price=bar['low'],
-                    pred=past_pred,
-                )
-                score_deltas[model_name].append(delta)
-
-        except Exception as e:
-            print(f"  Error fetching data for {ticker}: {e}")
+            delta = evaluate_range_prediction(
+                open_price=bar['open'],
+                high_price=bar['high'],
+                low_price=bar['low'],
+                pred=past_pred,
+            )
+            score_deltas[model_name].append(delta)
 
     apply_score_deltas(scores, score_deltas)
 
