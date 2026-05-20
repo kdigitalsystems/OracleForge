@@ -31,39 +31,6 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Check Alpaca secrets are configured
-        env:
-          ALPACA_KEY: ${{ secrets.ALPACA_PAPER_API_KEY }}
-          ALPACA_SECRET: ${{ secrets.ALPACA_PAPER_SECRET_KEY }}
-          ALPACA_URL: ${{ secrets.ALPACA_PAPER_URL }}
-        run: |
-          missing=""
-          [ -z "$ALPACA_KEY" ]    && missing="$missing ALPACA_PAPER_API_KEY"
-          [ -z "$ALPACA_SECRET" ] && missing="$missing ALPACA_PAPER_SECRET_KEY"
-          [ -z "$ALPACA_URL" ]    && missing="$missing ALPACA_PAPER_URL"
-          if [ -n "$missing" ]; then
-            echo "ERROR: The following GitHub Actions secrets are not set:$missing"
-            echo "Go to repo Settings → Secrets and variables → Actions and add them."
-            exit 1
-          fi
-          echo "OK: all Alpaca secrets are present"
-
-      # Writes Key/Secret_Key/URL in the format alpaca_client.py expects.
-      # For live trading, swap these three secrets for ALPACA_LIVE_* equivalents.
-      - name: Write Alpaca paper keys
-        env:
-          ALPACA_KEY: ${{ secrets.ALPACA_PAPER_API_KEY }}
-          ALPACA_SECRET: ${{ secrets.ALPACA_PAPER_SECRET_KEY }}
-          ALPACA_URL: ${{ secrets.ALPACA_PAPER_URL }}
-        run: |
-          mkdir -p ~/.ssh
-          {
-            echo "Key:${ALPACA_KEY}"
-            echo "Secret_Key:${ALPACA_SECRET}"
-            echo "URL:${ALPACA_URL}"
-          } > ~/.ssh/alpaca_paper_keys
-          chmod 600 ~/.ssh/alpaca_paper_keys
-
       - name: Verify Alpaca connection
         run: |
           python -c "
