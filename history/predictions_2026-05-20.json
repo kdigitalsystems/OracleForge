@@ -7,31 +7,235 @@
                 "buy_high": 218.0,
                 "sell_low": 223.0,
                 "sell_high": 225.0,
-                "rationale": "Based on recent price action, I'm expecting a slight pullback to the $215-$218 range before bouncing back up to the $223-$225 resistance zone."
+                "rationale": "Based on historical volatility, I'm expecting a slight pullback before NVDA reaches its next resistance level."
             },
-            "gemma4": {
+            "qwen2.5:14b-instruct-q4_K_M": {
                 "buy_low": 218.0,
                 "buy_high": 220.0,
                 "sell_low": 222.0,
-                "sell_high": 224.0,
-                "rationale": "Given the lack of news, the prediction assumes a range-bound trading pattern based on minor technical support and resistance levels."
+                "sell_high": 225.0,
+                "rationale": "Based on technical analysis, these ranges provide a buffer for entry and exit points."
             },
-            "mistral-nemo": {
-                "buy_low": 215.0,
-                "buy_high": 220.0,
-                "sell_low": 230.0,
-                "sell_high": 240.0,
-                "rationale": "Based on recent price action and average daily range."
+            "deepseek-r1:8b": {
+                "buy_low": 198.55,
+                "buy_high": 209.58,
+                "sell_low": 231.64,
+                "sell_high": 242.67,
+                "rationale": "Assuming no significant news, NVDA may find support around 90-95% of current price and resistance near 105-110%."
             }
         },
         "consensus": {
-            "buy_low": 216.0,
-            "buy_high": 219.33,
-            "sell_low": 225.0,
-            "sell_high": 229.67
+            "buy_low": 210.52,
+            "buy_high": 215.86,
+            "sell_low": 225.55,
+            "sell_high": 230.89
         },
         "signal": "ACTIVE",
-        "upside_pct": 1.99
+        "upside_pct": 2.24
+    },
+    "BITO": {
+        "close": 10.48,
+        "models": {
+            "llama3.1:8b-instruct-q8_0": {
+                "buy_low": 10.2,
+                "buy_high": 10.4,
+                "sell_low": 10.6,
+                "sell_high": 11.0,
+                "rationale": "Based on historical volatility, I'm setting the buy range near the current price and sell range slightly above resistance."
+            },
+            "qwen2.5:14b-instruct-q4_K_M": {
+                "buy_low": 10.28,
+                "buy_high": 10.48,
+                "sell_low": 10.68,
+                "sell_high": 10.98,
+                "rationale": "Based on the current price and typical trading ranges, these levels provide a balanced risk-reward ratio."
+            },
+            "deepseek-r1:8b": {
+                "buy_low": 9.96,
+                "buy_high": 10.17,
+                "sell_low": 10.69,
+                "sell_high": 11.0,
+                "rationale": "Assuming typical daily volatility with no recent news, support levels around 95-97% and resistance around 102-105% of current price."
+            }
+        },
+        "consensus": {
+            "buy_low": 10.15,
+            "buy_high": 10.35,
+            "sell_low": 10.66,
+            "sell_high": 10.99
+        },
+        "signal": "ACTIVE",
+        "upside_pct": 1.72
+    },
+    "TQQQ": {
+        "close": 72.93,
+        "models": {
+            "llama3.1:8b-instruct-q8_0": {
+                "buy_low": 70.0,
+                "buy_high": 72.0,
+                "sell_low": 75.0,
+                "sell_high": 78.0,
+                "rationale": "Based on historical volatility, I'm expecting a potential dip to the $70-$72 range before bouncing back up to the $75-$78 resistance zone."
+            },
+            "qwen2.5:14b-instruct-q4_K_M": {
+                "buy_low": 71.93,
+                "buy_high": 72.43,
+                "sell_low": 73.43,
+                "sell_high": 75.0,
+                "rationale": "Based on technical analysis, these ranges provide a buffer for potential price movements in the next trading session."
+            },
+            "deepseek-r1:8b": {
+                "buy_low": 72.0,
+                "buy_high": 72.8,
+                "sell_low": 73.0,
+                "sell_high": 73.5,
+                "rationale": "With no recent news, TQQQ is expected to trade within a range near current levels, consolidating between support and resistance."
+            }
+        },
+        "consensus": {
+            "buy_low": 71.31,
+            "buy_high": 72.41,
+            "sell_low": 73.81,
+            "sell_high": 75.5
+        },
+        "signal": "SKIP",
+        "upside_pct": 1.21
+    },
+    "SQQQ": {
+        "close": 44.37,
+        "models": {
+            "llama3.1:8b-instruct-q8_0": {
+                "buy_low": 43.5,
+                "buy_high": 44.0,
+                "sell_low": 45.0,
+                "sell_high": 46.25,
+                "rationale": "Based on historical volatility, I'm expecting a potential bounce from current levels to the $45-$46 range before potentially selling off again."
+            },
+            "qwen2.5:14b-instruct-q4_K_M": {
+                "buy_low": 43.92,
+                "buy_high": 44.17,
+                "sell_low": 44.52,
+                "sell_high": 44.87,
+                "rationale": "Based on technical analysis, these ranges provide a buffer for entry and exit points around the current price."
+            },
+            "deepseek-r1:8b": {
+                "buy_low": 43.48,
+                "buy_high": 44.0,
+                "sell_low": 44.5,
+                "sell_high": 45.26,
+                "rationale": "No recent news, assuming a 2% daily volatility range based on current price."
+            }
+        },
+        "consensus": {
+            "buy_low": 43.63,
+            "buy_high": 44.06,
+            "sell_low": 44.67,
+            "sell_high": 45.46
+        },
+        "signal": "SKIP",
+        "upside_pct": 0.68
+    },
+    "TSLA": {
+        "close": 404.11,
+        "models": {
+            "llama3.1:8b-instruct-q8_0": {
+                "buy_low": 395.0,
+                "buy_high": 400.0,
+                "sell_low": 410.0,
+                "sell_high": 420.0,
+                "rationale": "Based on historical volatility, I'm expecting a range-bound trading session with support near $395 and resistance near $420."
+            },
+            "qwen2.5:14b-instruct-q4_K_M": {
+                "buy_low": 402.11,
+                "buy_high": 403.11,
+                "sell_low": 405.11,
+                "sell_high": 406.11,
+                "rationale": "Based on the current price and typical trading ranges, these levels provide a conservative approach for short-term trades."
+            },
+            "deepseek-r1:8b": {
+                "buy_low": 396.0,
+                "buy_high": 400.0,
+                "sell_low": 408.0,
+                "sell_high": 412.0,
+                "rationale": "Assuming typical daily volatility of 2%, TSLA is expected to trade with support near $396 and resistance near $412 in the next session."
+            }
+        },
+        "consensus": {
+            "buy_low": 397.7,
+            "buy_high": 401.04,
+            "sell_low": 407.7,
+            "sell_high": 412.7
+        },
+        "signal": "SKIP",
+        "upside_pct": 0.89
+    },
+    "AAL": {
+        "close": 12.06,
+        "models": {
+            "llama3.1:8b-instruct-q8_0": {
+                "buy_low": 11.5,
+                "buy_high": 11.8,
+                "sell_low": 12.3,
+                "sell_high": 13.0,
+                "rationale": "Based on historical volatility, I'm expecting a potential dip to the lower end of the recent trading range before potentially breaking through resistance."
+            },
+            "qwen2.5:14b-instruct-q4_K_M": {
+                "buy_low": 12.0,
+                "buy_high": 12.06,
+                "sell_low": 12.15,
+                "sell_high": 12.3,
+                "rationale": "Based on the current price, a conservative approach sets support and resistance levels within typical intraday volatility."
+            },
+            "deepseek-r1:8b": {
+                "buy_low": 11.46,
+                "buy_high": 11.9,
+                "sell_low": 12.2,
+                "sell_high": 12.5,
+                "rationale": "No recent news, assuming neutral sentiment, price may consolidate near current levels."
+            }
+        },
+        "consensus": {
+            "buy_low": 11.65,
+            "buy_high": 11.92,
+            "sell_low": 12.22,
+            "sell_high": 12.6
+        },
+        "signal": "SKIP",
+        "upside_pct": 1.33
+    },
+    "SPY": {
+        "close": 733.73,
+        "models": {
+            "llama3.1:8b-instruct-q8_0": {
+                "buy_low": 725.0,
+                "buy_high": 730.0,
+                "sell_low": 740.0,
+                "sell_high": 750.0,
+                "rationale": "Based on historical volatility, I'm expecting a range-bound market with support around $725 and resistance around $750."
+            },
+            "qwen2.5:14b-instruct-q4_K_M": {
+                "buy_low": 730.0,
+                "buy_high": 732.0,
+                "sell_low": 735.0,
+                "sell_high": 738.0,
+                "rationale": "Based on the current price and typical support and resistance levels, these ranges provide a balanced risk-reward ratio."
+            },
+            "deepseek-r1:8b": {
+                "buy_low": 730.0,
+                "buy_high": 732.0,
+                "sell_low": 734.0,
+                "sell_high": 736.0,
+                "rationale": "No significant news, price expected to consolidate near current levels."
+            }
+        },
+        "consensus": {
+            "buy_low": 728.33,
+            "buy_high": 731.33,
+            "sell_low": 736.33,
+            "sell_high": 741.33
+        },
+        "signal": "SKIP",
+        "upside_pct": 0.35
     },
     "AAPL": {
         "close": 298.97,
@@ -41,30 +245,1458 @@
                 "buy_high": 297.0,
                 "sell_low": 300.0,
                 "sell_high": 302.0,
-                "rationale": "Based on historical volatility, I'm expecting a slight pullback before the next resistance level is reached."
+                "rationale": "Based on historical volatility, I'm expecting a slight pullback before a potential breakout."
             },
-            "gemma4": {
-                "buy_low": 295.0,
-                "buy_high": 298.0,
-                "sell_low": 300.0,
-                "sell_high": 303.0,
-                "rationale": "Given the lack of news, the prediction relies on technical analysis, setting buy levels at minor support and sell levels at minor resistance."
+            "qwen2.5:14b-instruct-q4_K_M": {
+                "buy_low": 296.0,
+                "buy_high": 298.97,
+                "sell_low": 299.0,
+                "sell_high": 301.0,
+                "rationale": "Based on the current price and typical support/resistance levels, these ranges provide a balanced approach for entering long positions and taking profits."
             },
-            "mistral-nemo": {
-                "buy_low": 295.0,
-                "buy_high": 298.0,
-                "sell_low": 301.0,
-                "sell_high": 304.0,
-                "rationale": "Based on recent price action and average daily range."
+            "deepseek-r1:8b": {
+                "buy_low": 292.99,
+                "buy_high": 295.98,
+                "sell_low": 300.46,
+                "sell_high": 301.96,
+                "rationale": "Assuming typical daily volatility, the buy range is near support below current price, and sell range is near resistance above current price, with no recent news influencing the prediction."
             }
         },
         "consensus": {
-            "buy_low": 295.0,
-            "buy_high": 297.67,
-            "sell_low": 300.33,
-            "sell_high": 303.0
+            "buy_low": 294.66,
+            "buy_high": 297.32,
+            "sell_low": 299.82,
+            "sell_high": 301.65
+        },
+        "signal": "SKIP",
+        "upside_pct": 0.28
+    },
+    "NU": {
+        "close": 12.29,
+        "models": {
+            "llama3.1:8b-instruct-q8_0": {
+                "buy_low": 11.5,
+                "buy_high": 12.0,
+                "sell_low": 13.0,
+                "sell_high": 14.0,
+                "rationale": "Based on historical volatility, I'm expecting a potential support level around $11.50 and resistance around $14.00."
+            },
+            "qwen2.5:14b-instruct-q4_K_M": {
+                "buy_low": 12.09,
+                "buy_high": 12.29,
+                "sell_low": 12.39,
+                "sell_high": 12.59,
+                "rationale": "Based on the current price, a conservative approach sets support and resistance levels within a narrow range."
+            },
+            "deepseek-r1:8b": {
+                "buy_low": 12.17,
+                "buy_high": 12.2,
+                "sell_low": 12.35,
+                "sell_high": 12.41,
+                "rationale": "Assuming typical daily volatility of approximately 1%, with support at 12.17 and resistance at 12.41, based on standard market assumptions due to the absence of recent news."
+            }
+        },
+        "consensus": {
+            "buy_low": 11.92,
+            "buy_high": 12.16,
+            "sell_low": 12.58,
+            "sell_high": 13.0
+        },
+        "signal": "ACTIVE",
+        "upside_pct": 2.36
+    },
+    "AMZN": {
+        "close": 259.34,
+        "models": {
+            "llama3.1:8b-instruct-q8_0": {
+                "buy_low": 257.0,
+                "buy_high": 258.5,
+                "sell_low": 260.25,
+                "sell_high": 262.75,
+                "rationale": "Based on historical volatility, I'm setting a buy range near the current price and a sell range slightly above it."
+            },
+            "qwen2.5:14b-instruct-q4_K_M": {
+                "buy_low": 257.0,
+                "buy_high": 258.5,
+                "sell_low": 260.0,
+                "sell_high": 263.0,
+                "rationale": "Based on technical analysis, these ranges provide a buffer for entry and exit points around the current price."
+            },
+            "deepseek-r1:8b": {
+                "buy_low": 257.0,
+                "buy_high": 259.34,
+                "sell_low": 260.0,
+                "sell_high": 262.0,
+                "rationale": "No recent news, so based on typical daily volatility assumptions for AMZN."
+            }
+        },
+        "consensus": {
+            "buy_low": 257.0,
+            "buy_high": 258.78,
+            "sell_low": 260.08,
+            "sell_high": 262.58
+        },
+        "signal": "SKIP",
+        "upside_pct": 0.29
+    },
+    "PLTR": {
+        "close": 135.26,
+        "models": {
+            "llama3.1:8b-instruct-q8_0": {
+                "buy_low": 132.5,
+                "buy_high": 134.0,
+                "sell_low": 136.2,
+                "sell_high": 138.0,
+                "rationale": "Based on historical volatility, I'm setting a buy range near the current price and a sell range slightly above it."
+            },
+            "qwen2.5:14b-instruct-q4_K_M": {
+                "buy_low": 134.0,
+                "buy_high": 135.26,
+                "sell_low": 135.27,
+                "sell_high": 138.0,
+                "rationale": "Based on the current price and typical trading ranges, these levels provide a balanced risk-reward ratio."
+            },
+            "deepseek-r1:8b": {
+                "buy_low": 134.0,
+                "buy_high": 135.0,
+                "sell_low": 135.5,
+                "sell_high": 136.0,
+                "rationale": "With no recent news, the price is expected to trade within a narrow range near the current level."
+            }
+        },
+        "consensus": {
+            "buy_low": 133.5,
+            "buy_high": 134.75,
+            "sell_low": 135.66,
+            "sell_high": 137.33
+        },
+        "signal": "SKIP",
+        "upside_pct": 0.3
+    },
+    "QQQ": {
+        "close": 701.53,
+        "models": {
+            "llama3.1:8b-instruct-q8_0": {
+                "buy_low": 690.0,
+                "buy_high": 695.0,
+                "sell_low": 710.0,
+                "sell_high": 720.0,
+                "rationale": "Based on historical volatility, we expect QQQ to trade between support at $690 and resistance at $720."
+            },
+            "qwen2.5:14b-instruct-q4_K_M": {
+                "buy_low": 695.0,
+                "buy_high": 701.53,
+                "sell_low": 702.0,
+                "sell_high": 708.0,
+                "rationale": "Based on the current price and typical support/resistance levels, this range offers a balanced risk-reward ratio."
+            },
+            "deepseek-r1:8b": {
+                "buy_low": 700.0,
+                "buy_high": 701.5,
+                "sell_low": 702.0,
+                "sell_high": 705.0,
+                "rationale": "QQQ is expected to trade within a range near current levels due to lack of news, with support at $700 and resistance at $705."
+            }
+        },
+        "consensus": {
+            "buy_low": 695.0,
+            "buy_high": 699.34,
+            "sell_low": 704.67,
+            "sell_high": 711.0
         },
         "signal": "SKIP",
         "upside_pct": 0.45
+    },
+    "HYG": {
+        "close": 79.35,
+        "models": {
+            "llama3.1:8b-instruct-q8_0": {
+                "buy_low": 78.5,
+                "buy_high": 79.0,
+                "sell_low": 80.25,
+                "sell_high": 81.0,
+                "rationale": "Based on historical volatility, I'm setting a buy range near the current price and a sell range slightly above resistance."
+            },
+            "qwen2.5:14b-instruct-q4_K_M": {
+                "buy_low": 78.5,
+                "buy_high": 79.35,
+                "sell_low": 79.4,
+                "sell_high": 80.2,
+                "rationale": "Based on technical analysis, the support and resistance levels suggest these ranges."
+            },
+            "deepseek-r1:8b": {
+                "buy_low": 78.5,
+                "buy_high": 79.2,
+                "sell_low": 79.4,
+                "sell_high": 80.0,
+                "rationale": "Assuming stable market conditions with no recent news, the buy range is set below the current price near support and the sell range above for a long position."
+            }
+        },
+        "consensus": {
+            "buy_low": 78.5,
+            "buy_high": 79.18,
+            "sell_low": 79.68,
+            "sell_high": 80.4
+        },
+        "signal": "SKIP",
+        "upside_pct": 0.42
+    },
+    "PFE": {
+        "close": 25.66,
+        "models": {
+            "llama3.1:8b-instruct-q8_0": {
+                "buy_low": 25.0,
+                "buy_high": 26.0,
+                "sell_low": 27.5,
+                "sell_high": 28.0,
+                "rationale": "Based on historical volatility, I'm expecting a potential bounce from the current price to around $26.00 before potentially breaking out above $28.00."
+            },
+            "qwen2.5:14b-instruct-q4_K_M": {
+                "buy_low": 25.36,
+                "buy_high": 25.66,
+                "sell_low": 25.86,
+                "sell_high": 26.16,
+                "rationale": "Based on the current price and typical trading ranges, these levels provide a balanced risk-reward ratio."
+            },
+            "deepseek-r1:8b": {
+                "buy_low": 24.0,
+                "buy_high": 25.0,
+                "sell_low": 26.0,
+                "sell_high": 27.0,
+                "rationale": "No recent news; buy near support at or below $25.66, sell near resistance above $25.66."
+            }
+        },
+        "consensus": {
+            "buy_low": 24.79,
+            "buy_high": 25.55,
+            "sell_low": 26.45,
+            "sell_high": 27.05
+        },
+        "signal": "ACTIVE",
+        "upside_pct": 3.08
+    },
+    "NFLX": {
+        "close": 89.33,
+        "models": {
+            "llama3.1:8b-instruct-q8_0": {
+                "buy_low": 88.0,
+                "buy_high": 89.5,
+                "sell_low": 90.25,
+                "sell_high": 91.75,
+                "rationale": "Based on historical volatility, I'm setting a buy range near the current price and a sell range slightly above resistance."
+            },
+            "qwen2.5:14b-instruct-q4_K_M": {
+                "buy_low": 87.0,
+                "buy_high": 89.33,
+                "sell_low": 89.34,
+                "sell_high": 91.5,
+                "rationale": "Based on the current price and typical trading ranges, these levels provide a balanced risk-reward ratio."
+            },
+            "deepseek-r1:8b": {
+                "buy_low": 84.86,
+                "buy_high": 88.44,
+                "sell_low": 90.22,
+                "sell_high": 93.85,
+                "rationale": "No recent news, so based on current price and estimated volatility, support and resistance levels are derived from percentage-based calculations."
+            }
+        },
+        "consensus": {
+            "buy_low": 86.62,
+            "buy_high": 89.09,
+            "sell_low": 89.94,
+            "sell_high": 92.37
+        },
+        "signal": "SKIP",
+        "upside_pct": 0.68
+    },
+    "IBIT": {
+        "close": 43.5,
+        "models": {
+            "llama3.1:8b-instruct-q8_0": {
+                "buy_low": 42.0,
+                "buy_high": 43.2,
+                "sell_low": 44.5,
+                "sell_high": 45.8,
+                "rationale": "Based on historical volatility, we expect IBIT to trade between support at $42 and resistance at $45.80."
+            },
+            "qwen2.5:14b-instruct-q4_K_M": {
+                "buy_low": 42.5,
+                "buy_high": 43.0,
+                "sell_low": 44.0,
+                "sell_high": 45.5,
+                "rationale": "Based on technical analysis, these ranges provide a buffer for potential price movements."
+            },
+            "deepseek-r1:8b": {
+                "buy_low": 42.0,
+                "buy_high": 43.5,
+                "sell_low": 44.0,
+                "sell_high": 45.0,
+                "rationale": "Assuming no significant news, IBIT is expected to consolidate near current levels with support at $42.00 and resistance at $44.00."
+            }
+        },
+        "consensus": {
+            "buy_low": 42.17,
+            "buy_high": 43.23,
+            "sell_low": 44.17,
+            "sell_high": 45.43
+        },
+        "signal": "ACTIVE",
+        "upside_pct": 1.54
+    },
+    "XLE": {
+        "close": 61.29,
+        "models": {
+            "llama3.1:8b-instruct-q8_0": {
+                "buy_low": 59.5,
+                "buy_high": 60.8,
+                "sell_low": 62.2,
+                "sell_high": 63.0,
+                "rationale": "Based on historical volatility, I'm setting the buy range near the current price and recent lows, while the sell range is above the current price and near resistance levels."
+            },
+            "qwen2.5:14b-instruct-q4_K_M": {
+                "buy_low": 60.5,
+                "buy_high": 61.29,
+                "sell_low": 61.3,
+                "sell_high": 62.0,
+                "rationale": "Based on the current price and typical trading ranges, these levels provide a balanced risk-reward ratio."
+            },
+            "deepseek-r1:8b": {
+                "buy_low": 60.5,
+                "buy_high": 61.0,
+                "sell_low": 61.5,
+                "sell_high": 62.0,
+                "rationale": "Based on recent price action and lack of news, the buy range targets support levels near the current price, while the sell range targets resistance levels above."
+            }
+        },
+        "consensus": {
+            "buy_low": 60.17,
+            "buy_high": 61.03,
+            "sell_low": 61.67,
+            "sell_high": 62.33
+        },
+        "signal": "SKIP",
+        "upside_pct": 0.62
+    },
+    "T": {
+        "close": 24.98,
+        "models": {
+            "llama3.1:8b-instruct-q8_0": {
+                "buy_low": 24.5,
+                "buy_high": 25.0,
+                "sell_low": 26.0,
+                "sell_high": 26.5,
+                "rationale": "Based on historical volatility, I'm expecting a potential bounce from current levels to the $25-$26 range before potentially breaking out higher."
+            },
+            "qwen2.5:14b-instruct-q4_K_M": {
+                "buy_low": 24.5,
+                "buy_high": 24.98,
+                "sell_low": 25.1,
+                "sell_high": 25.75,
+                "rationale": "Based on the current price, a reasonable range for entering long positions and taking profits is established."
+            },
+            "deepseek-r1:8b": {
+                "buy_low": 24.73,
+                "buy_high": 24.92,
+                "sell_low": 25.1,
+                "sell_high": 25.23,
+                "rationale": "Assuming typical daily volatility of 1%, the buy range is near support below current price, and sell range is near resistance above current price."
+            }
+        },
+        "consensus": {
+            "buy_low": 24.58,
+            "buy_high": 24.97,
+            "sell_low": 25.4,
+            "sell_high": 25.83
+        },
+        "signal": "ACTIVE",
+        "upside_pct": 1.68
+    },
+    "MSFT": {
+        "close": 417.42,
+        "models": {
+            "llama3.1:8b-instruct-q8_0": {
+                "buy_low": 415.0,
+                "buy_high": 416.5,
+                "sell_low": 418.25,
+                "sell_high": 420.75,
+                "rationale": "Based on historical volatility, I'm setting a buy range near the current price and a sell range slightly above it."
+            },
+            "qwen2.5:14b-instruct-q4_K_M": {
+                "buy_low": 410.0,
+                "buy_high": 415.0,
+                "sell_low": 420.0,
+                "sell_high": 425.0,
+                "rationale": "Based on the current price and typical support/resistance levels, these ranges provide a balanced risk-reward ratio."
+            },
+            "deepseek-r1:8b": {
+                "buy_low": 396.55,
+                "buy_high": 409.07,
+                "sell_low": 425.77,
+                "sell_high": 438.29,
+                "rationale": "Assuming a typical daily volatility of 3% for Microsoft stock, with buy range below current price and sell range above."
+            }
+        },
+        "consensus": {
+            "buy_low": 407.18,
+            "buy_high": 413.52,
+            "sell_low": 421.34,
+            "sell_high": 428.01
+        },
+        "signal": "SKIP",
+        "upside_pct": 0.94
+    },
+    "CMCSA": {
+        "close": 24.8,
+        "models": {
+            "llama3.1:8b-instruct-q8_0": {
+                "buy_low": 24.4,
+                "buy_high": 24.6,
+                "sell_low": 25.2,
+                "sell_high": 25.5,
+                "rationale": "Based on historical volatility, I'm setting a buy range near the current price and a sell range slightly above resistance."
+            },
+            "qwen2.5:14b-instruct-q4_K_M": {
+                "buy_low": 24.5,
+                "buy_high": 24.75,
+                "sell_low": 24.9,
+                "sell_high": 25.1,
+                "rationale": "Based on the current price and typical trading ranges, these levels provide a balanced risk-reward ratio."
+            },
+            "deepseek-r1:8b": {
+                "buy_low": 24.55,
+                "buy_high": 24.7,
+                "sell_low": 24.85,
+                "sell_high": 25.05,
+                "rationale": "Assuming a typical daily volatility of 1% around the current closing price."
+            }
+        },
+        "consensus": {
+            "buy_low": 24.48,
+            "buy_high": 24.68,
+            "sell_low": 24.98,
+            "sell_high": 25.22
+        },
+        "signal": "SKIP",
+        "upside_pct": 0.73
+    },
+    "XLF": {
+        "close": 51.1,
+        "models": {
+            "llama3.1:8b-instruct-q8_0": {
+                "buy_low": 50.8,
+                "buy_high": 51.0,
+                "sell_low": 51.2,
+                "sell_high": 51.4,
+                "rationale": "Based on historical volatility, I'm setting a buy range near the current price and a sell range slightly above it."
+            },
+            "qwen2.5:14b-instruct-q4_K_M": {
+                "buy_low": 50.69,
+                "buy_high": 51.1,
+                "sell_low": 51.11,
+                "sell_high": 52.34,
+                "rationale": "Based on technical analysis, these ranges provide a balance between risk and reward for the next trading session."
+            },
+            "deepseek-r1:8b": {
+                "buy_low": 48.55,
+                "buy_high": 50.08,
+                "sell_low": 51.61,
+                "sell_high": 52.12,
+                "rationale": "With no recent news, the buy range is set near support at 95-98% of current price, and sell range near resistance at 101-102% of current price."
+            }
+        },
+        "consensus": {
+            "buy_low": 50.01,
+            "buy_high": 50.73,
+            "sell_low": 51.31,
+            "sell_high": 51.95
+        },
+        "signal": "SKIP",
+        "upside_pct": 0.41
+    },
+    "BAC": {
+        "close": 50.7,
+        "models": {
+            "llama3.1:8b-instruct-q8_0": {
+                "buy_low": 49.5,
+                "buy_high": 50.2,
+                "sell_low": 51.0,
+                "sell_high": 52.3,
+                "rationale": "Based on historical volatility, I'm setting a buy range near the current price and a sell range above potential resistance."
+            },
+            "qwen2.5:14b-instruct-q4_K_M": {
+                "buy_low": 50.2,
+                "buy_high": 50.7,
+                "sell_low": 51.2,
+                "sell_high": 51.7,
+                "rationale": "Based on the current price and typical trading ranges, these levels provide a balanced risk-reward ratio."
+            },
+            "deepseek-r1:8b": {
+                "buy_low": 48.0,
+                "buy_high": 50.7,
+                "sell_low": 51.0,
+                "sell_high": 53.0,
+                "rationale": "Assuming no significant news, the stock is expected to trade within a range based on typical support and resistance levels."
+            }
+        },
+        "consensus": {
+            "buy_low": 49.23,
+            "buy_high": 50.53,
+            "sell_low": 51.07,
+            "sell_high": 52.33
+        },
+        "signal": "SKIP",
+        "upside_pct": 0.73
+    },
+    "KWEB": {
+        "close": 28.28,
+        "models": {
+            "llama3.1:8b-instruct-q8_0": {
+                "buy_low": 27.5,
+                "buy_high": 28.0,
+                "sell_low": 28.3,
+                "sell_high": 29.1,
+                "rationale": "Based on historical volatility, I'm setting a buy range near the current price and a sell range slightly above it, anticipating potential support and resistance levels."
+            },
+            "qwen2.5:14b-instruct-q4_K_M": {
+                "buy_low": 27.5,
+                "buy_high": 28.0,
+                "sell_low": 28.5,
+                "sell_high": 29.0,
+                "rationale": "Based on the current price and typical trading ranges, these levels provide a balanced risk-reward ratio."
+            },
+            "deepseek-r1:8b": {
+                "buy_low": 26.87,
+                "buy_high": 28.28,
+                "sell_low": 28.56,
+                "sell_high": 29.69,
+                "rationale": "With no recent news, the price is expected to trade within a typical range based on current levels."
+            }
+        },
+        "consensus": {
+            "buy_low": 27.29,
+            "buy_high": 28.09,
+            "sell_low": 28.45,
+            "sell_high": 29.26
+        },
+        "signal": "SKIP",
+        "upside_pct": 0.6
+    },
+    "EWZ": {
+        "close": 35.89,
+        "models": {
+            "llama3.1:8b-instruct-q8_0": {
+                "buy_low": 34.5,
+                "buy_high": 35.2,
+                "sell_low": 36.0,
+                "sell_high": 37.3,
+                "rationale": "Based on historical volatility, I'm setting a buy range near the current price and a sell range above potential resistance."
+            },
+            "qwen2.5:14b-instruct-q4_K_M": {
+                "buy_low": 35.64,
+                "buy_high": 35.89,
+                "sell_low": 36.14,
+                "sell_high": 36.39,
+                "rationale": "Based on the current price and typical trading ranges, these levels provide a balanced risk-reward ratio."
+            },
+            "deepseek-r1:8b": {
+                "buy_low": 34.5,
+                "buy_high": 35.89,
+                "sell_low": 36.0,
+                "sell_high": 37.0,
+                "rationale": "No recent news, assuming normal trading with support below current price and resistance above."
+            }
+        },
+        "consensus": {
+            "buy_low": 34.88,
+            "buy_high": 35.66,
+            "sell_low": 36.05,
+            "sell_high": 36.9
+        },
+        "signal": "SKIP",
+        "upside_pct": 0.45
+    },
+    "PATH": {
+        "close": 10.55,
+        "models": {
+            "llama3.1:8b-instruct-q8_0": {
+                "buy_low": 10.4,
+                "buy_high": 10.5,
+                "sell_low": 10.6,
+                "sell_high": 10.8,
+                "rationale": "Based on historical volatility, I'm expecting a slight dip before rebounding to near current levels."
+            },
+            "qwen2.5:14b-instruct-q4_K_M": {
+                "buy_low": 10.35,
+                "buy_high": 10.45,
+                "sell_low": 10.65,
+                "sell_high": 10.85,
+                "rationale": "Based on technical analysis, these ranges provide a buffer for potential price movements."
+            },
+            "deepseek-r1:8b": {
+                "buy_low": 10.0,
+                "buy_high": 10.55,
+                "sell_low": 10.6,
+                "sell_high": 10.7,
+                "rationale": "No recent news, assuming stable market conditions with potential for consolidation."
+            }
+        },
+        "consensus": {
+            "buy_low": 10.25,
+            "buy_high": 10.5,
+            "sell_low": 10.62,
+            "sell_high": 10.78
+        },
+        "signal": "SKIP",
+        "upside_pct": 0.66
+    },
+    "QID": {
+        "close": 15.34,
+        "models": {
+            "llama3.1:8b-instruct-q8_0": {
+                "buy_low": 14.5,
+                "buy_high": 15.0,
+                "sell_low": 16.0,
+                "sell_high": 17.0,
+                "rationale": "Based on historical volatility, I'm expecting a potential dip to $14.50 before rebounding to near $17.00."
+            },
+            "qwen2.5:14b-instruct-q4_K_M": {
+                "buy_low": 15.04,
+                "buy_high": 15.34,
+                "sell_low": 15.64,
+                "sell_high": 16.04,
+                "rationale": "Based on the current price and typical support/resistance levels, these ranges provide a balanced risk-reward ratio."
+            },
+            "deepseek-r1:8b": {
+                "buy_low": 15.1,
+                "buy_high": 15.2,
+                "sell_low": 15.4,
+                "sell_high": 15.5,
+                "rationale": "With no recent news, the price is expected to consolidate within a typical daily range near the current level."
+            }
+        },
+        "consensus": {
+            "buy_low": 14.88,
+            "buy_high": 15.18,
+            "sell_low": 15.68,
+            "sell_high": 16.18
+        },
+        "signal": "ACTIVE",
+        "upside_pct": 2.22
+    },
+    "CCL": {
+        "close": 23.89,
+        "models": {
+            "llama3.1:8b-instruct-q8_0": {
+                "buy_low": 23.5,
+                "buy_high": 24.0,
+                "sell_low": 25.0,
+                "sell_high": 26.0,
+                "rationale": "Based on historical volatility, I'm expecting a potential bounce from current levels to the $24-$25 range before potentially breaking out to $26."
+            },
+            "qwen2.5:14b-instruct-q4_K_M": {
+                "buy_low": 23.69,
+                "buy_high": 23.89,
+                "sell_low": 24.09,
+                "sell_high": 24.59,
+                "rationale": "Based on the current price and typical trading ranges, these levels provide a balanced risk-reward ratio."
+            },
+            "deepseek-r1:8b": {
+                "buy_low": 23.5,
+                "buy_high": 23.8,
+                "sell_low": 24.0,
+                "sell_high": 24.3,
+                "rationale": "No recent news, assuming a typical short-term range based on current price with buy range near support and sell range near resistance."
+            }
+        },
+        "consensus": {
+            "buy_low": 23.56,
+            "buy_high": 23.9,
+            "sell_low": 24.36,
+            "sell_high": 24.96
+        },
+        "signal": "ACTIVE",
+        "upside_pct": 1.97
+    },
+    "RIVN": {
+        "close": 12.9,
+        "models": {
+            "llama3.1:8b-instruct-q8_0": {
+                "buy_low": 12.5,
+                "buy_high": 13.0,
+                "sell_low": 14.0,
+                "sell_high": 15.0,
+                "rationale": "Based on historical volatility, I'm setting a buy range near the current price and a sell range above potential resistance."
+            },
+            "qwen2.5:14b-instruct-q4_K_M": {
+                "buy_low": 12.5,
+                "buy_high": 12.8,
+                "sell_low": 13.0,
+                "sell_high": 13.4,
+                "rationale": "Based on the current price and typical trading ranges, these levels provide a balanced risk-reward ratio."
+            },
+            "deepseek-r1:8b": {
+                "buy_low": 12.8,
+                "buy_high": 12.95,
+                "sell_low": 13.0,
+                "sell_high": 13.2,
+                "rationale": "Assuming no significant news, the price may consolidate around current levels with potential for a slight upward movement."
+            }
+        },
+        "consensus": {
+            "buy_low": 12.6,
+            "buy_high": 12.92,
+            "sell_low": 13.33,
+            "sell_high": 13.87
+        },
+        "signal": "ACTIVE",
+        "upside_pct": 3.33
+    },
+    "GOOGL": {
+        "close": 387.66,
+        "models": {
+            "llama3.1:8b-instruct-q8_0": {
+                "buy_low": 385.0,
+                "buy_high": 387.0,
+                "sell_low": 388.0,
+                "sell_high": 392.0,
+                "rationale": "Based on historical volatility, I'm expecting a slight pullback before a potential breakout."
+            },
+            "qwen2.5:14b-instruct-q4_K_M": {
+                "buy_low": 380.0,
+                "buy_high": 385.0,
+                "sell_low": 390.0,
+                "sell_high": 400.0,
+                "rationale": "Based on technical analysis, these ranges provide a buffer for entry and exit points around the current price."
+            },
+            "deepseek-r1:8b": {
+                "buy_low": 383.78,
+                "buy_high": 387.66,
+                "sell_low": 387.67,
+                "sell_high": 391.54,
+                "rationale": "Assuming a typical daily volatility of 1% for GOOGL based on standard market behavior."
+            }
+        },
+        "consensus": {
+            "buy_low": 382.93,
+            "buy_high": 386.55,
+            "sell_low": 388.56,
+            "sell_high": 394.51
+        },
+        "signal": "SKIP",
+        "upside_pct": 0.23
+    },
+    "FXI": {
+        "close": 36.28,
+        "models": {
+            "llama3.1:8b-instruct-q8_0": {
+                "buy_low": 35.5,
+                "buy_high": 36.0,
+                "sell_low": 36.6,
+                "sell_high": 37.1,
+                "rationale": "Based on historical volatility, I'm setting a buy range near the current price and a sell range slightly above it."
+            },
+            "qwen2.5:14b-instruct-q4_K_M": {
+                "buy_low": 35.8,
+                "buy_high": 36.28,
+                "sell_low": 36.76,
+                "sell_high": 37.14,
+                "rationale": "Based on technical analysis, these ranges provide a buffer for potential price movements in the next trading session."
+            },
+            "deepseek-r1:8b": {
+                "buy_low": 35.0,
+                "buy_high": 36.0,
+                "sell_low": 37.0,
+                "sell_high": 38.0,
+                "rationale": "Assuming normal market conditions with no recent news, the buy range is near support at $35.00 to $36.00, and the sell range for take profit is near resistance at $37.00 to $38.00."
+            }
+        },
+        "consensus": {
+            "buy_low": 35.43,
+            "buy_high": 36.09,
+            "sell_low": 36.79,
+            "sell_high": 37.41
+        },
+        "signal": "SKIP",
+        "upside_pct": 1.41
+    },
+    "LQD": {
+        "close": 107.12,
+        "models": {
+            "llama3.1:8b-instruct-q8_0": {
+                "buy_low": 106.5,
+                "buy_high": 107.0,
+                "sell_low": 107.25,
+                "sell_high": 108.0,
+                "rationale": "Based on historical volatility, I'm expecting a slight pullback to the lower end of the current trading range before potentially breaking through resistance."
+            },
+            "qwen2.5:14b-instruct-q4_K_M": {
+                "buy_low": 106.5,
+                "buy_high": 107.12,
+                "sell_low": 107.4,
+                "sell_high": 108.0,
+                "rationale": "Based on technical analysis, these ranges provide a buffer for potential price movements in the next trading session."
+            },
+            "deepseek-r1:8b": {
+                "buy_low": 105.0,
+                "buy_high": 106.0,
+                "sell_low": 107.5,
+                "sell_high": 108.0,
+                "rationale": "With no recent news, the price is expected to consolidate below current levels and potentially rise in the next session."
+            }
+        },
+        "consensus": {
+            "buy_low": 106.0,
+            "buy_high": 106.71,
+            "sell_low": 107.38,
+            "sell_high": 108.0
+        },
+        "signal": "SKIP",
+        "upside_pct": 0.24
+    },
+    "EEM": {
+        "close": 64.26,
+        "models": {
+            "llama3.1:8b-instruct-q8_0": {
+                "buy_low": 63.5,
+                "buy_high": 64.0,
+                "sell_low": 65.0,
+                "sell_high": 66.0,
+                "rationale": "Based on historical volatility, I'm setting the buy range near the current price and the sell range near the recent highs."
+            },
+            "qwen2.5:14b-instruct-q4_K_M": {
+                "buy_low": 63.5,
+                "buy_high": 64.0,
+                "sell_low": 64.5,
+                "sell_high": 65.0,
+                "rationale": "Based on the current price and typical support/resistance levels, these ranges provide a balanced entry and exit strategy."
+            },
+            "deepseek-r1:8b": {
+                "buy_low": 63.0,
+                "buy_high": 64.0,
+                "sell_low": 64.5,
+                "sell_high": 65.0,
+                "rationale": "No recent news, so assuming a range-bound market with support near $63.00 and resistance near $65.00."
+            }
+        },
+        "consensus": {
+            "buy_low": 63.33,
+            "buy_high": 64.0,
+            "sell_low": 64.67,
+            "sell_high": 65.33
+        },
+        "signal": "SKIP",
+        "upside_pct": 0.64
+    },
+    "IWM": {
+        "close": 273.0,
+        "models": {
+            "llama3.1:8b-instruct-q8_0": {
+                "buy_low": 268.0,
+                "buy_high": 270.5,
+                "sell_low": 276.25,
+                "sell_high": 280.75,
+                "rationale": "Based on historical volatility, I'm setting the buy range near recent support and sell range near resistance."
+            },
+            "qwen2.5:14b-instruct-q4_K_M": {
+                "buy_low": 270.0,
+                "buy_high": 271.0,
+                "sell_low": 275.0,
+                "sell_high": 278.0,
+                "rationale": "Based on technical analysis, these ranges provide a buffer for potential price movements."
+            },
+            "deepseek-r1:8b": {
+                "buy_low": 265.0,
+                "buy_high": 270.0,
+                "sell_low": 280.0,
+                "sell_high": 285.0,
+                "rationale": "No recent news, assuming normal market conditions with support at $265-270 and resistance at $280-285."
+            }
+        },
+        "consensus": {
+            "buy_low": 267.67,
+            "buy_high": 270.5,
+            "sell_low": 277.08,
+            "sell_high": 281.25
+        },
+        "signal": "SKIP",
+        "upside_pct": 1.49
+    },
+    "ORCL": {
+        "close": 181.46,
+        "models": {
+            "llama3.1:8b-instruct-q8_0": {
+                "buy_low": 180.0,
+                "buy_high": 183.0,
+                "sell_low": 184.0,
+                "sell_high": 187.0,
+                "rationale": "Based on historical volatility, we expect ORCL to trade between support at $180 and resistance at $187."
+            },
+            "qwen2.5:14b-instruct-q4_K_M": {
+                "buy_low": 179.0,
+                "buy_high": 180.0,
+                "sell_low": 182.0,
+                "sell_high": 184.0,
+                "rationale": "Based on technical analysis, these ranges offer a balanced risk-reward ratio."
+            },
+            "deepseek-r1:8b": {
+                "buy_low": 179.65,
+                "buy_high": 180.5,
+                "sell_low": 181.5,
+                "sell_high": 183.27,
+                "rationale": "Assuming typical daily volatility of 1%, with support around $179.65-180.50 and resistance around $181.50-183.27."
+            }
+        },
+        "consensus": {
+            "buy_low": 179.55,
+            "buy_high": 181.17,
+            "sell_low": 182.5,
+            "sell_high": 184.76
+        },
+        "signal": "SKIP",
+        "upside_pct": 0.57
+    },
+    "CSCO": {
+        "close": 115.38,
+        "models": {
+            "llama3.1:8b-instruct-q8_0": {
+                "buy_low": 114.5,
+                "buy_high": 115.0,
+                "sell_low": 116.0,
+                "sell_high": 117.25,
+                "rationale": "Based on historical volatility, I'm setting a buy range near the current price and a sell range slightly above resistance."
+            },
+            "qwen2.5:14b-instruct-q4_K_M": {
+                "buy_low": 114.0,
+                "buy_high": 115.38,
+                "sell_low": 116.0,
+                "sell_high": 117.5,
+                "rationale": "Based on the current price and lack of recent news, a conservative approach is to set entry and exit points within a narrow range."
+            },
+            "deepseek-r1:8b": {
+                "buy_low": 114.0,
+                "buy_high": 115.38,
+                "sell_low": 116.0,
+                "sell_high": 117.0,
+                "rationale": "With no recent news, CSCO is expected to find support near $114 and resistance near $117 based on typical daily volatility."
+            }
+        },
+        "consensus": {
+            "buy_low": 114.17,
+            "buy_high": 115.25,
+            "sell_low": 116.0,
+            "sell_high": 117.25
+        },
+        "signal": "SKIP",
+        "upside_pct": 0.54
+    },
+    "VALE": {
+        "close": 16.01,
+        "models": {
+            "llama3.1:8b-instruct-q8_0": {
+                "buy_low": 15.5,
+                "buy_high": 16.0,
+                "sell_low": 16.1,
+                "sell_high": 16.3,
+                "rationale": "VALE is trading near its current price, so we set the buy range slightly below and above it, while setting the sell range at a reasonable distance to capture potential gains."
+            },
+            "qwen2.5:14b-instruct-q4_K_M": {
+                "buy_low": 15.86,
+                "buy_high": 15.96,
+                "sell_low": 16.06,
+                "sell_high": 16.26,
+                "rationale": "Based on the current price and typical trading ranges, these levels provide a balanced risk-reward ratio."
+            },
+            "deepseek-r1:8b": {
+                "buy_low": 15.9,
+                "buy_high": 16.0,
+                "sell_low": 16.1,
+                "sell_high": 16.2,
+                "rationale": "Assuming no significant news, the stock may consolidate with support near $15.90 and resistance around $16.20."
+            }
+        },
+        "consensus": {
+            "buy_low": 15.75,
+            "buy_high": 15.99,
+            "sell_low": 16.09,
+            "sell_high": 16.25
+        },
+        "signal": "SKIP",
+        "upside_pct": 0.5
+    },
+    "TLT": {
+        "close": 83.02,
+        "models": {
+            "llama3.1:8b-instruct-q8_0": {
+                "buy_low": 82.5,
+                "buy_high": 83.0,
+                "sell_low": 84.0,
+                "sell_high": 85.25,
+                "rationale": "Based on historical volatility, I'm setting a buy range near the current price and a sell range slightly above resistance."
+            },
+            "qwen2.5:14b-instruct-q4_K_M": {
+                "buy_low": 82.5,
+                "buy_high": 83.02,
+                "sell_low": 83.5,
+                "sell_high": 84.0,
+                "rationale": "Based on the current price and typical support/resistance levels, these ranges provide a balanced approach for entering long positions and taking profits."
+            },
+            "deepseek-r1:8b": {
+                "buy_low": 82.5,
+                "buy_high": 83.0,
+                "sell_low": 83.5,
+                "sell_high": 84.0,
+                "rationale": "With no recent news, TLT is expected to maintain support around $82.50 and resistance around $84.00, suggesting a range-bound trading pattern."
+            }
+        },
+        "consensus": {
+            "buy_low": 82.5,
+            "buy_high": 83.01,
+            "sell_low": 83.67,
+            "sell_high": 84.42
+        },
+        "signal": "SKIP",
+        "upside_pct": 0.78
+    },
+    "CPNG": {
+        "close": 15.26,
+        "models": {
+            "llama3.1:8b-instruct-q8_0": {
+                "buy_low": 14.5,
+                "buy_high": 15.0,
+                "sell_low": 15.51,
+                "sell_high": 16.01,
+                "rationale": "Based on current price and lack of recent news, I'm setting buy range near support at $15.00 and sell range near resistance at $16.01."
+            },
+            "qwen2.5:14b-instruct-q4_K_M": {
+                "buy_low": 14.76,
+                "buy_high": 15.26,
+                "sell_low": 15.76,
+                "sell_high": 16.26,
+                "rationale": "Based on the current price, a support level is identified at $14.76 and resistance at $16.26."
+            },
+            "deepseek-r1:8b": {
+                "buy_low": 15.0,
+                "buy_high": 15.1,
+                "sell_low": 15.3,
+                "sell_high": 15.4,
+                "rationale": "No recent news, assuming a typical daily volatility range based on current price."
+            }
+        },
+        "consensus": {
+            "buy_low": 14.75,
+            "buy_high": 15.12,
+            "sell_low": 15.52,
+            "sell_high": 15.89
+        },
+        "signal": "ACTIVE",
+        "upside_pct": 1.7
+    },
+    "NCLH": {
+        "close": 14.79,
+        "models": {
+            "llama3.1:8b-instruct-q8_0": {
+                "buy_low": 14.4,
+                "buy_high": 14.6,
+                "sell_low": 15.1,
+                "sell_high": 15.3,
+                "rationale": "Based on historical volatility, I'm setting a buy range near the current price and a sell range above potential resistance."
+            },
+            "qwen2.5:14b-instruct-q4_K_M": {
+                "buy_low": 14.5,
+                "buy_high": 14.79,
+                "sell_low": 15.0,
+                "sell_high": 15.3,
+                "rationale": "Based on technical analysis, these ranges provide a buffer for potential price movements."
+            },
+            "deepseek-r1:8b": {
+                "buy_low": 14.5,
+                "buy_high": 14.79,
+                "sell_low": 14.8,
+                "sell_high": 15.0,
+                "rationale": "With no recent news, assume price may consolidate around current levels, providing a support entry range below and a resistance take profit range above."
+            }
+        },
+        "consensus": {
+            "buy_low": 14.47,
+            "buy_high": 14.73,
+            "sell_low": 14.97,
+            "sell_high": 15.2
+        },
+        "signal": "SKIP",
+        "upside_pct": 1.22
+    },
+    "SLV": {
+        "close": 66.9,
+        "models": {
+            "llama3.1:8b-instruct-q8_0": {
+                "buy_low": 65.5,
+                "buy_high": 66.2,
+                "sell_low": 67.4,
+                "sell_high": 68.1,
+                "rationale": "Based on historical volatility, I'm setting a buy range near the current price and a sell range slightly above resistance."
+            },
+            "qwen2.5:14b-instruct-q4_K_M": {
+                "buy_low": 65.9,
+                "buy_high": 66.8,
+                "sell_low": 67.0,
+                "sell_high": 68.1,
+                "rationale": "Based on the current price and typical support/resistance levels, these ranges provide a balanced risk-reward ratio."
+            },
+            "deepseek-r1:8b": {
+                "buy_low": 66.23,
+                "buy_high": 66.5,
+                "sell_low": 67.0,
+                "sell_high": 67.57,
+                "rationale": "With no recent news, SLV is expected to trade within a typical daily range based on historical volatility."
+            }
+        },
+        "consensus": {
+            "buy_low": 65.88,
+            "buy_high": 66.5,
+            "sell_low": 67.13,
+            "sell_high": 67.92
+        },
+        "signal": "SKIP",
+        "upside_pct": 0.34
+    },
+    "IGV": {
+        "close": 91.95,
+        "models": {
+            "llama3.1:8b-instruct-q8_0": {
+                "buy_low": 90.0,
+                "buy_high": 91.5,
+                "sell_low": 92.5,
+                "sell_high": 94.0,
+                "rationale": "Based on historical volatility, I'm assuming a 2% range below and above the current price for buy and sell triggers."
+            },
+            "qwen2.5:14b-instruct-q4_K_M": {
+                "buy_low": 90.5,
+                "buy_high": 91.5,
+                "sell_low": 92.5,
+                "sell_high": 94.0,
+                "rationale": "Based on technical analysis, these ranges provide a buffer for potential price movements."
+            },
+            "deepseek-r1:8b": {
+                "buy_low": 90.0,
+                "buy_high": 91.0,
+                "sell_low": 92.0,
+                "sell_high": 93.0,
+                "rationale": "Assuming no significant news, the stock may find support near $90 and resistance near $92 based on typical price action."
+            }
+        },
+        "consensus": {
+            "buy_low": 90.17,
+            "buy_high": 91.33,
+            "sell_low": 92.33,
+            "sell_high": 93.67
+        },
+        "signal": "SKIP",
+        "upside_pct": 0.41
+    },
+    "VZ": {
+        "close": 47.74,
+        "models": {
+            "llama3.1:8b-instruct-q8_0": {
+                "buy_low": 46.5,
+                "buy_high": 47.0,
+                "sell_low": 48.25,
+                "sell_high": 49.0,
+                "rationale": "Based on historical volatility, I'm setting a buy range near the current price and a sell range slightly above resistance."
+            },
+            "qwen2.5:14b-instruct-q4_K_M": {
+                "buy_low": 47.24,
+                "buy_high": 47.59,
+                "sell_low": 48.19,
+                "sell_high": 48.74,
+                "rationale": "Based on technical analysis, these ranges offer a balanced risk-reward ratio for the next trading session."
+            },
+            "deepseek-r1:8b": {
+                "buy_low": 47.26,
+                "buy_high": 47.74,
+                "sell_low": 47.75,
+                "sell_high": 48.22,
+                "rationale": "Based on estimated support and resistance levels derived from typical daily price movements for large-cap stocks."
+            }
+        },
+        "consensus": {
+            "buy_low": 47.0,
+            "buy_high": 47.44,
+            "sell_low": 48.06,
+            "sell_high": 48.65
+        },
+        "signal": "SKIP",
+        "upside_pct": 0.67
+    },
+    "ETHA": {
+        "close": 15.93,
+        "models": {
+            "llama3.1:8b-instruct-q8_0": {
+                "buy_low": 15.5,
+                "buy_high": 16.0,
+                "sell_low": 17.0,
+                "sell_high": 18.0,
+                "rationale": "Based on historical volatility, I'm expecting a potential breakout above the current price with support at $15.50 and resistance at $18.00."
+            },
+            "qwen2.5:14b-instruct-q4_K_M": {
+                "buy_low": 15.73,
+                "buy_high": 15.93,
+                "sell_low": 16.08,
+                "sell_high": 16.43,
+                "rationale": "Based on technical analysis, these ranges offer a balance between risk and potential reward."
+            },
+            "deepseek-r1:8b": {
+                "buy_low": 15.61,
+                "buy_high": 15.7,
+                "sell_low": 15.8,
+                "sell_high": 16.25,
+                "rationale": "No significant news, so price is expected to fluctuate within a typical daily volatility band."
+            }
+        },
+        "consensus": {
+            "buy_low": 15.61,
+            "buy_high": 15.88,
+            "sell_low": 16.29,
+            "sell_high": 16.89
+        },
+        "signal": "ACTIVE",
+        "upside_pct": 2.26
+    },
+    "PCG": {
+        "close": 16.41,
+        "models": {
+            "llama3.1:8b-instruct-q8_0": {
+                "buy_low": 15.5,
+                "buy_high": 16.0,
+                "sell_low": 16.51,
+                "sell_high": 17.1,
+                "rationale": "Based on historical volatility, I'm setting a buy range near the current price and a sell range slightly above it."
+            },
+            "qwen2.5:14b-instruct-q4_K_M": {
+                "buy_low": 16.2,
+                "buy_high": 16.41,
+                "sell_low": 16.5,
+                "sell_high": 16.7,
+                "rationale": "Based on the current price and typical trading ranges, these levels provide a balanced risk-reward ratio."
+            },
+            "deepseek-r1:8b": {
+                "buy_low": 16.2,
+                "buy_high": 16.4,
+                "sell_low": 16.45,
+                "sell_high": 16.6,
+                "rationale": "With no recent news, the stock is expected to trade within a narrow range near the current price, with potential for slight upward movement based on typical daily volatility."
+            }
+        },
+        "consensus": {
+            "buy_low": 15.97,
+            "buy_high": 16.27,
+            "sell_low": 16.49,
+            "sell_high": 16.8
+        },
+        "signal": "SKIP",
+        "upside_pct": 0.49
+    },
+    "XLU": {
+        "close": 44.34,
+        "models": {
+            "llama3.1:8b-instruct-q8_0": {
+                "buy_low": 43.5,
+                "buy_high": 44.0,
+                "sell_low": 45.0,
+                "sell_high": 46.25,
+                "rationale": "Based on historical volatility, I'm expecting a slight pullback to the lower end of the recent trading range before potentially breaking out above resistance."
+            },
+            "qwen2.5:14b-instruct-q4_K_M": {
+                "buy_low": 43.89,
+                "buy_high": 44.12,
+                "sell_low": 44.56,
+                "sell_high": 44.99,
+                "rationale": "Based on technical analysis, these ranges offer a balanced risk-reward ratio for the next trading session."
+            },
+            "deepseek-r1:8b": {
+                "buy_low": 44.12,
+                "buy_high": 44.3,
+                "sell_low": 44.4,
+                "sell_high": 44.56,
+                "rationale": "Based on estimated support and resistance levels from typical daily volatility."
+            }
+        },
+        "consensus": {
+            "buy_low": 43.84,
+            "buy_high": 44.14,
+            "sell_low": 44.65,
+            "sell_high": 45.27
+        },
+        "signal": "SKIP",
+        "upside_pct": 0.7
+    },
+    "GDX": {
+        "close": 83.78,
+        "models": {
+            "llama3.1:8b-instruct-q8_0": {
+                "buy_low": 82.5,
+                "buy_high": 83.0,
+                "sell_low": 84.2,
+                "sell_high": 85.3,
+                "rationale": "Based on historical volatility, I'm setting a buy range near the current price and a sell range slightly above resistance."
+            },
+            "qwen2.5:14b-instruct-q4_K_M": {
+                "buy_low": 82.5,
+                "buy_high": 83.78,
+                "sell_low": 84.5,
+                "sell_high": 86.0,
+                "rationale": "Based on technical analysis, these ranges provide a balanced risk-reward ratio for the next trading session."
+            },
+            "deepseek-r1:8b": {
+                "buy_low": 82.5,
+                "buy_high": 83.5,
+                "sell_low": 84.0,
+                "sell_high": 85.0,
+                "rationale": "With no recent news, the price is expected to consolidate around the current level, with support near $82.50 and resistance near $85.00 based on typical daily volatility."
+            }
+        },
+        "consensus": {
+            "buy_low": 82.5,
+            "buy_high": 83.43,
+            "sell_low": 84.23,
+            "sell_high": 85.43
+        },
+        "signal": "SKIP",
+        "upside_pct": 0.54
+    },
+    "HBAN": {
+        "close": 15.46,
+        "models": {
+            "llama3.1:8b-instruct-q8_0": {
+                "buy_low": 14.5,
+                "buy_high": 15.0,
+                "sell_low": 16.0,
+                "sell_high": 17.0,
+                "rationale": "Based on historical volatility, I'm expecting a potential support level around $14.50 and resistance around $17.00 for the next trading session."
+            },
+            "qwen2.5:14b-instruct-q4_K_M": {
+                "buy_low": 15.26,
+                "buy_high": 15.46,
+                "sell_low": 15.66,
+                "sell_high": 15.86,
+                "rationale": "Based on the current price and typical trading ranges, these levels provide a balanced risk-reward ratio."
+            },
+            "deepseek-r1:8b": {
+                "buy_low": 15.0,
+                "buy_high": 15.2,
+                "sell_low": 15.5,
+                "sell_high": 16.0,
+                "rationale": "Assuming no significant news, the stock may consolidate with a slight upward bias due to normal market conditions."
+            }
+        },
+        "consensus": {
+            "buy_low": 14.92,
+            "buy_high": 15.22,
+            "sell_low": 15.72,
+            "sell_high": 16.29
+        },
+        "signal": "ACTIVE",
+        "upside_pct": 1.68
+    },
+    "BSX": {
+        "close": 56.81,
+        "models": {
+            "llama3.1:8b-instruct-q8_0": {
+                "buy_low": 55.0,
+                "buy_high": 56.2,
+                "sell_low": 57.4,
+                "sell_high": 58.5,
+                "rationale": "Based on historical volatility, I'm setting buy and sell ranges around the current price with a buffer of 5% above and below."
+            },
+            "qwen2.5:14b-instruct-q4_K_M": {
+                "buy_low": 56.01,
+                "buy_high": 56.81,
+                "sell_low": 57.21,
+                "sell_high": 58.01,
+                "rationale": "Based on the current price and typical trading ranges, these levels provide a balanced risk-reward ratio."
+            },
+            "deepseek-r1:8b": {
+                "buy_low": 53.97,
+                "buy_high": 56.81,
+                "sell_low": 59.65,
+                "sell_high": 62.49,
+                "rationale": "Assuming moderate volatility and no significant news, the buy range targets support levels below the current price, while the sell range targets resistance levels above."
+            }
+        },
+        "consensus": {
+            "buy_low": 54.99,
+            "buy_high": 56.61,
+            "sell_low": 58.09,
+            "sell_high": 59.67
+        },
+        "signal": "ACTIVE",
+        "upside_pct": 2.25
+    },
+    "QXO": {
+        "close": 15.95,
+        "models": {
+            "llama3.1:8b-instruct-q8_0": {
+                "buy_low": 15.5,
+                "buy_high": 16.0,
+                "sell_low": 16.2,
+                "sell_high": 17.1,
+                "rationale": "Based on historical volatility, I'm expecting a potential bounce from current support levels and a test of resistance around $17."
+            },
+            "qwen2.5:14b-instruct-q4_K_M": {
+                "buy_low": 15.7,
+                "buy_high": 15.95,
+                "sell_low": 16.2,
+                "sell_high": 16.45,
+                "rationale": "Based on technical analysis, these ranges provide a buffer for potential price movements."
+            },
+            "deepseek-r1:8b": {
+                "buy_low": 14.36,
+                "buy_high": 15.15,
+                "sell_low": 16.75,
+                "sell_high": 17.55,
+                "rationale": "With no recent news, the price is expected to find support around $14.36 and resistance around $17.55, with a neutral bias based on typical volatility."
+            }
+        },
+        "consensus": {
+            "buy_low": 15.19,
+            "buy_high": 15.7,
+            "sell_low": 16.38,
+            "sell_high": 17.03
+        },
+        "signal": "ACTIVE",
+        "upside_pct": 2.7
+    },
+    "NKE": {
+        "close": 42.42,
+        "models": {
+            "llama3.1:8b-instruct-q8_0": {
+                "buy_low": 41.5,
+                "buy_high": 42.0,
+                "sell_low": 43.0,
+                "sell_high": 44.2,
+                "rationale": "Based on historical volatility, I'm expecting a slight pullback before a potential breakout."
+            },
+            "qwen2.5:14b-instruct-q4_K_M": {
+                "buy_low": 42.0,
+                "buy_high": 42.42,
+                "sell_low": 43.0,
+                "sell_high": 44.0,
+                "rationale": "Based on technical analysis, these ranges provide a balance between risk and reward."
+            },
+            "deepseek-r1:8b": {
+                "buy_low": 42.0,
+                "buy_high": 42.3,
+                "sell_low": 42.7,
+                "sell_high": 43.1,
+                "rationale": "With no recent news, NKE is expected to consolidate near current levels, with support around $42.00 and resistance near $43.00."
+            }
+        },
+        "consensus": {
+            "buy_low": 41.83,
+            "buy_high": 42.24,
+            "sell_low": 42.9,
+            "sell_high": 43.77
+        },
+        "signal": "SKIP",
+        "upside_pct": 1.13
     }
 }

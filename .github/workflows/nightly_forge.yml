@@ -30,6 +30,12 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Start Ollama
+        run: |
+          ollama serve &
+          sleep 5
+          ollama list
+
       - name: Build ticker universe from Alpaca
         run: python update_tickers.py
 
