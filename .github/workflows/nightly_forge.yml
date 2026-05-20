@@ -9,7 +9,7 @@ on:
 
 jobs:
   execute_loop:
-    runs-on: nvidia-gpu
+    runs-on: self-hosted
     timeout-minutes: 720
 
     permissions:
