@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import os
 from datetime import date
+from collections import defaultdict
 
 import pandas as pd
 import streamlit as st
@@ -38,6 +39,14 @@ def load_report(date_str: str) -> dict | None:
 def load_predictions(date_str: str) -> dict:
     path = os.path.join(HISTORY_DIR, f'predictions_{date_str}.json')
     return load_json(path, {})
+
+
+TRADE_JOURNAL_FILE = 'history/trade_journal.json'
+
+
+@st.cache_data(ttl=60)
+def load_trade_journal() -> list[dict]:
+    return load_json(TRADE_JOURNAL_FILE, [])
 
 
 @st.cache_data(ttl=30)
@@ -78,8 +87,8 @@ def main() -> None:
     today_str = date.today().strftime('%Y-%m-%d')
     trade_log = load_trade_log(today_str)
 
-    tab_signals, tab_positions, tab_trades, tab_models = st.tabs(
-        ['Signals', 'Positions', 'Trades', 'Model scores']
+    tab_signals, tab_positions, tab_trades, tab_pnl, tab_models = st.tabs(
+        ['Signals', 'Positions', 'Trades', 'P&L', 'Model scores']
     )
 
     with tab_signals:
@@ -180,6 +189,82 @@ def main() -> None:
             cols = st.columns(2)
             cols[0].metric('Buys today', len(buys), f"${sum(t.get('amount_usd', 0) for t in buys):.2f}")
             cols[1].metric('Sells today', len(sells), f"${sum(t.get('amount_usd', 0) for t in sells):.2f}")
+
+    with tab_pnl:
+        st.subheader('P&L — trade journal')
+        journal = load_trade_journal()
+        if not journal:
+            st.info('No closed trades yet. P&L will appear here after trader.py closes positions.')
+        else:
+            jdf = pd.DataFrame(journal)
+            jdf['close_date'] = pd.to_datetime(jdf['close_date'])
+
+            # Summary metrics
+            total_pnl = jdf['pnl_usd'].sum()
+            wins = (jdf['outcome'] == 'win').sum()
+            win_rate = wins / len(jdf) * 100
+            avg_pnl_pct = jdf['pnl_pct'].mean()
+
+            mcols = st.columns(4)
+            mcols[0].metric('Total trades', len(jdf))
+            mcols[1].metric('Win rate', f'{win_rate:.0f}%')
+            mcols[2].metric('Total P&L', f'${total_pnl:+.4f}')
+            mcols[3].metric('Avg P&L %', f'{avg_pnl_pct:+.2f}%')
+
+            # Cumulative P&L curve
+            st.subheader('Cumulative P&L over time')
+            daily_pnl = jdf.groupby('close_date')['pnl_usd'].sum().sort_index().cumsum()
+            st.line_chart(daily_pnl.rename('Cumulative P&L ($)'))
+
+            # Per-model win rate
+            st.subheader('Win rate by model')
+            model_stats: dict[str, dict] = defaultdict(lambda: {'wins': 0, 'total': 0, 'pnl': 0.0})
+            for _, row in jdf.iterrows():
+                for model in row.get('predicting_models') or []:
+                    model_stats[model]['total'] += 1
+                    model_stats[model]['pnl'] += row['pnl_usd']
+                    if row['outcome'] == 'win':
+                        model_stats[model]['wins'] += 1
+            if model_stats:
+                model_rows = [
+                    {
+                        'model': m,
+                        'trades': s['total'],
+                        'win_rate_pct': round(s['wins'] / s['total'] * 100, 1) if s['total'] else 0,
+                        'total_pnl_usd': round(s['pnl'], 4),
+                    }
+                    for m, s in model_stats.items()
+                ]
+                st.dataframe(
+                    pd.DataFrame(model_rows).sort_values('win_rate_pct', ascending=False),
+                    use_container_width=True, hide_index=True,
+                )
+
+            # Best / worst trades
+            col_best, col_worst = st.columns(2)
+            with col_best:
+                st.subheader('Best trades')
+                st.dataframe(
+                    jdf.nlargest(5, 'pnl_pct')[
+                        ['close_date', 'ticker', 'entry_price', 'exit_price', 'pnl_usd', 'pnl_pct']
+                    ].reset_index(drop=True),
+                    use_container_width=True, hide_index=True,
+                )
+            with col_worst:
+                st.subheader('Worst trades')
+                st.dataframe(
+                    jdf.nsmallest(5, 'pnl_pct')[
+                        ['close_date', 'ticker', 'entry_price', 'exit_price', 'pnl_usd', 'pnl_pct']
+                    ].reset_index(drop=True),
+                    use_container_width=True, hide_index=True,
+                )
+
+            # Full journal
+            with st.expander('Full trade journal'):
+                st.dataframe(
+                    jdf.sort_values('close_date', ascending=False).reset_index(drop=True),
+                    use_container_width=True, hide_index=True,
+                )
 
     with tab_models:
         st.subheader('Analyst scores (MoE weights)')
