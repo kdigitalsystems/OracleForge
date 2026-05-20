@@ -80,7 +80,7 @@ def fetch_daily_bars(data_client, symbols: list[str], days: int) -> dict[str, li
                 end=end.strftime('%Y-%m-%d'),
             )
             bars = data_client.get_stock_bars(req)
-            for sym, sym_bars in bars.items():
+            for sym, sym_bars in bars.data.items():
                 result[sym] = list(sym_bars)
         except Exception as e:
             print(f'\n  [!] Batch {batch_num} failed: {e}')
