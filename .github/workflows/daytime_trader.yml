@@ -31,22 +31,6 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      # Writes Key/Secret_Key/URL in the format alpaca_client.py expects.
-      # For live trading, swap these three secrets for ALPACA_LIVE_* equivalents.
-      - name: Write Alpaca paper keys
-        env:
-          ALPACA_KEY: ${{ secrets.ALPACA_PAPER_API_KEY }}
-          ALPACA_SECRET: ${{ secrets.ALPACA_PAPER_SECRET_KEY }}
-          ALPACA_URL: ${{ secrets.ALPACA_PAPER_URL }}
-        run: |
-          mkdir -p ~/.ssh
-          {
-            echo "Key:${ALPACA_KEY}"
-            echo "Secret_Key:${ALPACA_SECRET}"
-            echo "URL:${ALPACA_URL}"
-          } > ~/.ssh/alpaca_paper_keys
-          chmod 600 ~/.ssh/alpaca_paper_keys
-
       - name: Verify Alpaca connection
         run: |
           python -c "
