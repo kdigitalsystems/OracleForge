@@ -18,11 +18,14 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import time
 from datetime import date, datetime
 
 import pytz
 
 import alpaca_client
+
+ORDER_SUBMIT_DELAY = 0.3   # seconds between order submissions (~200/min limit)
 
 REPORTS_DIR = 'reports/'
 HISTORY_DIR = 'history/'
@@ -205,6 +208,7 @@ def run_open(dry_run: bool = False) -> None:
             }
             log(f"BUY {ticker}: DAY limit {qty} shares @ ${buy_high:.2f} (${order_size:.2f}) — order {order.id}")
             placed += 1
+            time.sleep(ORDER_SUBMIT_DELAY)
         except Exception as e:
             log(f"[!] Buy order failed for {ticker}: {e}")
 
@@ -232,6 +236,7 @@ def run_open(dry_run: bool = False) -> None:
                 open_orders[ticker] = {}
             open_orders[ticker]['sell_order_id'] = str(order.id)
             log(f"SELL {ticker}: GTC limit {qty} shares @ ${sell_limit:.2f} — order {order.id}")
+            time.sleep(ORDER_SUBMIT_DELAY)
         except Exception as e:
             log(f"[!] Sell order failed for {ticker}: {e}")
 
@@ -261,6 +266,16 @@ def run_close(dry_run: bool = False) -> None:
     if dry_run:
         print("  -- DRY RUN: no state will be written --")
 
+    # Fetch all recent orders in one API call instead of one per ticker
+    orders_by_id: dict[str, object] = {}
+    if not dry_run:
+        try:
+            all_orders = alpaca_client.get_all_recent_orders(client)
+            orders_by_id = {str(o.id): o for o in all_orders}
+            print(f"  Fetched {len(orders_by_id)} recent order(s) from Alpaca.")
+        except Exception as e:
+            print(f"  [!] Could not fetch orders from Alpaca: {e}")
+
     to_delete = []
 
     for ticker, entry in open_orders.items():
@@ -272,8 +287,10 @@ def run_close(dry_run: bool = False) -> None:
             if dry_run:
                 log(f"DRY CHECK buy order {buy_oid} for {ticker}")
             else:
-                try:
-                    order = alpaca_client.get_order(client, buy_oid)
+                order = orders_by_id.get(buy_oid)
+                if order is None:
+                    log(f"[!] Buy order {buy_oid} for {ticker} not found in recent orders")
+                else:
                     status = str(order.status).lower().replace('orderstatus.', '')
 
                     if status in FILLED_STATUSES:
@@ -288,13 +305,13 @@ def run_close(dry_run: bool = False) -> None:
                         )
                         log(f"BUY FILLED {ticker}: {fill_qty} shares @ ${fill_price:.2f} (${usd_filled:.2f})")
 
-                        # Place GTC sell for the filled quantity
                         try:
                             sell_order = alpaca_client.place_limit_sell(
                                 client, ticker, fill_qty, entry['sell_limit']
                             )
                             entry['sell_order_id'] = str(sell_order.id)
                             log(f"SELL {ticker}: GTC limit {fill_qty} shares @ ${entry['sell_limit']:.2f} — order {sell_order.id}")
+                            time.sleep(ORDER_SUBMIT_DELAY)
                         except Exception as e:
                             log(f"[!] Could not place sell for {ticker}: {e}")
 
@@ -305,16 +322,15 @@ def run_close(dry_run: bool = False) -> None:
                     else:
                         log(f"{ticker}: buy order {buy_oid} still open (status={status})")
 
-                except Exception as e:
-                    log(f"[!] Could not fetch buy order {buy_oid} for {ticker}: {e}")
-
         # --- Check sell order ---
         if sell_oid:
             if dry_run:
                 log(f"DRY CHECK sell order {sell_oid} for {ticker}")
             else:
-                try:
-                    order = alpaca_client.get_order(client, sell_oid)
+                order = orders_by_id.get(sell_oid)
+                if order is None:
+                    log(f"[!] Sell order {sell_oid} for {ticker} not found — may be older GTC, skipping")
+                else:
                     status = str(order.status).lower().replace('orderstatus.', '')
 
                     if status in FILLED_STATUSES:
@@ -334,9 +350,6 @@ def run_close(dry_run: bool = False) -> None:
 
                     else:
                         log(f"{ticker}: sell order {sell_oid} still open (status={status}) — GTC carries over")
-
-                except Exception as e:
-                    log(f"[!] Could not fetch sell order {sell_oid} for {ticker}: {e}")
 
     for ticker in set(to_delete):
         open_orders.pop(ticker, None)

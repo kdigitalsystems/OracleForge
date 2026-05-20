@@ -6,8 +6,8 @@ import os
 
 from alpaca.data.historical import StockHistoricalDataClient
 from alpaca.trading.client import TradingClient
-from alpaca.trading.enums import OrderSide, TimeInForce
-from alpaca.trading.requests import LimitOrderRequest, MarketOrderRequest
+from alpaca.trading.enums import OrderSide, QueryOrderStatus, TimeInForce
+from alpaca.trading.requests import GetOrdersRequest, LimitOrderRequest, MarketOrderRequest
 
 KEYS_FILE = os.path.expanduser('~/.ssh/alpaca_paper_keys')
 
@@ -85,6 +85,18 @@ def place_limit_sell(client: TradingClient, ticker: str, qty: float, limit_price
 def get_order(client: TradingClient, order_id: str):
     """Fetch a single order by ID."""
     return client.get_order_by_id(order_id)
+
+
+def get_all_recent_orders(client: TradingClient) -> list:
+    """Fetch all open + recently closed orders in one call (avoids per-order API requests)."""
+    results = []
+    for status in (QueryOrderStatus.OPEN, QueryOrderStatus.CLOSED):
+        try:
+            orders = client.get_orders(GetOrdersRequest(status=status, limit=500))
+            results.extend(orders)
+        except Exception:
+            pass
+    return results
 
 
 def cancel_order(client: TradingClient, order_id: str) -> None:
