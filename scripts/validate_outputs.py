@@ -52,7 +52,7 @@ def main() -> None:
     print(
         f"OK: {len(tickers)} tickers configured, "
         f"{len(predictions)} predictions, "
-        f"{summary.get('watch', 0)} WATCH signals"
+        f"{summary.get('active', 0)} ACTIVE setups"
     )
 
 

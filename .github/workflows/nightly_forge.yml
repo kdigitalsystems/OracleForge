@@ -52,7 +52,7 @@ jobs:
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          git add config/tickers.json config/signals.json state/analyst_scores.json history/ reports/
+          git add config/ state/analyst_scores.json history/ reports/
 
           if git diff --quiet && git diff --staged --quiet; then
             echo "ERROR: No changes to commit after a successful forge run."
