@@ -14,6 +14,12 @@ KEYS_FILE = os.path.expanduser('~/.ssh/alpaca_paper_keys')
 
 def load_keys() -> tuple[str, str, str]:
     """Parse the colon-delimited key file: Key, Secret_Key, URL."""
+    if not os.path.exists(KEYS_FILE):
+        raise FileNotFoundError(
+            f"{KEYS_FILE} not found. "
+            "Add ALPACA_PAPER_API_KEY, ALPACA_PAPER_SECRET_KEY, and ALPACA_PAPER_URL "
+            "as GitHub Actions secrets (repo Settings → Secrets and variables → Actions)."
+        )
     keys: dict[str, str] = {}
     with open(KEYS_FILE) as f:
         for line in f:
@@ -21,7 +27,16 @@ def load_keys() -> tuple[str, str, str]:
             if ':' in line:
                 k, v = line.split(':', 1)
                 keys[k.strip()] = v.strip()
-    return keys['Key'], keys['Secret_Key'], keys['URL']
+    api_key = keys.get('Key', '')
+    secret_key = keys.get('Secret_Key', '')
+    url = keys.get('URL', '')
+    if not api_key or not secret_key or not url:
+        missing = [name for name, val in [('ALPACA_PAPER_API_KEY', api_key), ('ALPACA_PAPER_SECRET_KEY', secret_key), ('ALPACA_PAPER_URL', url)] if not val]
+        raise ValueError(
+            f"Alpaca keys file has empty values for: {', '.join(missing)}. "
+            "Set these as GitHub Actions secrets under repo Settings → Secrets and variables → Actions."
+        )
+    return api_key, secret_key, url
 
 
 def get_trading_client() -> TradingClient:
