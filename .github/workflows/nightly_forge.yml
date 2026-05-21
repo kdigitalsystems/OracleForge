@@ -68,11 +68,14 @@ jobs:
       - name: Validate outputs
         run: python3 scripts/validate_outputs.py
 
+      - name: Generate GitHub Pages report
+        run: python3 scripts/generate_html_report.py
+
       - name: Commit and Push State
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          git add config/ state/analyst_scores.json history/ reports/
+          git add config/ state/analyst_scores.json history/ reports/ docs/
 
           if git diff --quiet && git diff --staged --quiet; then
             echo "ERROR: No changes to commit after a successful forge run."
