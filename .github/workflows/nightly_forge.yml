@@ -27,8 +27,11 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          python -m pip install --upgrade pip
+          python3 -m pip install --upgrade pip
           pip install -r requirements.txt
+
+      - name: Run Unit Tests
+        run: python3 -m unittest test_signals test_backtest test_forge -v
 
       - name: Start Ollama
         run: |
@@ -48,11 +51,11 @@ jobs:
           $OLLAMA list
 
       - name: Build ticker universe from Alpaca
-        run: python update_tickers.py
+        run: python3 update_tickers.py
 
       - name: Verify ticker list
         run: |
-          python -c "
+          python3 -c "
           import json, sys
           tickers = json.load(open('config/tickers.json'))
           assert isinstance(tickers, list) and len(tickers) > 0, 'config/tickers.json is empty'
@@ -60,10 +63,10 @@ jobs:
           "
 
       - name: Execute OracleForge AI Inference
-        run: python forge_loop.py
+        run: python3 forge_loop.py
 
       - name: Validate outputs
-        run: python scripts/validate_outputs.py
+        run: python3 scripts/validate_outputs.py
 
       - name: Commit and Push State
         run: |

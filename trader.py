@@ -227,6 +227,7 @@ def run_open(dry_run: bool = False) -> None:
             log(f"BUY {ticker}: DAY limit {qty} shares @ ${buy_high:.2f} (${order_size:.2f}) — order {order.id}")
             placed += 1
             remaining_bp -= order_size
+            save_json(OPEN_ORDERS_FILE, open_orders)  # persist immediately — prevents duplicate orders on crash
             time.sleep(ORDER_SUBMIT_DELAY)
         except Exception as e:
             log(f"[!] Buy order failed for {ticker}: {e}")

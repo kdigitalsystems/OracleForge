@@ -42,8 +42,13 @@ def fetch_next_session_bar(ticker: str, after_date: str, max_days: int = 10) -> 
     if hist.empty:
         return None
 
-    after_ts = pd.Timestamp(after_date)
-    future = hist[hist.index.normalize() > after_ts.normalize()]
+    # Normalise to tz-naive dates so the comparison works regardless of
+    # whether yfinance returns a tz-aware or tz-naive DatetimeIndex.
+    after_ts = pd.Timestamp(after_date).normalize()
+    index_norm = hist.index.normalize()
+    if index_norm.tz is not None:
+        index_norm = index_norm.tz_localize(None)
+    future = hist[index_norm > after_ts]
     if future.empty:
         return None
 

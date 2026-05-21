@@ -127,7 +127,14 @@ def classify_opportunity(
     if buy_high <= 0 or sell_low <= buy_high:
         return {'signal': 'SKIP', 'upside_pct': None, 'consensus': consensus}
 
-    upside_pct = round(((sell_low - close) / close) * 100, 2)
+    # Upside from entry (buy_high) to target (sell_low) — actual expected trade return
+    upside_pct = round(((sell_low - buy_high) / buy_high) * 100, 2)
+
+    # Spread filter: reject signals where the buy range is suspiciously wide
+    max_spread = float(config.get('max_spread_pct', 999.0))
+    buy_spread_pct = ((buy_high - buy_low) / close) * 100 if close > 0 else 999.0
+    if buy_spread_pct > max_spread:
+        return {'signal': 'SKIP', 'upside_pct': upside_pct, 'consensus': consensus}
 
     if close >= sell_low:
         signal = 'STALE'

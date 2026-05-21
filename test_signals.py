@@ -62,6 +62,22 @@ class ConsensusTests(unittest.TestCase):
     def test_empty(self):
         self.assertIsNone(weighted_consensus_ranges({}, {}))
 
+    def test_only_one_valid_model_returns_none(self):
+        # RANGE_A is valid; 'bad' has incoherent range (buy_high > sell_low)
+        bad_range = {'buy_low': 95.0, 'buy_high': 110.0, 'sell_low': 105.0, 'sell_high': 108.0}
+        preds = {'a': RANGE_A, 'bad': bad_range}
+        scores = {'a': 5.0, 'bad': 5.0}
+        result = weighted_consensus_ranges(preds, scores, min_agreeing_models=2)
+        self.assertIsNone(result)  # only 1 valid model — below threshold
+
+    def test_skipped_model_not_counted(self):
+        # A model that returned a 'skipped' dict should not count toward valid models
+        skipped = {'skipped': True, 'reason': 'upcoming_earnings'}
+        preds = {'a': RANGE_A, 'skipped_model': skipped}
+        scores = {'a': 5.0, 'skipped_model': 5.0}
+        result = weighted_consensus_ranges(preds, scores, min_agreeing_models=2)
+        self.assertIsNone(result)
+
 
 class ClassifyTests(unittest.TestCase):
     def test_active_signal(self):
@@ -86,6 +102,33 @@ class ClassifyTests(unittest.TestCase):
 
     def test_no_consensus(self):
         result = classify_opportunity(close=100.0, consensus=None)
+        self.assertEqual(result['signal'], 'SKIP')
+
+    def test_buy_high_equals_sell_low_is_skip(self):
+        # Degenerate range where entry == target
+        consensus = {'buy_low': 95.0, 'buy_high': 100.0, 'sell_low': 100.0, 'sell_high': 102.0}
+        result = classify_opportunity(close=98.0, consensus=consensus)
+        self.assertEqual(result['signal'], 'SKIP')
+
+    def test_upside_pct_measured_from_entry_not_close(self):
+        # close=90, buy_high=98, sell_low=100
+        # upside from close = (100-90)/90 = 11.1%  ← old (wrong)
+        # upside from entry = (100-98)/98 = 2.04%  ← new (correct)
+        consensus = {'buy_low': 95.0, 'buy_high': 98.0, 'sell_low': 100.0, 'sell_high': 102.0}
+        result = classify_opportunity(
+            close=90.0, consensus=consensus, config={'min_upside_pct': 1.0}
+        )
+        self.assertIsNotNone(result['upside_pct'])
+        # Should be ~2%, not ~11%
+        self.assertLess(result['upside_pct'], 5.0)
+
+    def test_wide_spread_is_skipped(self):
+        # buy range is 10% wide — should be rejected by max_spread_pct=3
+        consensus = {'buy_low': 90.0, 'buy_high': 100.0, 'sell_low': 110.0, 'sell_high': 115.0}
+        result = classify_opportunity(
+            close=100.0, consensus=consensus,
+            config={'min_upside_pct': 1.0, 'max_spread_pct': 3.0},
+        )
         self.assertEqual(result['signal'], 'SKIP')
 
 
