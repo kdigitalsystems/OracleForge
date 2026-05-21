@@ -15,13 +15,18 @@ from __future__ import annotations
 import json
 import os
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 
 REPORTS_DIR = 'reports'
 HISTORY_DIR = 'history'
 SCORES_FILE = 'state/analyst_scores.json'
 BACKTEST_FILE = 'reports/backtest_summary.json'
 OUT_FILE = 'docs/index.html'
+
+# GitHub repo — used by the in-page Rebuild button to trigger workflow_dispatch
+GH_REPO = 'kdigitalsystems/OracleForge'
+GH_WORKFLOW = 'regenerate_report.yml'
+GH_BRANCH = 'main'
 
 
 # ---------------------------------------------------------------------------
@@ -380,7 +385,10 @@ def generate() -> None:
     if not report and not journal and not scores:
         print('WARNING: No data found. Generating empty placeholder page.')
 
-    generated_at = datetime.now().strftime('%Y-%m-%d %H:%M UTC')
+    # Embed build time as both a display string and an ISO timestamp for JS
+    now = datetime.now(timezone.utc)
+    generated_display = now.strftime('%b %d, %Y  %H:%M UTC')
+    generated_iso = now.strftime('%Y-%m-%dT%H:%M:%SZ')
 
     signals_html = build_signals_section(report, date_str) if report else _card(
         'Signals', '<p class="text-gray-500 text-sm">No signals report found. Run forge_loop.py first.</p>'
@@ -402,18 +410,62 @@ def generate() -> None:
     details summary {{ list-style: none; }}
     details summary::before {{ content: "▶ "; }}
     details[open] summary::before {{ content: "▼ "; }}
+    #rebuild-btn:disabled {{ opacity: 0.6; cursor: not-allowed; }}
   </style>
 </head>
 <body class="bg-gray-50 min-h-screen">
 
+  <!-- Token modal -->
+  <div id="token-modal" class="hidden fixed inset-0 bg-black bg-opacity-40 z-50 flex items-center justify-center">
+    <div class="bg-white rounded-xl shadow-xl p-6 w-full max-w-md mx-4">
+      <h3 class="text-lg font-semibold text-gray-900 mb-1">GitHub Personal Access Token</h3>
+      <p class="text-sm text-gray-500 mb-3">
+        Required once to trigger workflow rebuilds. Stored only in your browser's localStorage —
+        never sent anywhere except GitHub's API.<br><br>
+        Create one at <a href="https://github.com/settings/tokens/new?scopes=workflow&description=OracleForge+rebuild"
+          target="_blank" class="text-blue-600 underline">github.com → Settings → Tokens</a>
+        with the <code class="bg-gray-100 px-1 rounded">workflow</code> scope.
+      </p>
+      <input id="token-input" type="password" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
+        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-mono mb-4 focus:outline-none focus:ring-2 focus:ring-blue-400" />
+      <div class="flex gap-2 justify-end">
+        <button onclick="closeModal()" class="px-4 py-2 text-sm text-gray-600 hover:text-gray-800">Cancel</button>
+        <button onclick="saveToken()"
+          class="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium">Save &amp; Rebuild</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Rebuild status bar (hidden until triggered) -->
+  <div id="rebuild-bar" class="hidden fixed bottom-0 left-0 right-0 bg-blue-600 text-white text-sm py-2 px-4 flex items-center justify-between z-40">
+    <span id="rebuild-msg">⏳ Rebuilding report…</span>
+    <span id="rebuild-countdown" class="font-mono text-blue-200"></span>
+  </div>
+
   <!-- Header -->
   <header class="bg-white border-b border-gray-200 shadow-sm sticky top-0 z-10">
-    <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+    <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
       <div>
         <h1 class="text-xl font-bold text-gray-900">⚡ OracleForge</h1>
         <p class="text-xs text-gray-500">LLM ensemble · Alpaca paper trading · Auto-updated nightly</p>
       </div>
-      <span class="text-xs text-gray-400">Generated {generated_at}</span>
+
+      <!-- Build time + Rebuild button -->
+      <div class="flex items-center gap-3 shrink-0">
+        <div class="text-right hidden sm:block">
+          <div class="text-xs font-medium text-gray-700">Last built</div>
+          <div class="text-xs text-gray-400" id="build-time-rel" title="{generated_display}">{generated_display}</div>
+        </div>
+        <button id="rebuild-btn" onclick="onRebuildClick()"
+          class="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg transition-colors">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+          Rebuild
+        </button>
+        <button onclick="clearToken()" title="Clear saved GitHub token"
+          class="text-gray-300 hover:text-gray-500 transition-colors text-lg leading-none">⚙</button>
+      </div>
     </div>
   </header>
 
@@ -421,21 +473,13 @@ def generate() -> None:
   <div class="max-w-6xl mx-auto px-4 mt-4">
     <div class="flex gap-2 mb-5 border-b border-gray-200">
       <button onclick="showTab('signals')" id="tab-signals"
-        class="tab-btn px-4 py-2 text-sm font-medium text-blue-600 border-b-2 border-blue-600">
-        Signals
-      </button>
+        class="tab-btn px-4 py-2 text-sm font-medium text-blue-600 border-b-2 border-blue-600">Signals</button>
       <button onclick="showTab('pnl')" id="tab-pnl"
-        class="tab-btn px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 border-b-2 border-transparent">
-        P&amp;L
-      </button>
+        class="tab-btn px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 border-b-2 border-transparent">P&amp;L</button>
       <button onclick="showTab('backtest')" id="tab-backtest"
-        class="tab-btn px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 border-b-2 border-transparent">
-        Backtest
-      </button>
+        class="tab-btn px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 border-b-2 border-transparent">Backtest</button>
       <button onclick="showTab('models')" id="tab-models"
-        class="tab-btn px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 border-b-2 border-transparent">
-        Models
-      </button>
+        class="tab-btn px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 border-b-2 border-transparent">Models</button>
     </div>
 
     <div id="pane-signals">{signals_html}</div>
@@ -445,6 +489,7 @@ def generate() -> None:
   </div>
 
   <script>
+    // ── Tab switching ──────────────────────────────────────────────────────
     function showTab(name) {{
       ['signals','pnl','backtest','models'].forEach(t => {{
         document.getElementById('pane-' + t).classList.toggle('hidden', t !== name);
@@ -457,6 +502,114 @@ def generate() -> None:
           btn.classList.replace('border-blue-600','border-transparent');
         }}
       }});
+    }}
+
+    // ── Relative build time ────────────────────────────────────────────────
+    (function() {{
+      const built = new Date('{generated_iso}');
+      function relTime() {{
+        const diff = Math.floor((Date.now() - built) / 1000);
+        if (diff < 60)  return diff + 's ago';
+        if (diff < 3600) return Math.floor(diff/60) + 'm ago';
+        if (diff < 86400) return Math.floor(diff/3600) + 'h ago';
+        return Math.floor(diff/86400) + 'd ago';
+      }}
+      const el = document.getElementById('build-time-rel');
+      if (el) {{ el.textContent = relTime(); setInterval(() => el.textContent = relTime(), 30000); }}
+    }})();
+
+    // ── GitHub token helpers ───────────────────────────────────────────────
+    const REPO     = '{GH_REPO}';
+    const WORKFLOW = '{GH_WORKFLOW}';
+    const BRANCH   = '{GH_BRANCH}';
+
+    function getToken()  {{ return localStorage.getItem('gh_token'); }}
+    function clearToken() {{
+      localStorage.removeItem('gh_token');
+      alert('GitHub token cleared. You will be prompted again on the next rebuild.');
+    }}
+    function closeModal() {{ document.getElementById('token-modal').classList.add('hidden'); }}
+    function saveToken() {{
+      const t = document.getElementById('token-input').value.trim();
+      if (!t) {{ alert('Please enter a token.'); return; }}
+      localStorage.setItem('gh_token', t);
+      closeModal();
+      triggerRebuild(t);
+    }}
+
+    // ── Rebuild flow ───────────────────────────────────────────────────────
+    function onRebuildClick() {{
+      const token = getToken();
+      if (!token) {{
+        document.getElementById('token-modal').classList.remove('hidden');
+        document.getElementById('token-input').focus();
+      }} else {{
+        triggerRebuild(token);
+      }}
+    }}
+
+    async function triggerRebuild(token) {{
+      const btn = document.getElementById('rebuild-btn');
+      btn.disabled = true;
+
+      try {{
+        const res = await fetch(
+          `https://api.github.com/repos/${{REPO}}/actions/workflows/${{WORKFLOW}}/dispatches`,
+          {{
+            method: 'POST',
+            headers: {{
+              'Authorization': `Bearer ${{token}}`,
+              'Accept': 'application/vnd.github+json',
+              'Content-Type': 'application/json',
+            }},
+            body: JSON.stringify({{ ref: BRANCH }}),
+          }}
+        );
+
+        if (res.status === 401 || res.status === 403) {{
+          localStorage.removeItem('gh_token');
+          alert('GitHub token rejected (status ' + res.status + '). Please re-enter it.');
+          btn.disabled = false;
+          return;
+        }}
+        if (!res.ok) {{
+          const body = await res.text();
+          alert('GitHub API error ' + res.status + ':\\n' + body);
+          btn.disabled = false;
+          return;
+        }}
+      }} catch (err) {{
+        alert('Network error: ' + err.message);
+        btn.disabled = false;
+        return;
+      }}
+
+      // Show countdown bar and reload when it hits 0
+      startCountdown(40);
+    }}
+
+    function startCountdown(seconds) {{
+      const bar = document.getElementById('rebuild-bar');
+      const msg = document.getElementById('rebuild-msg');
+      const cntEl = document.getElementById('rebuild-countdown');
+      bar.classList.remove('hidden');
+
+      let remaining = seconds;
+      cntEl.textContent = 'Reloading in ' + remaining + 's…';
+
+      const iv = setInterval(() => {{
+        remaining--;
+        if (remaining <= 0) {{
+          clearInterval(iv);
+          msg.textContent = '✅ Done! Reloading…';
+          cntEl.textContent = '';
+          // Hard reload — bypass cache so we get the newly committed HTML
+          location.href = location.href.split('?')[0] + '?v=' + Date.now();
+        }} else {{
+          cntEl.textContent = 'Reloading in ' + remaining + 's…';
+          if (remaining <= 10) msg.textContent = '⏳ Almost there…';
+        }}
+      }}, 1000);
     }}
   </script>
 
