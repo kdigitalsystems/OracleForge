@@ -39,6 +39,7 @@ ET = pytz.timezone('America/New_York')
 DEFAULT_TRADING_CONFIG = {
     'max_per_trade_usd': 2.0,
     'max_position_usd': 8.0,
+    'max_sell_order_days': 5,
 }
 
 FILLED_STATUSES = {'filled', 'partially_filled'}
@@ -269,6 +270,9 @@ def run_open(dry_run: bool = False) -> None:
 # ---------------------------------------------------------------------------
 
 def run_close(dry_run: bool = False) -> None:
+    cfg = load_trading_config()
+    max_sell_order_days = int(cfg.get('max_sell_order_days', 5))
+
     client = None if dry_run else alpaca_client.get_trading_client()
     today = today_str()
 
@@ -367,7 +371,18 @@ def run_close(dry_run: bool = False) -> None:
                         to_delete.append(ticker)
 
                     else:
-                        log(f"{ticker}: sell order {sell_oid} still open (status={status}) — GTC carries over")
+                        order_date = entry.get('date', today)
+                        try:
+                            days_old = (date.fromisoformat(today) - date.fromisoformat(order_date)).days
+                        except Exception:
+                            days_old = 0
+                        if days_old >= max_sell_order_days:
+                            alpaca_client.cancel_order(client, sell_oid)
+                            entry['sell_order_id'] = None
+                            log(f"CANCELLED stale sell order for {ticker} "
+                                f"({days_old}d old, limit={max_sell_order_days}d) — will re-price tomorrow")
+                        else:
+                            log(f"{ticker}: sell GTC carries over (status={status}, age={days_old}d)")
 
     for ticker in set(to_delete):
         open_orders.pop(ticker, None)
