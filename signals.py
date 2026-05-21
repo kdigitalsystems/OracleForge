@@ -18,6 +18,7 @@ RANGE_FIELDS = ('buy_low', 'buy_high', 'sell_low', 'sell_high')
 DEFAULT_SIGNAL_CONFIG = {
     'min_upside_pct': 1.0,
     'min_range_width_pct': 0.5,
+    'min_agreeing_models': 2,
 }
 
 
@@ -69,23 +70,38 @@ def extract_model_predictions(ticker_entry: Any) -> dict[str, dict]:
 def weighted_consensus_ranges(
     model_range_preds: dict[str, dict],
     scores: dict[str, float],
+    min_agreeing_models: int = 2,
 ) -> dict[str, float] | None:
-    """Compute score-weighted average of buy/sell ranges across models."""
+    """Compute score-weighted average of buy/sell ranges across models.
+
+    Only models with a valid prediction (buy_low < buy_high < sell_low <= sell_high)
+    contribute. Returns None if fewer than min_agreeing_models have valid ranges.
+    """
     if not model_range_preds:
         return None
 
     total_weight = 0.0
     weighted: dict[str, float] = {f: 0.0 for f in RANGE_FIELDS}
+    valid_count = 0
 
     for model_name, ranges in model_range_preds.items():
+        if not isinstance(ranges, dict):
+            continue
+        bl = float(ranges.get('buy_low') or 0)
+        bh = float(ranges.get('buy_high') or 0)
+        sl = float(ranges.get('sell_low') or 0)
+        sh = float(ranges.get('sell_high') or 0)
+        # Skip fallbacks, skipped tickers, and incoherent ranges
+        if not (bl > 0 and bh > bl and sl > bh and sh >= sl):
+            continue
+
         weight = max(float(scores.get(model_name, 5.0)), 0.1)
         for field in RANGE_FIELDS:
-            val = ranges.get(field)
-            if val is not None:
-                weighted[field] += float(val) * weight
+            weighted[field] += float(ranges[field]) * weight
         total_weight += weight
+        valid_count += 1
 
-    if total_weight == 0:
+    if valid_count < min_agreeing_models or total_weight == 0:
         return None
 
     return {f: round(weighted[f] / total_weight, 2) for f in RANGE_FIELDS}
@@ -142,7 +158,8 @@ def build_enriched_predictions(
         if close is None:
             continue
 
-        consensus = weighted_consensus_ranges(model_preds, scores)
+        min_agreeing = int(config.get('min_agreeing_models', 2))
+        consensus = weighted_consensus_ranges(model_preds, scores, min_agreeing)
         opp = classify_opportunity(close, consensus, config)
 
         enriched[ticker] = {
