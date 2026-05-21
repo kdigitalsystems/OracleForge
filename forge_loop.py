@@ -23,6 +23,7 @@ from signals import (
 )
 
 CONFIG_FILE = 'config/tickers.json'
+MODELS_FILE = 'config/models.json'
 SCORES_FILE = 'state/analyst_scores.json'
 HISTORY_DIR = 'history/'
 REPORTS_DIR = 'reports/'
@@ -404,20 +405,32 @@ def main():
     config_tickers = load_json(CONFIG_FILE, [])
     watchlist = parse_ticker_list(args.tickers)
     tickers = watchlist if watchlist else config_tickers
-    scores = load_json(SCORES_FILE, {})
     journal = load_json(TRADE_JOURNAL_FILE, [])
+
+    # Models come from config/models.json — never overwritten by automation
+    models = load_json(MODELS_FILE, [])
+    if not models:
+        print("ERROR: No models found in config/models.json.")
+        sys.exit(1)
+
+    # Scores are per-model state — initialise any new model at 5.0
+    scores = load_json(SCORES_FILE, {})
+    for m in models:
+        if m not in scores:
+            print(f"  New model detected: {m} — initialising score to 5.0")
+            scores[m] = 5.0
+    # Restrict scores dict to active models only
+    scores = {m: scores[m] for m in models}
 
     if not tickers:
         print("ERROR: No tickers found. Run update_tickers.py or pass --tickers NVDA,AAPL.")
-        sys.exit(1)
-    if not scores:
-        print("ERROR: No models found in state/analyst_scores.json.")
         sys.exit(1)
 
     if watchlist:
         print(f"Watchlist mode: {len(tickers)} tickers ({', '.join(tickers)})")
     else:
         print(f"Processing {len(tickers)} tickers from {CONFIG_FILE}")
+    print(f"Models: {', '.join(models)}")
     print(f"Trade journal: {len(journal)} closed trades on record.")
 
     today_date = datetime.now().strftime('%Y-%m-%d')
