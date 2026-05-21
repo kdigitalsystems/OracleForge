@@ -192,7 +192,7 @@ def evaluate_range_prediction(open_price, high_price, low_price, pred) -> float:
         return -0.01
     if high_price >= sell_low:
         return 0.01
-    return -0.01
+    return 0.0  # price entered range but trade still open — no penalty
 
 
 def score_deltas_from_journal(journal: list, prior_date: str, scores: dict) -> dict:
