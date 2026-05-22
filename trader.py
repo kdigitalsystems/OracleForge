@@ -1,4 +1,4 @@
-# trader.py — GTC limit order placement and end-of-day settlement
+# trader.py — DAY limit order placement and end-of-day settlement
 """
 Two short jobs replace the old polling loop:
 
@@ -247,7 +247,7 @@ def run_open(dry_run: bool = False) -> None:
             continue
 
         if dry_run:
-            log(f"DRY SELL {ticker}: GTC limit {qty} shares @ ${sell_limit:.2f}")
+            log(f"DRY SELL {ticker}: DAY limit {qty} shares @ ${sell_limit:.2f}")
             continue
 
         try:
@@ -255,7 +255,7 @@ def run_open(dry_run: bool = False) -> None:
             if ticker not in open_orders:
                 open_orders[ticker] = {}
             open_orders[ticker]['sell_order_id'] = str(order.id)
-            log(f"SELL {ticker}: GTC limit {qty} shares @ ${sell_limit:.2f} — order {order.id}")
+            log(f"SELL {ticker}: DAY limit {qty} shares @ ${sell_limit:.2f} — order {order.id}")
             time.sleep(ORDER_SUBMIT_DELAY)
         except Exception as e:
             log(f"[!] Sell order failed for {ticker}: {e}")
@@ -272,7 +272,6 @@ def run_open(dry_run: bool = False) -> None:
 
 def run_close(dry_run: bool = False) -> None:
     cfg = load_trading_config()
-    max_sell_order_days = int(cfg.get('max_sell_order_days', 5))
 
     client = None if dry_run else alpaca_client.get_trading_client()
     today = today_str()
@@ -333,7 +332,7 @@ def run_close(dry_run: bool = False) -> None:
                                 client, ticker, fill_qty, entry['sell_limit']
                             )
                             entry['sell_order_id'] = str(sell_order.id)
-                            log(f"SELL {ticker}: GTC limit {fill_qty} shares @ ${entry['sell_limit']:.2f} — order {sell_order.id}")
+                            log(f"SELL {ticker}: DAY limit {fill_qty} shares @ ${entry['sell_limit']:.2f} — order {sell_order.id}")
                             time.sleep(ORDER_SUBMIT_DELAY)
                         except Exception as e:
                             log(f"[!] Could not place sell for {ticker}: {e}")
@@ -352,7 +351,9 @@ def run_close(dry_run: bool = False) -> None:
             else:
                 order = orders_by_id.get(sell_oid)
                 if order is None:
-                    log(f"[!] Sell order {sell_oid} for {ticker} not found — may be older GTC, skipping")
+                    # Order not in recent history — treat as expired, let --open re-place
+                    log(f"[!] Sell order {sell_oid} for {ticker} not found — clearing, will re-place at open")
+                    entry['sell_order_id'] = None
                 else:
                     status = str(order.status).lower().replace('orderstatus.', '')
 
@@ -371,19 +372,13 @@ def run_close(dry_run: bool = False) -> None:
                             )
                         to_delete.append(ticker)
 
+                    elif status in DEAD_STATUSES:
+                        # DAY sell expired without filling — clear so --open re-places tomorrow
+                        entry['sell_order_id'] = None
+                        log(f"SELL EXPIRED {ticker}: DAY order did not fill, will re-place at open")
+
                     else:
-                        order_date = entry.get('date', today)
-                        try:
-                            days_old = (date.fromisoformat(today) - date.fromisoformat(order_date)).days
-                        except Exception:
-                            days_old = 0
-                        if days_old >= max_sell_order_days:
-                            alpaca_client.cancel_order(client, sell_oid)
-                            entry['sell_order_id'] = None
-                            log(f"CANCELLED stale sell order for {ticker} "
-                                f"({days_old}d old, limit={max_sell_order_days}d) — will re-price tomorrow")
-                        else:
-                            log(f"{ticker}: sell GTC carries over (status={status}, age={days_old}d)")
+                        log(f"{ticker}: sell order still pending (status={status})")
 
     for ticker in set(to_delete):
         open_orders.pop(ticker, None)

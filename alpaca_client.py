@@ -71,12 +71,17 @@ def place_limit_buy(client: TradingClient, ticker: str, qty: float,
 
 
 def place_limit_sell(client: TradingClient, ticker: str, qty: float, limit_price: float):
-    """Place a GTC fractional limit sell order. Returns the order object."""
+    """Place a DAY fractional limit sell order. Returns the order object.
+
+    Alpaca does not support GTC for fractional shares — DAY is used instead.
+    The --close job clears sell_order_id when a DAY sell expires so --open
+    re-places it fresh each morning until the position is exited.
+    """
     req = LimitOrderRequest(
         symbol=ticker,
         qty=round(qty, 6),
         side=OrderSide.SELL,
-        time_in_force=TimeInForce.GTC,
+        time_in_force=TimeInForce.DAY,
         limit_price=round(limit_price, 2),
     )
     return client.submit_order(req)
