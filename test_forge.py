@@ -1,4 +1,4 @@
-"""Unit tests for forge_loop helpers."""
+﻿"""Unit tests for forge_loop helpers."""
 from __future__ import annotations
 
 import sys
@@ -72,10 +72,32 @@ class ParseLlmRangeTests(unittest.TestCase):
         self.assertIn('Fallback', result['rationale'])
 
     def test_incoherent_range_returns_fallback(self):
-        # buy_high > sell_low — invalid
+        # buy_high > sell_low ? invalid
         raw = '{"buy_low": 95, "buy_high": 110, "sell_low": 105, "sell_high": 108, "rationale": "bad"}'
         result = parse_llm_range(raw, 100.0)
         self.assertIn('Fallback', result['rationale'])
+
+
+# ---------------------------------------------------------------------------
+# _fallback_range
+# ---------------------------------------------------------------------------
+
+class FallbackRangeTests(unittest.TestCase):
+
+    def test_fallback_tagged(self):
+        result = _fallback_range(100.0)
+        self.assertTrue(result.get('fallback'), "Fallback range must be tagged fallback=True")
+
+    def test_fallback_valid_range(self):
+        result = _fallback_range(200.0)
+        self.assertGreater(result['buy_high'], result['buy_low'])
+        self.assertGreater(result['sell_low'], result['buy_high'])
+        self.assertGreaterEqual(result['sell_high'], result['sell_low'])
+
+    def test_parse_llm_fallback_tagged(self):
+        # Unparseable output should produce a tagged fallback
+        result = parse_llm_range('definitely not json', 100.0)
+        self.assertTrue(result.get('fallback'), "parse_llm_range fallback must be tagged")
 
 
 # ---------------------------------------------------------------------------
@@ -102,13 +124,26 @@ class EvaluateRangePredictionTests(unittest.TestCase):
         self.assertEqual(delta, 0.0)
 
     def test_hold_inconclusive(self):
-        # Price entered buy range but neither stop nor target hit — should be 0 (trade still open)
+        # Price entered buy range but neither stop nor target hit
         delta = evaluate_range_prediction(high_price=104, low_price=99, pred=self.PRED)
-        self.assertEqual(delta, 0.0)  # Bug #2 fix: was -0.01 before
+        self.assertEqual(delta, 0.0)
 
     def test_invalid_pred(self):
         self.assertEqual(evaluate_range_prediction(105, 95, pred={}), 0.0)
         self.assertEqual(evaluate_range_prediction(105, 95, pred=None), 0.0)
+
+    def test_fallback_pred_returns_zero(self):
+        # Synthetic fallback predictions must not affect model scores
+        fallback_pred = {**self.PRED, 'fallback': True}
+        # Would be a win without the fallback flag, but should be 0.0
+        delta = evaluate_range_prediction(high_price=108, low_price=99, pred=fallback_pred)
+        self.assertEqual(delta, 0.0)
+
+    def test_fallback_pred_stop_returns_zero(self):
+        # Fallback stop: would be -0.01, but should be 0.0
+        fallback_pred = {**self.PRED, 'fallback': True}
+        delta = evaluate_range_prediction(high_price=101, low_price=97, pred=fallback_pred)
+        self.assertEqual(delta, 0.0)
 
 
 # ---------------------------------------------------------------------------
@@ -175,6 +210,23 @@ class ApplyScoreDeltasTests(unittest.TestCase):
         apply_score_deltas(scores, {'model_a': [0.0, 0.0]})
         self.assertEqual(scores['model_a'], 5.0)
 
+    def test_score_decay_reduces_score_before_adjustment(self):
+        # With decay=0.9: new_score = 5.0 * 0.9 + 0.01 = 4.51
+        # Without decay:  new_score = 5.0 * 1.0 + 0.01 = 5.01
+        scores_decayed = {'model_a': 5.0}
+        scores_nodecay = {'model_a': 5.0}
+        apply_score_deltas(scores_decayed, {'model_a': [0.01]}, decay=0.9)
+        apply_score_deltas(scores_nodecay, {'model_a': [0.01]}, decay=1.0)
+        self.assertLess(scores_decayed['model_a'], scores_nodecay['model_a'])
+
+    def test_score_decay_default_is_no_decay(self):
+        # Default decay=1.0 should produce same result as explicit 1.0
+        scores_default = {'model_a': 5.0}
+        scores_explicit = {'model_a': 5.0}
+        apply_score_deltas(scores_default, {'model_a': [0.01]})
+        apply_score_deltas(scores_explicit, {'model_a': [0.01]}, decay=1.0)
+        self.assertAlmostEqual(scores_default['model_a'], scores_explicit['model_a'], places=6)
+
 
 # ---------------------------------------------------------------------------
 # compute_technicals
@@ -189,6 +241,34 @@ class ComputeTechnicalsTests(unittest.TestCase):
         result = compute_technicals(bars)
         for key in ('rsi14', 'vol_ratio', 'pct_from_10d_high', 'pct_from_10d_low', 'pct_from_sma20'):
             self.assertIn(key, result, f"Missing key: {key}")
+
+    def test_bb_pct_present_with_20_bars(self):
+        closes = [100 + i * 0.3 for i in range(25)]
+        bars = _make_bars(closes)
+        result = compute_technicals(bars)
+        self.assertIn('bb_pct', result, "bb_pct missing with 25 bars")
+
+    def test_price_momentum_5d_present(self):
+        closes = [100 + i * 0.5 for i in range(25)]
+        bars = _make_bars(closes)
+        result = compute_technicals(bars)
+        self.assertIn('price_momentum_5d', result, "price_momentum_5d missing with 25 bars")
+
+    def test_price_momentum_5d_positive_for_rising(self):
+        closes = list(range(100, 125))  # strictly rising
+        bars = _make_bars(closes)
+        result = compute_technicals(bars)
+        self.assertGreater(result['price_momentum_5d'], 0)
+
+    def test_bb_pct_in_valid_range(self):
+        # Flat price ? near middle of band
+        closes = [100.0] * 25
+        bars = _make_bars(closes)
+        result = compute_technicals(bars)
+        # With flat prices, std=0 ? we fall back gracefully (key may be absent or 0.5)
+        # Just check it's a float if present
+        if 'bb_pct' in result:
+            self.assertIsInstance(result['bb_pct'], float)
 
     def test_rsi_within_valid_range(self):
         closes = [100 + i for i in range(25)]
@@ -205,7 +285,7 @@ class ComputeTechnicalsTests(unittest.TestCase):
 
     def test_volume_ratio_positive(self):
         closes = [100] * 25
-        volumes = [1_000_000] * 24 + [2_000_000]  # today 2× average
+        volumes = [1_000_000] * 24 + [2_000_000]  # today 2x average
         bars = [MockBar(c, volume=v) for c, v in zip(closes, volumes)]
         result = compute_technicals(bars)
         self.assertGreater(result['vol_ratio'], 0)

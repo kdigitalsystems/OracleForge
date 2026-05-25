@@ -1,19 +1,19 @@
-# trader.py — DAY limit order placement and end-of-day settlement
+﻿# trader.py ? DAY limit order placement and end-of-day settlement
 """
 Two short jobs replace the old polling loop:
 
   python3 trader.py --open   (9:30 AM ET)
     Reads today's ACTIVE signals and places DAY limit buy orders at buy_high.
-    Also places DAY limit sell orders for any existing positions without one.
+    Also places DAY limit sell and stop-loss orders for positions without them.
 
   python3 trader.py --close  (4:05 PM ET)
-    Checks fills for open buy orders → records entry, places DAY sell @ sell_low.
-    Checks fills for open sell orders → records P&L to trade journal.
-    Clears expired DAY sells so --open re-places them next morning.
+    Checks fills for open buy orders -> records entry, places sell + stop orders.
+    Checks fills for sell/stop orders -> records P&L, cancels companion order.
+    Clears expired DAY orders so --open re-places them next morning.
 
 State is persisted to state/open_orders.json so it survives between the two jobs.
 
-Note: Alpaca does not support GTC for fractional share orders; all sells use DAY
+Note: Alpaca does not support GTC for fractional share orders; all orders use DAY
 time-in-force and are re-placed each morning until the position is exited.
 """
 from __future__ import annotations
@@ -42,7 +42,7 @@ ET = pytz.timezone('America/New_York')
 DEFAULT_TRADING_CONFIG = {
     'max_per_trade_usd': 2.0,
     'max_position_usd': 8.0,
-    'max_sell_order_days': 5,
+    'stop_loss_pct': 0.95,
 }
 
 FILLED_STATUSES = {'filled', 'partially_filled'}
@@ -153,6 +153,7 @@ def run_open(dry_run: bool = False) -> None:
     cfg = load_trading_config()
     max_per_trade = float(cfg['max_per_trade_usd'])
     max_position = float(cfg['max_position_usd'])
+    stop_loss_pct = float(cfg.get('stop_loss_pct', 0.95))
 
     client = None if dry_run else alpaca_client.get_trading_client()
     today = today_str()
@@ -162,7 +163,7 @@ def run_open(dry_run: bool = False) -> None:
         print(f"No ACTIVE setups for {today}. Nothing to order.")
         return
 
-    # Best upside first — ensures top setups are funded if buying power runs out
+    # Best upside first ? ensures top setups are funded if buying power runs out
     active_rows.sort(key=lambda r: float(r.get('upside_pct', 0)), reverse=True)
 
     open_orders = load_json(OPEN_ORDERS_FILE, {})
@@ -177,7 +178,7 @@ def run_open(dry_run: bool = False) -> None:
             remaining_bp = float(account.buying_power)
             print(f"  Available buying power: ${remaining_bp:.2f}")
         except Exception as e:
-            print(f"  [!] Could not fetch buying power: {e} — will attempt orders anyway")
+            print(f"  [!] Could not fetch buying power: {e} ? will attempt orders anyway")
 
     print(f"[{now_et()}] OracleForge --open | {len(active_rows)} ACTIVE setups (sorted by upside)")
     if dry_run:
@@ -222,47 +223,74 @@ def run_open(dry_run: bool = False) -> None:
             open_orders[ticker] = {
                 'buy_order_id': str(order.id),
                 'sell_order_id': None,
+                'stop_order_id': None,
                 'buy_limit': buy_high,
                 'sell_limit': sell_low,
+                'stop_limit': None,
                 'qty': qty,
                 'date': today,
             }
-            log(f"BUY {ticker}: DAY limit {qty} shares @ ${buy_high:.2f} (${order_size:.2f}) — order {order.id}")
+            log(f"BUY {ticker}: DAY limit {qty} shares @ ${buy_high:.2f} (${order_size:.2f}) ? order {order.id}")
             placed += 1
             remaining_bp -= order_size
-            save_json(OPEN_ORDERS_FILE, open_orders)  # persist immediately — prevents duplicate orders on crash
+            save_json(OPEN_ORDERS_FILE, open_orders)  # persist immediately ? prevents duplicate orders on crash
             time.sleep(ORDER_SUBMIT_DELAY)
         except Exception as e:
             log(f"[!] Buy order failed for {ticker}: {e}")
 
-    # --- Place sell orders for positions that don't have one yet ---
+    # --- Place sell + stop-loss orders for positions that don't have them ---
     for ticker, meta_entry in positions_meta.items():
         entry = open_orders.get(ticker, {})
-        if entry.get('sell_order_id'):
-            continue  # already have a sell order
 
         qty = 0.0 if dry_run else alpaca_client.get_position_qty(client, ticker)
-        if qty <= 0:
+        if qty <= 0 and not dry_run:
             continue
 
         sell_limit = entry.get('sell_limit') or meta_entry.get('consensus_sell_low')
+        buy_limit_price = float(entry.get('buy_limit') or meta_entry.get('consensus_buy_high') or 0)
+        stop_limit_price = entry.get('stop_limit') or (
+            round(buy_limit_price * stop_loss_pct, 2) if buy_limit_price > 0 else None
+        )
+
         if not sell_limit:
             continue
 
-        if dry_run:
-            log(f"DRY SELL {ticker}: DAY limit {qty} shares @ ${sell_limit:.2f}")
+        need_sell = not entry.get('sell_order_id')
+        need_stop = not entry.get('stop_order_id') and bool(stop_limit_price)
+
+        if not need_sell and not need_stop:
             continue
 
-        try:
-            order = alpaca_client.place_limit_sell(client, ticker, qty, sell_limit)
-            if ticker not in open_orders:
-                open_orders[ticker] = {}
-            open_orders[ticker]['sell_order_id'] = str(order.id)
-            log(f"SELL {ticker}: DAY limit {qty} shares @ ${sell_limit:.2f} — order {order.id}")
-            save_json(OPEN_ORDERS_FILE, open_orders)  # persist immediately — prevents duplicate sells on crash
-            time.sleep(ORDER_SUBMIT_DELAY)
-        except Exception as e:
-            log(f"[!] Sell order failed for {ticker}: {e}")
+        if dry_run:
+            if need_sell:
+                log(f"DRY SELL {ticker}: DAY limit {qty} shares @ ${float(sell_limit):.2f}")
+            if need_stop and stop_limit_price:
+                log(f"DRY STOP {ticker}: DAY limit {qty} shares @ ${float(stop_limit_price):.2f}")
+            continue
+
+        if ticker not in open_orders:
+            open_orders[ticker] = {}
+
+        if need_sell:
+            try:
+                order = alpaca_client.place_limit_sell(client, ticker, qty, sell_limit)
+                open_orders[ticker]['sell_order_id'] = str(order.id)
+                log(f"SELL {ticker}: DAY limit {qty} shares @ ${float(sell_limit):.2f} ? order {order.id}")
+                save_json(OPEN_ORDERS_FILE, open_orders)  # persist immediately
+                time.sleep(ORDER_SUBMIT_DELAY)
+            except Exception as e:
+                log(f"[!] Sell order failed for {ticker}: {e}")
+
+        if need_stop and stop_limit_price:
+            try:
+                order = alpaca_client.place_limit_sell(client, ticker, qty, stop_limit_price)
+                open_orders[ticker]['stop_order_id'] = str(order.id)
+                open_orders[ticker]['stop_limit'] = stop_limit_price
+                log(f"STOP {ticker}: DAY limit {qty} shares @ ${float(stop_limit_price):.2f} ? order {order.id}")
+                save_json(OPEN_ORDERS_FILE, open_orders)  # persist immediately
+                time.sleep(ORDER_SUBMIT_DELAY)
+            except Exception as e:
+                log(f"[!] Stop order failed for {ticker}: {e}")
 
     print(f"\nDone. {placed} buy order(s) placed.")
 
@@ -273,6 +301,7 @@ def run_open(dry_run: bool = False) -> None:
 
 def run_close(dry_run: bool = False) -> None:
     cfg = load_trading_config()
+    stop_loss_pct = float(cfg.get('stop_loss_pct', 0.95))
 
     client = None if dry_run else alpaca_client.get_trading_client()
     today = today_str()
@@ -299,14 +328,16 @@ def run_close(dry_run: bool = False) -> None:
         except Exception as e:
             print(f"  [!] Could not fetch orders from Alpaca: {e}")
 
-    to_delete = []
+    to_delete: list[str] = []
+    settled: set[str] = set()  # tickers for which a fill was recorded this run
 
     for ticker, entry in open_orders.items():
         buy_oid = entry.get('buy_order_id')
         sell_oid = entry.get('sell_order_id')
+        stop_oid = entry.get('stop_order_id')
 
-        # --- Check buy order ---
-        if buy_oid and not sell_oid:
+        # --- Check buy order (only if no sell/stop placed yet) ---
+        if buy_oid and not sell_oid and not stop_oid:
             if dry_run:
                 log(f"DRY CHECK buy order {buy_oid} for {ticker}")
             else:
@@ -328,38 +359,66 @@ def run_close(dry_run: bool = False) -> None:
                         )
                         log(f"BUY FILLED {ticker}: {fill_qty} shares @ ${fill_price:.2f} (${usd_filled:.2f})")
 
-                        # Clear buy_order_id immediately so a crash + retry doesn't
-                        # double-record the same fill into positions_meta.
+                        # Clear buy_order_id before placing sell/stop ? prevents
+                        # double-recording if the process crashes and retries.
                         entry['buy_order_id'] = None
                         save_json(OPEN_ORDERS_FILE, open_orders)
 
+                        # P0 fix: use TOTAL held qty, not just this fill's qty.
+                        # A position may have been pyramided over multiple days.
+                        total_qty = alpaca_client.get_position_qty(client, ticker)
+                        if total_qty <= 0:
+                            log(f"[!] Could not confirm position qty for {ticker}, using fill qty")
+                            total_qty = fill_qty
+                        entry['qty'] = total_qty
+
+                        # Place profit-target DAY limit sell
                         try:
                             sell_order = alpaca_client.place_limit_sell(
-                                client, ticker, fill_qty, entry['sell_limit']
+                                client, ticker, total_qty, entry['sell_limit']
                             )
                             entry['sell_order_id'] = str(sell_order.id)
-                            log(f"SELL {ticker}: DAY limit {fill_qty} shares @ ${entry['sell_limit']:.2f} — order {sell_order.id}")
+                            log(
+                                f"SELL {ticker}: DAY limit {total_qty} shares @ "
+                                f"${entry['sell_limit']:.2f} ? order {sell_order.id}"
+                            )
                             save_json(OPEN_ORDERS_FILE, open_orders)
                             time.sleep(ORDER_SUBMIT_DELAY)
                         except Exception as e:
-                            log(f"[!] Could not place sell for {ticker}: {e}")
+                            log(f"[!] Could not place profit-target sell for {ticker}: {e}")
+
+                        # Place stop-loss DAY limit sell
+                        stop_limit = round(entry['buy_limit'] * stop_loss_pct, 2)
+                        entry['stop_limit'] = stop_limit
+                        try:
+                            stop_order = alpaca_client.place_limit_sell(
+                                client, ticker, total_qty, stop_limit
+                            )
+                            entry['stop_order_id'] = str(stop_order.id)
+                            log(
+                                f"STOP {ticker}: DAY limit {total_qty} shares @ "
+                                f"${stop_limit:.2f} ? order {stop_order.id}"
+                            )
+                            save_json(OPEN_ORDERS_FILE, open_orders)
+                            time.sleep(ORDER_SUBMIT_DELAY)
+                        except Exception as e:
+                            log(f"[!] Could not place stop-loss for {ticker}: {e}")
 
                     elif status in DEAD_STATUSES:
                         log(f"BUY EXPIRED {ticker}: order {buy_oid} status={status}, removing")
                         to_delete.append(ticker)
-
                     else:
                         log(f"{ticker}: buy order {buy_oid} still open (status={status})")
 
-        # --- Check sell order ---
-        if sell_oid:
+        # --- Check profit-target sell order ---
+        if sell_oid and ticker not in settled:
             if dry_run:
                 log(f"DRY CHECK sell order {sell_oid} for {ticker}")
             else:
                 order = orders_by_id.get(sell_oid)
                 if order is None:
-                    # Order not in recent history — treat as expired, let --open re-place
-                    log(f"[!] Sell order {sell_oid} for {ticker} not found — clearing, will re-place at open")
+                    # Order not in recent history ? treat as expired, let --open re-place
+                    log(f"[!] Sell order {sell_oid} for {ticker} not found ? clearing, will re-place at open")
                     entry['sell_order_id'] = None
                 else:
                     status = str(order.status).lower().replace('orderstatus.', '')
@@ -369,23 +428,71 @@ def run_close(dry_run: bool = False) -> None:
                         fill_qty = float(order.filled_qty or entry.get('qty', 0))
                         usd_returned = round(fill_price * fill_qty, 4)
 
+                        # Cancel companion stop-loss order
+                        if entry.get('stop_order_id'):
+                            alpaca_client.cancel_order(client, entry['stop_order_id'])
+                            log(f"  Cancelled stop-loss order {entry['stop_order_id']} for {ticker}")
+
                         trade = record_sell(
                             positions_meta, journal, ticker, fill_price, usd_returned, today
                         )
                         if trade:
                             log(
                                 f"SELL FILLED {ticker}: {fill_qty} shares @ ${fill_price:.2f} "
-                                f"— P&L ${trade['pnl_usd']:+.4f} ({trade['pnl_pct']:+.2f}%)"
+                                f"? P&L ${trade['pnl_usd']:+.4f} ({trade['pnl_pct']:+.2f}%)"
                             )
+                        settled.add(ticker)
                         to_delete.append(ticker)
 
                     elif status in DEAD_STATUSES:
-                        # DAY sell expired without filling — clear so --open re-places tomorrow
+                        # DAY sell expired without filling ? clear so --open re-places tomorrow
                         entry['sell_order_id'] = None
                         log(f"SELL EXPIRED {ticker}: DAY order did not fill, will re-place at open")
-
                     else:
                         log(f"{ticker}: sell order still pending (status={status})")
+
+        # --- Check stop-loss sell order ---
+        if stop_oid and ticker not in settled:
+            if dry_run:
+                log(f"DRY CHECK stop order {stop_oid} for {ticker}")
+            else:
+                order = orders_by_id.get(stop_oid)
+                if order is None:
+                    log(f"[!] Stop order {stop_oid} for {ticker} not found ? clearing, will re-place at open")
+                    entry['stop_order_id'] = None
+                else:
+                    status = str(order.status).lower().replace('orderstatus.', '')
+
+                    if status in FILLED_STATUSES:
+                        fill_price = float(
+                            order.filled_avg_price
+                            or entry.get('stop_limit')
+                            or entry.get('sell_limit', 0)
+                        )
+                        fill_qty = float(order.filled_qty or entry.get('qty', 0))
+                        usd_returned = round(fill_price * fill_qty, 4)
+
+                        # Cancel companion profit-target sell
+                        if entry.get('sell_order_id'):
+                            alpaca_client.cancel_order(client, entry['sell_order_id'])
+                            log(f"  Cancelled profit-target order {entry['sell_order_id']} for {ticker}")
+
+                        trade = record_sell(
+                            positions_meta, journal, ticker, fill_price, usd_returned, today
+                        )
+                        if trade:
+                            log(
+                                f"STOP HIT {ticker}: {fill_qty} shares @ ${fill_price:.2f} "
+                                f"? P&L ${trade['pnl_usd']:+.4f} ({trade['pnl_pct']:+.2f}%)"
+                            )
+                        settled.add(ticker)
+                        to_delete.append(ticker)
+
+                    elif status in DEAD_STATUSES:
+                        entry['stop_order_id'] = None
+                        log(f"STOP EXPIRED {ticker}: DAY order did not fill, will re-place at open")
+                    else:
+                        log(f"{ticker}: stop order still pending (status={status})")
 
     for ticker in set(to_delete):
         open_orders.pop(ticker, None)

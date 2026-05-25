@@ -1,4 +1,4 @@
-# backtest.py
+﻿# backtest.py
 """Walk prediction history and score range outcomes vs next-session OHLC."""
 from __future__ import annotations
 
@@ -101,6 +101,10 @@ def _new_bucket() -> dict:
         'stops': 0,
         'misses': 0,
         'return_pct_sum': 0.0,
+        'gross_profit': 0.0,
+        'gross_loss': 0.0,
+        '_cur_loss_streak': 0,
+        '_max_loss_streak': 0,
     }
 
 
@@ -108,22 +112,48 @@ def _update_bucket(bucket: dict, outcome: dict) -> None:
     bucket['trades'] += 1
     if outcome['triggered']:
         bucket['triggered'] += 1
-        bucket['return_pct_sum'] += outcome['return_pct']
+        ret = outcome['return_pct']
+        bucket['return_pct_sum'] += ret
         if outcome['outcome'] == 'win':
             bucket['wins'] += 1
+            bucket['gross_profit'] += ret
+            bucket['_cur_loss_streak'] = 0
         elif outcome['outcome'] == 'stop':
             bucket['stops'] += 1
+            bucket['gross_loss'] += abs(ret)
+            bucket['_cur_loss_streak'] += 1
+            bucket['_max_loss_streak'] = max(
+                bucket['_max_loss_streak'], bucket['_cur_loss_streak']
+            )
         else:
             bucket['misses'] += 1
+            if ret < 0:
+                bucket['gross_loss'] += abs(ret)
+            bucket['_cur_loss_streak'] = 0
 
 
 def _finalize_bucket(bucket: dict) -> dict:
     triggered = bucket['triggered']
-    return {
-        **bucket,
-        'win_rate': round(bucket['wins'] / triggered, 4) if triggered else 0.0,
+    wins = bucket['wins']
+    stops = bucket['stops']
+    gross_profit = bucket['gross_profit']
+    gross_loss = bucket['gross_loss']
+
+    avg_win_pct = round(gross_profit / wins, 4) if wins else 0.0
+    avg_loss_pct = round(gross_loss / stops, 4) if stops else 0.0
+    profit_factor = round(gross_profit / gross_loss, 3) if gross_loss > 0 else None
+
+    # Build output, excluding internal tracking fields
+    out = {k: v for k, v in bucket.items() if not k.startswith('_')}
+    out.update({
+        'win_rate': round(wins / triggered, 4) if triggered else 0.0,
         'avg_return_pct': round(bucket['return_pct_sum'] / triggered, 4) if triggered else 0.0,
-    }
+        'avg_win_pct': avg_win_pct,
+        'avg_loss_pct': avg_loss_pct,
+        'profit_factor': profit_factor,
+        'max_consecutive_losses': bucket['_max_loss_streak'],
+    })
+    return out
 
 
 def run_backtest(dates: list[str] | None = None, scores: dict | None = None) -> dict:
@@ -199,21 +229,36 @@ def print_backtest_summary(report: dict) -> None:
     )
 
     print('\nBy model:')
-    print(f"{'Model':<36} {'Trades':>8} {'Triggered':>10} {'Win%':>8} {'AvgRet%':>10}")
-    print('-' * 76)
+    print(
+        f"{'Model':<36} {'Trades':>8} {'Win%':>7} "
+        f"{'AvgWin%':>9} {'AvgLoss%':>9} {'PF':>7} {'MaxLoss':>8}"
+    )
+    print('-' * 90)
     for model, stats in report['by_model'].items():
+        pf = f"{stats['profit_factor']:.2f}" if stats['profit_factor'] is not None else 'N/A'
         print(
-            f"{model:<36} {stats['trades']:>8} {stats['triggered']:>10} "
-            f"{stats['win_rate'] * 100:>7.1f}% {stats['avg_return_pct']:>9.2f}%"
+            f"{model:<36} {stats['trades']:>8} "
+            f"{stats['win_rate'] * 100:>6.1f}%% "
+            f"{stats['avg_win_pct']:>8.2f}%% "
+            f"{stats['avg_loss_pct']:>8.2f}%% "
+            f"{pf:>7} "
+            f"{stats['max_consecutive_losses']:>8}"
         )
 
     print('\nBy signal:')
-    print(f"{'Signal':<12} {'Trades':>8} {'Triggered':>10} {'Win%':>8} {'AvgRet%':>10}")
-    print('-' * 52)
+    print(
+        f"{'Signal':<12} {'Trades':>8} {'Win%':>7} "
+        f"{'AvgWin%':>9} {'AvgLoss%':>9} {'PF':>7}"
+    )
+    print('-' * 60)
     for signal, stats in report['by_signal'].items():
+        pf = f"{stats['profit_factor']:.2f}" if stats['profit_factor'] is not None else 'N/A'
         print(
-            f"{signal:<12} {stats['trades']:>8} {stats['triggered']:>10} "
-            f"{stats['win_rate'] * 100:>7.1f}% {stats['avg_return_pct']:>9.2f}%"
+            f"{signal:<12} {stats['trades']:>8} "
+            f"{stats['win_rate'] * 100:>6.1f}%% "
+            f"{stats['avg_win_pct']:>8.2f}%% "
+            f"{stats['avg_loss_pct']:>8.2f}%% "
+            f"{pf:>7}"
         )
 
 

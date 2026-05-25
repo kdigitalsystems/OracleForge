@@ -1,4 +1,4 @@
-"""Unit tests for backtest helpers"""
+﻿"""Unit tests for backtest helpers"""
 import unittest
 
 from backtest import _finalize_bucket, _new_bucket, _update_bucket, simulate_range_outcome
@@ -62,6 +62,73 @@ class BucketTests(unittest.TestCase):
         final = _finalize_bucket(_new_bucket())
         self.assertEqual(final['trades'], 0)
         self.assertEqual(final['win_rate'], 0.0)
+
+    # ----- Risk metric tests -----
+
+    def test_finalize_includes_risk_fields(self):
+        bucket = _new_bucket()
+        _update_bucket(bucket, simulate_range_outcome({'open': 101, 'high': 108, 'low': 99, 'close': 106}, RANGE_WIN))
+        final = _finalize_bucket(bucket)
+        for field in ('avg_win_pct', 'avg_loss_pct', 'profit_factor', 'max_consecutive_losses'):
+            self.assertIn(field, final, f"Missing risk field: {field}")
+
+    def test_profit_factor_one_win_one_stop(self):
+        bucket = _new_bucket()
+        # Win returns 7%, stop returns -2%
+        _update_bucket(bucket, simulate_range_outcome({'open': 101, 'high': 108, 'low': 99, 'close': 106}, RANGE_WIN))
+        _update_bucket(bucket, simulate_range_outcome({'open': 101, 'high': 101, 'low': 97, 'close': 99}, RANGE_STOP))
+        final = _finalize_bucket(bucket)
+        # gross_profit = ~7%, gross_loss = 2%  => pf = ~3.5
+        self.assertIsNotNone(final['profit_factor'])
+        self.assertGreater(final['profit_factor'], 1.0)
+
+    def test_profit_factor_none_when_no_losses(self):
+        bucket = _new_bucket()
+        _update_bucket(bucket, simulate_range_outcome({'open': 101, 'high': 108, 'low': 99, 'close': 106}, RANGE_WIN))
+        final = _finalize_bucket(bucket)
+        # No stops ? profit_factor undefined
+        self.assertIsNone(final['profit_factor'])
+
+    def test_avg_win_pct_positive(self):
+        bucket = _new_bucket()
+        _update_bucket(bucket, simulate_range_outcome({'open': 101, 'high': 108, 'low': 99, 'close': 106}, RANGE_WIN))
+        final = _finalize_bucket(bucket)
+        self.assertGreater(final['avg_win_pct'], 0)
+
+    def test_avg_loss_pct_positive_for_stops(self):
+        bucket = _new_bucket()
+        _update_bucket(bucket, simulate_range_outcome({'open': 101, 'high': 101, 'low': 97, 'close': 99}, RANGE_STOP))
+        final = _finalize_bucket(bucket)
+        # avg_loss_pct is stored as a positive number (absolute loss)
+        self.assertGreater(final['avg_loss_pct'], 0)
+
+    def test_max_consecutive_losses_tracked(self):
+        bucket = _new_bucket()
+        stop_bar = {'open': 101, 'high': 101, 'low': 97, 'close': 99}
+        win_bar  = {'open': 101, 'high': 108, 'low': 99, 'close': 106}
+        _update_bucket(bucket, simulate_range_outcome(stop_bar, RANGE_STOP))
+        _update_bucket(bucket, simulate_range_outcome(stop_bar, RANGE_STOP))
+        _update_bucket(bucket, simulate_range_outcome(stop_bar, RANGE_STOP))
+        _update_bucket(bucket, simulate_range_outcome(win_bar, RANGE_WIN))
+        final = _finalize_bucket(bucket)
+        self.assertEqual(final['max_consecutive_losses'], 3)
+
+    def test_max_consecutive_losses_resets_after_win(self):
+        bucket = _new_bucket()
+        stop_bar = {'open': 101, 'high': 101, 'low': 97, 'close': 99}
+        win_bar  = {'open': 101, 'high': 108, 'low': 99, 'close': 106}
+        # 2 losses, win, 1 loss ? max should be 2
+        _update_bucket(bucket, simulate_range_outcome(stop_bar, RANGE_STOP))
+        _update_bucket(bucket, simulate_range_outcome(stop_bar, RANGE_STOP))
+        _update_bucket(bucket, simulate_range_outcome(win_bar, RANGE_WIN))
+        _update_bucket(bucket, simulate_range_outcome(stop_bar, RANGE_STOP))
+        final = _finalize_bucket(bucket)
+        self.assertEqual(final['max_consecutive_losses'], 2)
+
+    def test_internal_fields_not_in_output(self):
+        final = _finalize_bucket(_new_bucket())
+        for key in final:
+            self.assertFalse(key.startswith('_'), f"Internal field leaked to output: {key}")
 
 
 if __name__ == '__main__':

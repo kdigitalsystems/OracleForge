@@ -1,4 +1,4 @@
-# forge_loop.py — overnight inference engine
+﻿# forge_loop.py ? overnight inference engine
 import argparse
 import json
 import os
@@ -132,12 +132,14 @@ def has_upcoming_earnings(ticker: str) -> bool:
 
 
 def _fallback_range(price: float) -> dict:
+    """Synthetic fallback when LLM output is unparseable. Tagged so it can be excluded."""
     return {
         'buy_low': round(price * 0.985, 2),
         'buy_high': round(price * 0.995, 2),
         'sell_low': round(price * 1.015, 2),
         'sell_high': round(price * 1.025, 2),
         'rationale': 'Fallback range (model output unparseable)',
+        'fallback': True,
     }
 
 
@@ -181,6 +183,9 @@ def evaluate_range_prediction(high_price, low_price, pred) -> float:
     """Score a prior range prediction against realized OHLC: +0.01, -0.01, or 0.0."""
     if not isinstance(pred, dict):
         return 0.0
+    # Fallback predictions are synthetic ? do not reward or penalise them
+    if pred.get('fallback'):
+        return 0.0
     buy_high = float(pred.get('buy_high') or 0)
     sell_low = float(pred.get('sell_low') or 0)
     if buy_high <= 0 or sell_low <= 0:
@@ -192,14 +197,14 @@ def evaluate_range_prediction(high_price, low_price, pred) -> float:
         return -0.01
     if high_price >= sell_low:
         return 0.01
-    return 0.0  # price entered range but trade still open — no penalty
+    return 0.0  # price entered range but trade still open ? no penalty
 
 
 def score_deltas_from_journal(journal: list, prior_date: str, scores: dict) -> dict:
     """
     Build score deltas from actual closed trades on prior_date.
     Models that predicted a winning trade get +0.02; losers get -0.02.
-    Weighted higher than theoretical OHLC evaluation (±0.01) to reflect real outcomes.
+    Weighted higher than theoretical OHLC evaluation (+-0.01) to reflect real outcomes.
     """
     deltas: dict[str, list] = defaultdict(list)
     for trade in journal:
@@ -212,14 +217,21 @@ def score_deltas_from_journal(journal: list, prior_date: str, scores: dict) -> d
     return deltas
 
 
-def apply_score_deltas(scores: dict, deltas_by_model: dict) -> None:
+def apply_score_deltas(scores: dict, deltas_by_model: dict, decay: float = 1.0) -> None:
+    """Apply score adjustments with optional exponential decay.
+
+    decay < 1.0 gradually down-weights stale historical accuracy so recent
+    performance carries more influence. decay=1.0 (default) disables decay.
+    """
     for model_name, deltas in deltas_by_model.items():
         non_zero = [d for d in deltas if d != 0.0]
         if not non_zero:
             continue
         current = scores.get(model_name, 5.0)
         adjustment = sum(non_zero) / len(non_zero)
-        scores[model_name] = round(min(10.0, max(0.0, current + adjustment)), 3)
+        # Apply decay before adding the new adjustment
+        new_score = current * decay + adjustment
+        scores[model_name] = round(min(10.0, max(0.0, new_score)), 3)
 
 
 def model_performance_context(model_name: str, journal: list) -> str:
@@ -246,14 +258,14 @@ def ticker_trade_history(ticker: str, journal: list, limit: int = 5) -> str:
     lines = [f"Recent actual trade results for {ticker}:"]
     for t in trades:
         lines.append(
-            f"  {t['close_date']}: bought ${t['entry_price']:.2f} → "
+            f"  {t['close_date']}: bought ${t['entry_price']:.2f} -> "
             f"sold ${t['exit_price']:.2f}  {t['pnl_pct']:+.2f}% ({t['outcome']})"
         )
     return "\n".join(lines)
 
 
 def compute_technicals(bars: list) -> dict:
-    """Compute RSI-14, volume ratio, and price context from bar history."""
+    """Compute RSI-14, Bollinger %B, volume ratio, and price context from bar history."""
     if len(bars) < 5:
         return {}
     closes = [float(b.close) for b in bars]
@@ -262,8 +274,9 @@ def compute_technicals(bars: list) -> dict:
     lows = [float(b.low) for b in bars]
     close = closes[-1]
 
+    result = {}
+
     # RSI-14
-    rsi = None
     if len(closes) >= 15:
         deltas = [closes[i] - closes[i - 1] for i in range(1, len(closes))]
         period = deltas[-14:]
@@ -271,32 +284,41 @@ def compute_technicals(bars: list) -> dict:
         losses = [-d for d in period if d < 0]
         avg_gain = sum(gains) / 14
         avg_loss = sum(losses) / 14
-        rsi = 100.0 if avg_loss == 0 else round(100 - (100 / (1 + avg_gain / avg_loss)), 1)
+        result['rsi14'] = 100.0 if avg_loss == 0 else round(100 - (100 / (1 + avg_gain / avg_loss)), 1)
 
     # Volume ratio vs prior 20-day average (exclude today)
     prior_vols = volumes[-21:-1] if len(volumes) > 20 else volumes[:-1]
     avg_vol = sum(prior_vols) / len(prior_vols) if prior_vols else volumes[-1]
-    vol_ratio = round(volumes[-1] / avg_vol, 2) if avg_vol else 1.0
+    result['vol_ratio'] = round(volumes[-1] / avg_vol, 2) if avg_vol else 1.0
 
     # 10-day high/low distance
     n = min(10, len(bars))
     high_10d = max(highs[-n:])
     low_10d = min(lows[-n:])
-    pct_from_high = round((close - high_10d) / high_10d * 100, 1)
-    pct_from_low = round((close - low_10d) / low_10d * 100, 1)
+    result['pct_from_10d_high'] = round((close - high_10d) / high_10d * 100, 1)
+    result['pct_from_10d_low'] = round((close - low_10d) / low_10d * 100, 1)
 
     # SMA-20 distance
     sma_window = closes[-20:] if len(closes) >= 20 else closes
     sma20 = sum(sma_window) / len(sma_window)
-    pct_from_sma20 = round((close - sma20) / sma20 * 100, 1)
+    result['pct_from_sma20'] = round((close - sma20) / sma20 * 100, 1)
 
-    return {
-        'rsi14': rsi,
-        'vol_ratio': vol_ratio,
-        'pct_from_10d_high': pct_from_high,
-        'pct_from_10d_low': pct_from_low,
-        'pct_from_sma20': pct_from_sma20,
-    }
+    # Bollinger Band %B ? where is price within the 20-day band?
+    if len(closes) >= 20:
+        bb_closes = closes[-20:]
+        bb_mean = sum(bb_closes) / 20
+        bb_std = (sum((c - bb_mean) ** 2 for c in bb_closes) / 20) ** 0.5
+        if bb_std > 0:
+            upper_band = bb_mean + 2 * bb_std
+            lower_band = bb_mean - 2 * bb_std
+            band_width = upper_band - lower_band
+            result['bb_pct'] = round((close - lower_band) / band_width, 3) if band_width > 0 else 0.5
+
+    # 5-day price momentum
+    if len(closes) >= 6:
+        result['price_momentum_5d'] = round((close / closes[-6] - 1) * 100, 2)
+
+    return result
 
 
 def _technicals_block(t: dict) -> str:
@@ -306,12 +328,12 @@ def _technicals_block(t: dict) -> str:
     lines = ["Technical context (use to calibrate your price levels):"]
     if t.get('rsi14') is not None:
         rsi = t['rsi14']
-        note = ' (oversold — potential bounce)' if rsi < 35 else ' (overbought — caution)' if rsi > 65 else ''
+        note = ' (oversold ? potential bounce)' if rsi < 35 else ' (overbought ? caution)' if rsi > 65 else ''
         lines.append(f"- RSI(14): {rsi}{note}")
     if t.get('vol_ratio') is not None:
         vr = t['vol_ratio']
-        note = ' (elevated — strong interest)' if vr > 1.5 else ' (below average)' if vr < 0.7 else ''
-        lines.append(f"- Volume: {vr}× 20-day average{note}")
+        note = ' (elevated ? strong interest)' if vr > 1.5 else ' (below average)' if vr < 0.7 else ''
+        lines.append(f"- Volume: {vr}x 20-day average{note}")
     if t.get('pct_from_10d_low') is not None:
         lines.append(
             f"- Price is {t['pct_from_10d_low']:+.1f}% from 10-day low (support) "
@@ -319,6 +341,12 @@ def _technicals_block(t: dict) -> str:
         )
     if t.get('pct_from_sma20') is not None:
         lines.append(f"- Price is {t['pct_from_sma20']:+.1f}% from 20-day SMA")
+    if t.get('bb_pct') is not None:
+        bp = t['bb_pct']
+        note = ' (near upper band ? overbought)' if bp > 0.8 else ' (near lower band ? oversold)' if bp < 0.2 else ''
+        lines.append(f"- Bollinger %%B: {bp:.2f}{note}")
+    if t.get('price_momentum_5d') is not None:
+        lines.append(f"- 5-day momentum: {t['price_momentum_5d']:+.2f}%%")
     return "\n".join(lines)
 
 
@@ -372,7 +400,7 @@ All values must be positive numbers. buy_high must be less than sell_low."""
 
 
 def fetch_all_bars(tickers: list[str], days: int = 30) -> dict[str, list]:
-    """Batch-fetch daily bars for all tickers. Returns {sym: [Bar, ...]} oldest→newest."""
+    """Batch-fetch daily bars for all tickers. Returns {sym: [Bar, ...]} oldest->newest."""
     data_client = alpaca_client.get_data_client()
     end = datetime.now()
     start = end - timedelta(days=days + 10)  # buffer for weekends/holidays
@@ -407,20 +435,24 @@ def main():
     tickers = watchlist if watchlist else config_tickers
     journal = load_json(TRADE_JOURNAL_FILE, [])
 
-    # Models come from config/models.json — never overwritten by automation
+    # Models come from config/models.json ? never overwritten by automation
     models = load_json(MODELS_FILE, [])
     if not models:
         print("ERROR: No models found in config/models.json.")
         sys.exit(1)
 
-    # Scores are per-model state — initialise any new model at 5.0
+    # Scores are per-model state ? initialise any new model at 5.0
     scores = load_json(SCORES_FILE, {})
     for m in models:
         if m not in scores:
-            print(f"  New model detected: {m} — initialising score to 5.0")
+            print(f"  New model detected: {m} ? initialising score to 5.0")
             scores[m] = 5.0
     # Restrict scores dict to active models only
     scores = {m: scores[m] for m in models}
+
+    # Read score decay from trading config
+    trading_cfg = load_json('config/trading.json', {})
+    score_decay = float(trading_cfg.get('score_decay_per_day', 1.0))
 
     if not tickers:
         print("ERROR: No tickers found. Run update_tickers.py or pass --tickers NVDA,AAPL.")
@@ -432,6 +464,7 @@ def main():
         print(f"Processing {len(tickers)} tickers from {CONFIG_FILE}")
     print(f"Models: {', '.join(models)}")
     print(f"Trade journal: {len(journal)} closed trades on record.")
+    print(f"Score decay per day: {score_decay}")
 
     today_date = datetime.now().strftime('%Y-%m-%d')
     today_log_path = os.path.join(HISTORY_DIR, f'predictions_{today_date}.json')
@@ -454,6 +487,8 @@ def main():
     print(f"Batch-fetching 30-day bars for {len(tickers)} tickers via Alpaca...")
     all_bars = fetch_all_bars(tickers, days=30)
     print(f"  Received data for {len(all_bars)} tickers.")
+
+    fallback_count = 0
 
     for ticker in tickers:
         bar_list = all_bars.get(ticker)
@@ -486,7 +521,7 @@ def main():
             for model, deltas in journal_deltas.items():
                 score_deltas[model].extend(deltas)
 
-    apply_score_deltas(scores, score_deltas)
+    apply_score_deltas(scores, score_deltas, decay=score_decay)
 
     if not market_data:
         print("ERROR: No market data retrieved for any ticker. Aborting inference.")
@@ -519,7 +554,12 @@ def main():
                 ticker, current_price, model_name, journal,
                 technicals=technicals_data.get(ticker),
             )
+            if range_pred.get('fallback'):
+                fallback_count += 1
             today_predictions[ticker][model_name] = range_pred
+
+    if fallback_count:
+        print(f"\n  [!] {fallback_count} fallback prediction(s) generated (excluded from consensus).")
 
     # --- PHASE 3: SIGNALS & SAVE STATE ---
     print("\n--- PHASE 3: Signals & Persistence ---")

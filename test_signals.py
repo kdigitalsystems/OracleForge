@@ -1,4 +1,4 @@
-"""Unit tests for signals.py"""
+﻿"""Unit tests for signals.py"""
 import unittest
 
 from signals import (
@@ -68,7 +68,7 @@ class ConsensusTests(unittest.TestCase):
         preds = {'a': RANGE_A, 'bad': bad_range}
         scores = {'a': 5.0, 'bad': 5.0}
         result = weighted_consensus_ranges(preds, scores, min_agreeing_models=2)
-        self.assertIsNone(result)  # only 1 valid model — below threshold
+        self.assertIsNone(result)  # only 1 valid model ? below threshold
 
     def test_skipped_model_not_counted(self):
         # A model that returned a 'skipped' dict should not count toward valid models
@@ -77,6 +77,56 @@ class ConsensusTests(unittest.TestCase):
         scores = {'a': 5.0, 'skipped_model': 5.0}
         result = weighted_consensus_ranges(preds, scores, min_agreeing_models=2)
         self.assertIsNone(result)
+
+    def test_fallback_excluded_from_consensus(self):
+        # A fallback-tagged prediction should not count toward the consensus
+        fallback_range = {**RANGE_A, 'fallback': True}
+        preds = {'real_model': RANGE_A, 'fallback_model': fallback_range}
+        scores = {'real_model': 5.0, 'fallback_model': 5.0}
+        # Only 1 real model ? should be None with min_agreeing_models=2
+        result = weighted_consensus_ranges(preds, scores, min_agreeing_models=2)
+        self.assertIsNone(result, "Fallback predictions must not count toward min_agreeing_models")
+
+    def test_fallback_does_not_skew_consensus(self):
+        # Even with min=1, a fallback pred should not pull the consensus toward its range
+        real_range = {'buy_low': 95.0, 'buy_high': 97.0, 'sell_low': 105.0, 'sell_high': 108.0}
+        # Fallback range has wildly different values
+        fallback_range = {'buy_low': 50.0, 'buy_high': 55.0, 'sell_low': 80.0, 'sell_high': 85.0,
+                          'fallback': True}
+        preds = {'real': real_range, 'fb': fallback_range}
+        scores = {'real': 5.0, 'fb': 5.0}
+        result = weighted_consensus_ranges(preds, scores, min_agreeing_models=1)
+        self.assertIsNotNone(result)
+        # buy_high must match the real range, not be pulled down by fallback
+        self.assertAlmostEqual(result['buy_high'], 97.0, delta=0.1)
+
+    def test_cv_gate_rejects_high_disagreement(self):
+        # Two models with very different buy_high values ? high CV ? should be rejected
+        range_low  = {'buy_low': 90.0, 'buy_high': 92.0, 'sell_low': 100.0, 'sell_high': 105.0}
+        range_high = {'buy_low': 130.0, 'buy_high': 135.0, 'sell_low': 150.0, 'sell_high': 155.0}
+        preds = {'a': range_low, 'b': range_high}
+        scores = {'a': 5.0, 'b': 5.0}
+        # max_cv=0.10 should reject this extreme disagreement
+        result = weighted_consensus_ranges(preds, scores, max_cv=0.10)
+        self.assertIsNone(result, "CV gate should reject models with >10%% disagreement")
+
+    def test_cv_gate_passes_close_agreement(self):
+        # Two models with nearly identical ranges ? low CV ? should pass
+        range_x = {'buy_low': 95.0, 'buy_high': 97.0, 'sell_low': 105.0, 'sell_high': 108.0}
+        range_y = {'buy_low': 95.5, 'buy_high': 97.5, 'sell_low': 105.5, 'sell_high': 108.5}
+        preds = {'a': range_x, 'b': range_y}
+        scores = {'a': 5.0, 'b': 5.0}
+        result = weighted_consensus_ranges(preds, scores, max_cv=0.10)
+        self.assertIsNotNone(result, "CV gate should pass models that agree within 10%%")
+
+    def test_cv_gate_none_disables_check(self):
+        # max_cv=None means no CV gate ? high-disagreement models should still produce consensus
+        range_low  = {'buy_low': 90.0, 'buy_high': 92.0, 'sell_low': 100.0, 'sell_high': 105.0}
+        range_high = {'buy_low': 130.0, 'buy_high': 135.0, 'sell_low': 150.0, 'sell_high': 155.0}
+        preds = {'a': range_low, 'b': range_high}
+        scores = {'a': 5.0, 'b': 5.0}
+        result = weighted_consensus_ranges(preds, scores, max_cv=None)
+        self.assertIsNotNone(result, "max_cv=None should disable the CV gate entirely")
 
 
 class ClassifyTests(unittest.TestCase):
@@ -112,18 +162,16 @@ class ClassifyTests(unittest.TestCase):
 
     def test_upside_pct_measured_from_entry_not_close(self):
         # close=90, buy_high=98, sell_low=100
-        # upside from close = (100-90)/90 = 11.1%  ← old (wrong)
-        # upside from entry = (100-98)/98 = 2.04%  ← new (correct)
+        # upside from entry = (100-98)/98 = 2.04%
         consensus = {'buy_low': 95.0, 'buy_high': 98.0, 'sell_low': 100.0, 'sell_high': 102.0}
         result = classify_opportunity(
             close=90.0, consensus=consensus, config={'min_upside_pct': 1.0}
         )
         self.assertIsNotNone(result['upside_pct'])
-        # Should be ~2%, not ~11%
         self.assertLess(result['upside_pct'], 5.0)
 
     def test_wide_spread_is_skipped(self):
-        # buy range is 10% wide — should be rejected by max_spread_pct=3
+        # buy range is 10% wide ? should be rejected by max_spread_pct=3
         consensus = {'buy_low': 90.0, 'buy_high': 100.0, 'sell_low': 110.0, 'sell_high': 115.0}
         result = classify_opportunity(
             close=100.0, consensus=consensus,
@@ -149,6 +197,20 @@ class BuildEnrichedTests(unittest.TestCase):
         raw = {'AAPL': {'model_a': RANGE_A}}
         enriched = build_enriched_predictions(raw, {}, {})
         self.assertNotIn('AAPL', enriched)
+
+    def test_build_enriched_cv_gate_via_config(self):
+        # Config with max_consensus_cv should be passed through to weighted_consensus_ranges
+        range_low  = {'buy_low': 90.0, 'buy_high': 92.0, 'sell_low': 100.0, 'sell_high': 105.0}
+        range_high = {'buy_low': 130.0, 'buy_high': 135.0, 'sell_low': 150.0, 'sell_high': 155.0}
+        raw = {'TSLA': {'a': range_low, 'b': range_high}}
+        closes = {'TSLA': 100.0}
+        scores = {'a': 5.0, 'b': 5.0}
+        config = {'min_agreeing_models': 2, 'max_consensus_cv': 0.10, 'min_upside_pct': 1.0}
+        enriched = build_enriched_predictions(raw, closes, scores, config)
+        # CV is too high ? consensus should be None, signal should be SKIP
+        self.assertIn('TSLA', enriched)
+        self.assertIsNone(enriched['TSLA']['consensus'])
+        self.assertEqual(enriched['TSLA']['signal'], 'SKIP')
 
 
 class UtilTests(unittest.TestCase):

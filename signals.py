@@ -1,4 +1,4 @@
-# signals.py
+﻿# signals.py
 """Score-weighted consensus and daily buy/sell range signals."""
 from __future__ import annotations
 
@@ -71,21 +71,29 @@ def weighted_consensus_ranges(
     model_range_preds: dict[str, dict],
     scores: dict[str, float],
     min_agreeing_models: int = 2,
+    max_cv: float | None = None,
 ) -> dict[str, float] | None:
     """Compute score-weighted average of buy/sell ranges across models.
 
     Only models with a valid prediction (buy_low < buy_high < sell_low <= sell_high)
-    contribute. Returns None if fewer than min_agreeing_models have valid ranges.
+    contribute. Fallback (synthetic) predictions are excluded. Returns None if:
+    - fewer than min_agreeing_models have valid ranges, or
+    - model disagreement (CV) on buy_high or sell_low exceeds max_cv.
     """
     if not model_range_preds:
         return None
 
     total_weight = 0.0
     weighted: dict[str, float] = {f: 0.0 for f in RANGE_FIELDS}
+    valid_values: list[dict] = []  # per-model field values for CV check
+    valid_weights: list[float] = []
     valid_count = 0
 
     for model_name, ranges in model_range_preds.items():
         if not isinstance(ranges, dict):
+            continue
+        # Skip fallback predictions ? synthetic ranges contaminate consensus
+        if ranges.get('fallback'):
             continue
         bl = float(ranges.get('buy_low') or 0)
         bh = float(ranges.get('buy_high') or 0)
@@ -100,11 +108,30 @@ def weighted_consensus_ranges(
             weighted[field] += float(ranges[field]) * weight
         total_weight += weight
         valid_count += 1
+        valid_values.append({f: float(ranges[f]) for f in RANGE_FIELDS})
+        valid_weights.append(weight)
 
     if valid_count < min_agreeing_models or total_weight == 0:
         return None
 
-    return {f: round(weighted[f] / total_weight, 2) for f in RANGE_FIELDS}
+    consensus = {f: round(weighted[f] / total_weight, 2) for f in RANGE_FIELDS}
+
+    # Model disagreement gate: reject if coefficient of variation exceeds threshold
+    if max_cv is not None and valid_count >= 2:
+        for field in ('buy_high', 'sell_low'):
+            mean_val = consensus[field]
+            if mean_val <= 0:
+                continue
+            # Weighted variance around the consensus mean
+            variance = sum(
+                w * (v[field] - mean_val) ** 2
+                for v, w in zip(valid_values, valid_weights)
+            ) / total_weight
+            cv = (variance ** 0.5) / mean_val
+            if cv > max_cv:
+                return None
+
+    return consensus
 
 
 def classify_opportunity(
@@ -127,7 +154,7 @@ def classify_opportunity(
     if buy_high <= 0 or sell_low <= buy_high:
         return {'signal': 'SKIP', 'upside_pct': None, 'consensus': consensus}
 
-    # Upside from entry (buy_high) to target (sell_low) — actual expected trade return
+    # Upside from entry (buy_high) to target (sell_low) ? actual expected trade return
     upside_pct = round(((sell_low - buy_high) / buy_high) * 100, 2)
 
     # Spread filter: reject signals where the buy range is suspiciously wide
@@ -160,13 +187,16 @@ def build_enriched_predictions(
     config = config or load_signal_config()
     enriched = {}
 
+    min_agreeing = int(config.get('min_agreeing_models', 2))
+    max_cv_raw = config.get('max_consensus_cv')
+    max_cv = float(max_cv_raw) if max_cv_raw is not None else None
+
     for ticker, model_preds in raw_predictions.items():
         close = closes.get(ticker)
         if close is None:
             continue
 
-        min_agreeing = int(config.get('min_agreeing_models', 2))
-        consensus = weighted_consensus_ranges(model_preds, scores, min_agreeing)
+        consensus = weighted_consensus_ranges(model_preds, scores, min_agreeing, max_cv=max_cv)
         opp = classify_opportunity(close, consensus, config)
 
         enriched[ticker] = {
