@@ -45,8 +45,21 @@ jobs:
           if curl -sf http://localhost:11434/api/tags > /dev/null 2>&1; then
             echo "Ollama already running."
           else
-            $OLLAMA serve &
-            sleep 8
+            echo "Starting Ollama..."
+            $OLLAMA serve > /tmp/ollama.log 2>&1 &
+            # Wait up to 60s for Ollama to become ready
+            for i in $(seq 1 30); do
+              sleep 2
+              if curl -sf http://localhost:11434/api/tags > /dev/null 2>&1; then
+                echo "Ollama ready after $((i * 2))s"
+                break
+              fi
+              if [ $i -eq 30 ]; then
+                echo "ERROR: Ollama did not start within 60s"
+                cat /tmp/ollama.log
+                exit 1
+              fi
+            done
           fi
           $OLLAMA list
 
