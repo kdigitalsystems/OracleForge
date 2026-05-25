@@ -27,12 +27,12 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          python -m pip install --upgrade pip
+          python3 -m pip install --upgrade pip
           pip install -r requirements.txt
 
       - name: Verify Alpaca connection
         run: |
-          python -c "
+          python3 -c "
           import alpaca_client
           client = alpaca_client.get_trading_client()
           positions = alpaca_client.get_positions(client)
@@ -40,13 +40,16 @@ jobs:
           "
 
       - name: Settle fills and update journal
-        run: python trader.py --close
+        run: python3 trader.py --close
+
+      - name: Regenerate GitHub Pages dashboard
+        run: python3 scripts/generate_html_report.py
 
       - name: Commit settlement state
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          git add state/ history/ reports/
+          git add state/ history/ reports/ docs/
 
           if git diff --staged --quiet; then
             echo "No fills to record today."

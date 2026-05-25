@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+from datetime import datetime, timedelta, timezone
 
 from alpaca.data.historical import StockHistoricalDataClient
 from alpaca.trading.client import TradingClient
@@ -92,15 +93,31 @@ def get_order(client: TradingClient, order_id: str):
     return client.get_order_by_id(order_id)
 
 
-def get_all_recent_orders(client: TradingClient) -> list:
-    """Fetch all open + recently closed orders in one call (avoids per-order API requests)."""
+def get_all_recent_orders(client: TradingClient, lookback_days: int = 7) -> list:
+    """Fetch all open + recently closed orders (avoids per-order API requests).
+
+    Uses an `after` date filter on CLOSED orders so the 500-order window is not
+    exhausted by old fills when many positions are active.
+    """
     results = []
-    for status in (QueryOrderStatus.OPEN, QueryOrderStatus.CLOSED):
-        try:
-            orders = client.get_orders(GetOrdersRequest(status=status, limit=500))
-            results.extend(orders)
-        except Exception:
-            pass
+    after_dt = datetime.now(timezone.utc) - timedelta(days=lookback_days)
+
+    # Open orders — no date filter needed (there are never thousands of open orders)
+    try:
+        orders = client.get_orders(GetOrdersRequest(status=QueryOrderStatus.OPEN, limit=500))
+        results.extend(orders)
+    except Exception as exc:
+        print(f"  [!] Could not fetch OPEN orders from Alpaca: {exc}")
+
+    # Closed orders — filter by date to stay within the 500-order window
+    try:
+        orders = client.get_orders(
+            GetOrdersRequest(status=QueryOrderStatus.CLOSED, limit=500, after=after_dt)
+        )
+        results.extend(orders)
+    except Exception as exc:
+        print(f"  [!] Could not fetch CLOSED orders from Alpaca: {exc}")
+
     return results
 
 

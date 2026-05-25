@@ -177,7 +177,7 @@ def parse_llm_range(raw_output: str, fallback_price: float) -> dict:
     return _fallback_range(fallback_price)
 
 
-def evaluate_range_prediction(open_price, high_price, low_price, pred) -> float:
+def evaluate_range_prediction(high_price, low_price, pred) -> float:
     """Score a prior range prediction against realized OHLC: +0.01, -0.01, or 0.0."""
     if not isinstance(pred, dict):
         return 0.0
@@ -472,7 +472,7 @@ def main():
             if model_name not in scores:
                 continue
             delta = evaluate_range_prediction(
-                open_price=float(latest.open), high_price=float(latest.high),
+                high_price=float(latest.high),
                 low_price=float(latest.low), pred=past_pred,
             )
             score_deltas[model_name].append(delta)

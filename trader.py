@@ -256,12 +256,10 @@ def run_open(dry_run: bool = False) -> None:
                 open_orders[ticker] = {}
             open_orders[ticker]['sell_order_id'] = str(order.id)
             log(f"SELL {ticker}: DAY limit {qty} shares @ ${sell_limit:.2f} — order {order.id}")
+            save_json(OPEN_ORDERS_FILE, open_orders)  # persist immediately — prevents duplicate sells on crash
             time.sleep(ORDER_SUBMIT_DELAY)
         except Exception as e:
             log(f"[!] Sell order failed for {ticker}: {e}")
-
-    if not dry_run:
-        save_json(OPEN_ORDERS_FILE, open_orders)
 
     print(f"\nDone. {placed} buy order(s) placed.")
 
@@ -327,12 +325,18 @@ def run_close(dry_run: bool = False) -> None:
                         )
                         log(f"BUY FILLED {ticker}: {fill_qty} shares @ ${fill_price:.2f} (${usd_filled:.2f})")
 
+                        # Clear buy_order_id immediately so a crash + retry doesn't
+                        # double-record the same fill into positions_meta.
+                        entry['buy_order_id'] = None
+                        save_json(OPEN_ORDERS_FILE, open_orders)
+
                         try:
                             sell_order = alpaca_client.place_limit_sell(
                                 client, ticker, fill_qty, entry['sell_limit']
                             )
                             entry['sell_order_id'] = str(sell_order.id)
                             log(f"SELL {ticker}: DAY limit {fill_qty} shares @ ${entry['sell_limit']:.2f} — order {sell_order.id}")
+                            save_json(OPEN_ORDERS_FILE, open_orders)
                             time.sleep(ORDER_SUBMIT_DELAY)
                         except Exception as e:
                             log(f"[!] Could not place sell for {ticker}: {e}")

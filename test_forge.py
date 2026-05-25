@@ -88,27 +88,27 @@ class EvaluateRangePredictionTests(unittest.TestCase):
 
     def test_win(self):
         # Low touched buy range, high reached sell target, stop not hit
-        delta = evaluate_range_prediction(101, high_price=108, low_price=99, pred=self.PRED)
+        delta = evaluate_range_prediction(high_price=108, low_price=99, pred=self.PRED)
         self.assertEqual(delta, 0.01)
 
     def test_stop_hit(self):
         # Low breached buy_high * 0.98 = 98.0
-        delta = evaluate_range_prediction(101, high_price=101, low_price=97, pred=self.PRED)
+        delta = evaluate_range_prediction(high_price=101, low_price=97, pred=self.PRED)
         self.assertEqual(delta, -0.01)
 
     def test_no_entry(self):
         # Low never touched buy range (low > buy_high)
-        delta = evaluate_range_prediction(102, high_price=110, low_price=101, pred=self.PRED)
+        delta = evaluate_range_prediction(high_price=110, low_price=101, pred=self.PRED)
         self.assertEqual(delta, 0.0)
 
     def test_hold_inconclusive(self):
         # Price entered buy range but neither stop nor target hit — should be 0 (trade still open)
-        delta = evaluate_range_prediction(101, high_price=104, low_price=99, pred=self.PRED)
+        delta = evaluate_range_prediction(high_price=104, low_price=99, pred=self.PRED)
         self.assertEqual(delta, 0.0)  # Bug #2 fix: was -0.01 before
 
     def test_invalid_pred(self):
-        self.assertEqual(evaluate_range_prediction(100, 105, 95, pred={}), 0.0)
-        self.assertEqual(evaluate_range_prediction(100, 105, 95, pred=None), 0.0)
+        self.assertEqual(evaluate_range_prediction(105, 95, pred={}), 0.0)
+        self.assertEqual(evaluate_range_prediction(105, 95, pred=None), 0.0)
 
 
 # ---------------------------------------------------------------------------
