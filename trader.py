@@ -1,4 +1,4 @@
-# trader.py ? DAY limit order placement and end-of-day settlement
+# trader.py — DAY limit order placement and end-of-day settlement
 """
 Two short jobs replace the old polling loop:
 
@@ -163,7 +163,7 @@ def run_open(dry_run: bool = False) -> None:
         print(f"No ACTIVE setups for {today}. Nothing to order.")
         return
 
-    # Best upside first ? ensures top setups are funded if buying power runs out
+    # Best upside first — ensures top setups are funded if buying power runs out
     active_rows.sort(key=lambda r: float(r.get('upside_pct', 0)), reverse=True)
 
     open_orders = load_json(OPEN_ORDERS_FILE, {})
@@ -178,7 +178,7 @@ def run_open(dry_run: bool = False) -> None:
             remaining_bp = float(account.buying_power)
             print(f"  Available buying power: ${remaining_bp:.2f}")
         except Exception as e:
-            print(f"  [!] Could not fetch buying power: {e} ? will attempt orders anyway")
+            print(f"  [!] Could not fetch buying power: {e} — will attempt orders anyway")
 
     print(f"[{now_et()}] OracleForge --open | {len(active_rows)} ACTIVE setups (sorted by upside)")
     if dry_run:
@@ -235,10 +235,10 @@ def run_open(dry_run: bool = False) -> None:
                 'qty': qty,
                 'date': today,
             }
-            log(f"BUY {ticker}: DAY limit {qty} shares @ ${buy_high:.2f} (${order_size:.2f}) ? order {order.id}")
+            log(f"BUY {ticker}: DAY limit {qty} shares @ ${buy_high:.2f} (${order_size:.2f}) → order {order.id}")
             placed += 1
             remaining_bp -= order_size
-            save_json(OPEN_ORDERS_FILE, open_orders)  # persist immediately ? prevents duplicate orders on crash
+            save_json(OPEN_ORDERS_FILE, open_orders)  # persist immediately — prevents duplicate orders on crash
             time.sleep(ORDER_SUBMIT_DELAY)
         except Exception as e:
             log(f"[!] Buy order failed for {ticker}: {e}")
@@ -280,7 +280,7 @@ def run_open(dry_run: bool = False) -> None:
             try:
                 order = alpaca_client.place_limit_sell(client, ticker, qty, sell_limit)
                 open_orders[ticker]['sell_order_id'] = str(order.id)
-                log(f"SELL {ticker}: DAY limit {qty} shares @ ${float(sell_limit):.2f} ? order {order.id}")
+                log(f"SELL {ticker}: DAY limit {qty} shares @ ${float(sell_limit):.2f} → order {order.id}")
                 save_json(OPEN_ORDERS_FILE, open_orders)  # persist immediately
                 time.sleep(ORDER_SUBMIT_DELAY)
             except Exception as e:
@@ -291,7 +291,7 @@ def run_open(dry_run: bool = False) -> None:
                 order = alpaca_client.place_limit_sell(client, ticker, qty, stop_limit_price)
                 open_orders[ticker]['stop_order_id'] = str(order.id)
                 open_orders[ticker]['stop_limit'] = stop_limit_price
-                log(f"STOP {ticker}: DAY limit {qty} shares @ ${float(stop_limit_price):.2f} ? order {order.id}")
+                log(f"STOP {ticker}: DAY limit {qty} shares @ ${float(stop_limit_price):.2f} → order {order.id}")
                 save_json(OPEN_ORDERS_FILE, open_orders)  # persist immediately
                 time.sleep(ORDER_SUBMIT_DELAY)
             except Exception as e:
@@ -370,7 +370,7 @@ def run_close(dry_run: bool = False) -> None:
                         )
                         log(f"BUY FILLED {ticker}: {fill_qty} shares @ ${fill_price:.2f} (${usd_filled:.2f})")
 
-                        # Clear buy_order_id before placing sell/stop ? prevents
+                        # Clear buy_order_id before placing sell/stop — prevents
                         # double-recording if the process crashes and retries.
                         entry['buy_order_id'] = None
                         save_json(OPEN_ORDERS_FILE, open_orders)
@@ -391,7 +391,7 @@ def run_close(dry_run: bool = False) -> None:
                             entry['sell_order_id'] = str(sell_order.id)
                             log(
                                 f"SELL {ticker}: DAY limit {total_qty} shares @ "
-                                f"${entry['sell_limit']:.2f} ? order {sell_order.id}"
+                                f"${entry['sell_limit']:.2f} → order {sell_order.id}"
                             )
                             save_json(OPEN_ORDERS_FILE, open_orders)
                             time.sleep(ORDER_SUBMIT_DELAY)
@@ -408,7 +408,7 @@ def run_close(dry_run: bool = False) -> None:
                             entry['stop_order_id'] = str(stop_order.id)
                             log(
                                 f"STOP {ticker}: DAY limit {total_qty} shares @ "
-                                f"${stop_limit:.2f} ? order {stop_order.id}"
+                                f"${stop_limit:.2f} → order {stop_order.id}"
                             )
                             save_json(OPEN_ORDERS_FILE, open_orders)
                             time.sleep(ORDER_SUBMIT_DELAY)
@@ -428,8 +428,8 @@ def run_close(dry_run: bool = False) -> None:
             else:
                 order = orders_by_id.get(sell_oid)
                 if order is None:
-                    # Order not in recent history ? treat as expired, let --open re-place
-                    log(f"[!] Sell order {sell_oid} for {ticker} not found ? clearing, will re-place at open")
+                    # Order not in recent history — treat as expired, let --open re-place
+                    log(f"[!] Sell order {sell_oid} for {ticker} not found — clearing, will re-place at open")
                     entry['sell_order_id'] = None
                 else:
                     status = str(order.status).lower().replace('orderstatus.', '')
@@ -450,7 +450,7 @@ def run_close(dry_run: bool = False) -> None:
                         if trade:
                             log(
                                 f"SELL FILLED {ticker}: {fill_qty} shares @ ${fill_price:.2f} "
-                                f"? P&L ${trade['pnl_usd']:+.4f} ({trade['pnl_pct']:+.2f}%)"
+                                f"→ P&L ${trade['pnl_usd']:+.4f} ({trade['pnl_pct']:+.2f}%)"
                             )
                         entry['closed'] = True
                         save_json(OPEN_ORDERS_FILE, open_orders)
@@ -458,7 +458,7 @@ def run_close(dry_run: bool = False) -> None:
                         to_delete.append(ticker)
 
                     elif status in DEAD_STATUSES:
-                        # DAY sell expired without filling ? clear so --open re-places tomorrow
+                        # DAY sell expired without filling — clear so --open re-places tomorrow
                         entry['sell_order_id'] = None
                         log(f"SELL EXPIRED {ticker}: DAY order did not fill, will re-place at open")
                     else:
@@ -471,7 +471,7 @@ def run_close(dry_run: bool = False) -> None:
             else:
                 order = orders_by_id.get(stop_oid)
                 if order is None:
-                    log(f"[!] Stop order {stop_oid} for {ticker} not found ? clearing, will re-place at open")
+                    log(f"[!] Stop order {stop_oid} for {ticker} not found — clearing, will re-place at open")
                     entry['stop_order_id'] = None
                 else:
                     status = str(order.status).lower().replace('orderstatus.', '')
@@ -496,7 +496,7 @@ def run_close(dry_run: bool = False) -> None:
                         if trade:
                             log(
                                 f"STOP HIT {ticker}: {fill_qty} shares @ ${fill_price:.2f} "
-                                f"? P&L ${trade['pnl_usd']:+.4f} ({trade['pnl_pct']:+.2f}%)"
+                                f"→ P&L ${trade['pnl_usd']:+.4f} ({trade['pnl_pct']:+.2f}%)"
                             )
                         entry['closed'] = True
                         save_json(OPEN_ORDERS_FILE, open_orders)

@@ -16,7 +16,7 @@ import os
 import statistics
 import sys
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from alpaca.data.requests import StockBarsRequest
 from alpaca.data.timeframe import TimeFrame
@@ -42,7 +42,8 @@ BATCH_SLEEP = 0.3
 
 def load_universe_config() -> dict:
     if os.path.exists(UNIVERSE_CONFIG_FILE):
-        saved = json.load(open(UNIVERSE_CONFIG_FILE))
+        with open(UNIVERSE_CONFIG_FILE) as f:
+            saved = json.load(f)
         return {**DEFAULT_CONFIG, **saved}
     return DEFAULT_CONFIG.copy()
 
@@ -62,7 +63,7 @@ def get_tradable_symbols(trading_client) -> list[str]:
 
 def fetch_daily_bars(data_client, symbols: list[str], days: int) -> dict[str, list]:
     """Batch-fetch daily OHLCV bars for all symbols. Returns {symbol: [Bar, ...]}."""
-    end = datetime.now()
+    end = datetime.now(timezone.utc)
     start = end - timedelta(days=days + 10)  # buffer for weekends/holidays
 
     result: dict[str, list] = {}

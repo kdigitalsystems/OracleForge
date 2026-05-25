@@ -1,4 +1,4 @@
-# forge_loop.py ? overnight inference engine
+# forge_loop.py — overnight inference engine
 import argparse
 import json
 import os
@@ -183,7 +183,7 @@ def evaluate_range_prediction(high_price, low_price, pred, stop_threshold: float
     """Score a prior range prediction against realized OHLC: +0.01, -0.01, or 0.0."""
     if not isinstance(pred, dict):
         return 0.0
-    # Fallback predictions are synthetic ? do not reward or penalise them
+    # Fallback predictions are synthetic — do not reward or penalise them
     if pred.get('fallback'):
         return 0.0
     buy_high = float(pred.get('buy_high') or 0)
@@ -197,7 +197,7 @@ def evaluate_range_prediction(high_price, low_price, pred, stop_threshold: float
         return -0.01
     if high_price >= sell_low:
         return 0.01
-    return 0.0  # price entered range but trade still open ? no penalty
+    return 0.0  # price entered range but trade still open — no penalty
 
 
 def score_deltas_from_journal(journal: list, prior_date: str, scores: dict) -> dict:
@@ -309,7 +309,7 @@ def compute_technicals(bars: list) -> dict:
     sma20 = sum(sma_window) / len(sma_window)
     result['pct_from_sma20'] = round((close - sma20) / sma20 * 100, 1)
 
-    # Bollinger Band %B ? where is price within the 20-day band?
+    # Bollinger Band %B — where is price within the 20-day band?
     if len(closes) >= 20:
         bb_closes = closes[-20:]
         bb_mean = sum(bb_closes) / 20
@@ -334,11 +334,11 @@ def _technicals_block(t: dict) -> str:
     lines = ["Technical context (use to calibrate your price levels):"]
     if t.get('rsi14') is not None:
         rsi = t['rsi14']
-        note = ' (oversold ? potential bounce)' if rsi < 35 else ' (overbought ? caution)' if rsi > 65 else ''
+        note = ' (oversold — potential bounce)' if rsi < 35 else ' (overbought — caution)' if rsi > 65 else ''
         lines.append(f"- RSI(14): {rsi}{note}")
     if t.get('vol_ratio') is not None:
         vr = t['vol_ratio']
-        note = ' (elevated ? strong interest)' if vr > 1.5 else ' (below average)' if vr < 0.7 else ''
+        note = ' (elevated — strong interest)' if vr > 1.5 else ' (below average)' if vr < 0.7 else ''
         lines.append(f"- Volume: {vr}x 20-day average{note}")
     if t.get('pct_from_10d_low') is not None:
         lines.append(
@@ -349,7 +349,7 @@ def _technicals_block(t: dict) -> str:
         lines.append(f"- Price is {t['pct_from_sma20']:+.1f}% from 20-day SMA")
     if t.get('bb_pct') is not None:
         bp = t['bb_pct']
-        note = ' (near upper band ? overbought)' if bp > 0.8 else ' (near lower band ? oversold)' if bp < 0.2 else ''
+        note = ' (near upper band — overbought)' if bp > 0.8 else ' (near lower band — oversold)' if bp < 0.2 else ''
         lines.append(f"- Bollinger %%B: {bp:.2f}{note}")
     if t.get('price_momentum_5d') is not None:
         lines.append(f"- 5-day momentum: {t['price_momentum_5d']:+.2f}%%")
@@ -441,17 +441,17 @@ def main():
     tickers = watchlist if watchlist else config_tickers
     journal = load_json(TRADE_JOURNAL_FILE, [])
 
-    # Models come from config/models.json ? never overwritten by automation
+    # Models come from config/models.json — never overwritten by automation
     models = load_json(MODELS_FILE, [])
     if not models:
         print("ERROR: No models found in config/models.json.")
         sys.exit(1)
 
-    # Scores are per-model state ? initialise any new model at 5.0
+    # Scores are per-model state — initialise any new model at 5.0
     scores = load_json(SCORES_FILE, {})
     for m in models:
         if m not in scores:
-            print(f"  New model detected: {m} ? initialising score to 5.0")
+            print(f"  New model detected: {m} — initialising score to 5.0")
             scores[m] = 5.0
     # Restrict scores dict to active models only
     scores = {m: scores[m] for m in models}

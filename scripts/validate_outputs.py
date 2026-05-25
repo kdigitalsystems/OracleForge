@@ -39,8 +39,9 @@ def main() -> None:
         fail(f"{predictions_path} is empty")
 
     sample = next(iter(predictions.values()), {})
-    if not isinstance(sample, dict) or 'models' not in sample:
-        fail("Predictions file is not enriched (missing models/close/signal fields)")
+    required = {'models', 'close', 'signal'}
+    if not isinstance(sample, dict) or not required.issubset(sample.keys()):
+        fail("Predictions file is not enriched (missing required fields: models, close, signal)")
 
     if not os.path.exists(signals_path):
         fail(f"Missing today's signals report: {signals_path}")

@@ -96,4 +96,4 @@ jobs:
           fi
 
           git commit -m "Automated OracleForge nightly run"
-          git push
+          git push origin HEAD:main
