@@ -2,16 +2,19 @@
 """
 Two short jobs replace the old polling loop:
 
-  python trader.py --open   (9:30 AM ET)
+  python3 trader.py --open   (9:30 AM ET)
     Reads today's ACTIVE signals and places DAY limit buy orders at buy_high.
-    Also places GTC sell orders for any existing positions without one.
+    Also places DAY limit sell orders for any existing positions without one.
 
-  python trader.py --close  (4:05 PM ET)
-    Checks fills for open buy orders → records entry, places GTC sell.
+  python3 trader.py --close  (4:05 PM ET)
+    Checks fills for open buy orders → records entry, places DAY sell @ sell_low.
     Checks fills for open sell orders → records P&L to trade journal.
-    Cancels any unfilled DAY buy orders that expired.
+    Clears expired DAY sells so --open re-places them next morning.
 
 State is persisted to state/open_orders.json so it survives between the two jobs.
+
+Note: Alpaca does not support GTC for fractional share orders; all sells use DAY
+time-in-force and are re-placed each morning until the position is exited.
 """
 from __future__ import annotations
 
@@ -398,7 +401,7 @@ def run_close(dry_run: bool = False) -> None:
 # ---------------------------------------------------------------------------
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description='OracleForge GTC order manager.')
+    parser = argparse.ArgumentParser(description='OracleForge DAY limit order manager.')
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument('--open', action='store_true', help='Place limit buy orders (run at market open).')
     group.add_argument('--close', action='store_true', help='Settle fills and update journal (run after close).')
