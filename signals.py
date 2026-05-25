@@ -1,4 +1,4 @@
-﻿# signals.py
+# signals.py
 """Score-weighted consensus and daily buy/sell range signals."""
 from __future__ import annotations
 
@@ -165,6 +165,7 @@ def classify_opportunity(
 
     if close >= sell_low:
         signal = 'STALE'
+        upside_pct = None  # opportunity already missed, upside is meaningless
     elif upside_pct < min_upside:
         signal = 'SKIP'
     else:

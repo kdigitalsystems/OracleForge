@@ -55,5 +55,5 @@ jobs:
             echo "No fills to record today."
           else
             git commit -m "Evening settlement $(date -u '+%Y-%m-%d')"
-            git push
+            git push origin HEAD:main
           fi

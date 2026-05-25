@@ -1,4 +1,4 @@
-﻿"""Unit tests for signals.py"""
+"""Unit tests for signals.py"""
 import unittest
 
 from signals import (
@@ -140,6 +140,12 @@ class ClassifyTests(unittest.TestCase):
         consensus = {'buy_low': 95.0, 'buy_high': 97.0, 'sell_low': 99.0, 'sell_high': 101.0}
         result = classify_opportunity(close=102.0, consensus=consensus)
         self.assertEqual(result['signal'], 'STALE')
+
+    def test_stale_upside_is_none(self):
+        # upside_pct should be None for STALE signals — the opportunity is already missed
+        consensus = {'buy_low': 95.0, 'buy_high': 97.0, 'sell_low': 99.0, 'sell_high': 101.0}
+        result = classify_opportunity(close=102.0, consensus=consensus)
+        self.assertIsNone(result['upside_pct'], 'STALE upside_pct should be None')
 
     def test_skip_low_upside(self):
         consensus = {'buy_low': 99.0, 'buy_high': 99.5, 'sell_low': 100.1, 'sell_high': 100.5}

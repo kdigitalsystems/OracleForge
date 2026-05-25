@@ -1,4 +1,4 @@
-﻿# forge_loop.py ? overnight inference engine
+# forge_loop.py ? overnight inference engine
 import argparse
 import json
 import os
@@ -6,9 +6,10 @@ import re
 import sys
 import time
 from collections import defaultdict
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import requests
+import yfinance as yf
 from alpaca.data.requests import StockBarsRequest
 from alpaca.data.timeframe import TimeFrame
 
@@ -47,6 +48,7 @@ def load_json(filepath, default_data):
 
 
 def save_json(filepath, data):
+    os.makedirs(os.path.dirname(filepath) or '.', exist_ok=True)
     with open(filepath, 'w') as f:
         json.dump(data, f, indent=4)
 
@@ -84,7 +86,6 @@ def _headline_from_news_item(item):
 
 def fetch_recent_news(ticker):
     try:
-        import yfinance as yf
         stock = yf.Ticker(ticker)
         news_items = stock.news
         if not news_items:
@@ -103,7 +104,6 @@ def fetch_recent_news(ticker):
 def has_upcoming_earnings(ticker: str) -> bool:
     """Return True if ticker has earnings within EARNINGS_LOOKAHEAD_DAYS trading days."""
     try:
-        import yfinance as yf
         from datetime import date as date_type
         stock = yf.Ticker(ticker)
         cal = stock.calendar
@@ -179,7 +179,7 @@ def parse_llm_range(raw_output: str, fallback_price: float) -> dict:
     return _fallback_range(fallback_price)
 
 
-def evaluate_range_prediction(high_price, low_price, pred) -> float:
+def evaluate_range_prediction(high_price, low_price, pred, stop_threshold: float = 0.95) -> float:
     """Score a prior range prediction against realized OHLC: +0.01, -0.01, or 0.0."""
     if not isinstance(pred, dict):
         return 0.0
@@ -192,7 +192,7 @@ def evaluate_range_prediction(high_price, low_price, pred) -> float:
         return 0.0
     if low_price > buy_high:
         return 0.0
-    stop_limit = buy_high * 0.98
+    stop_limit = buy_high * stop_threshold
     if low_price <= stop_limit:
         return -0.01
     if high_price >= sell_low:
@@ -276,14 +276,20 @@ def compute_technicals(bars: list) -> dict:
 
     result = {}
 
-    # RSI-14
+    # RSI-14 (Wilder's smoothed average — requires at least 15 bars)
     if len(closes) >= 15:
         deltas = [closes[i] - closes[i - 1] for i in range(1, len(closes))]
-        period = deltas[-14:]
-        gains = [d for d in period if d > 0]
-        losses = [-d for d in period if d < 0]
-        avg_gain = sum(gains) / 14
-        avg_loss = sum(losses) / 14
+        # Seed with simple average of first 14 periods
+        seed_gains = [d for d in deltas[:14] if d > 0]
+        seed_losses = [-d for d in deltas[:14] if d < 0]
+        avg_gain = sum(seed_gains) / 14
+        avg_loss = sum(seed_losses) / 14
+        # Apply Wilder's smoothing for the remaining bars
+        for d in deltas[14:]:
+            gain = d if d > 0 else 0.0
+            loss = -d if d < 0 else 0.0
+            avg_gain = (avg_gain * 13 + gain) / 14
+            avg_loss = (avg_loss * 13 + loss) / 14
         result['rsi14'] = 100.0 if avg_loss == 0 else round(100 - (100 / (1 + avg_gain / avg_loss)), 1)
 
     # Volume ratio vs prior 20-day average (exclude today)
@@ -402,7 +408,7 @@ All values must be positive numbers. buy_high must be less than sell_low."""
 def fetch_all_bars(tickers: list[str], days: int = 30) -> dict[str, list]:
     """Batch-fetch daily bars for all tickers. Returns {sym: [Bar, ...]} oldest->newest."""
     data_client = alpaca_client.get_data_client()
-    end = datetime.now()
+    end = datetime.now(timezone.utc)
     start = end - timedelta(days=days + 10)  # buffer for weekends/holidays
     result: dict[str, list] = {}
     for i in range(0, len(tickers), 200):
@@ -450,9 +456,10 @@ def main():
     # Restrict scores dict to active models only
     scores = {m: scores[m] for m in models}
 
-    # Read score decay from trading config
+    # Read trading config for score decay and stop threshold
     trading_cfg = load_json('config/trading.json', {})
     score_decay = float(trading_cfg.get('score_decay_per_day', 1.0))
+    stop_loss_pct = float(trading_cfg.get('stop_loss_pct', 0.95))
 
     if not tickers:
         print("ERROR: No tickers found. Run update_tickers.py or pass --tickers NVDA,AAPL.")
@@ -508,7 +515,9 @@ def main():
                 continue
             delta = evaluate_range_prediction(
                 high_price=float(latest.high),
-                low_price=float(latest.low), pred=past_pred,
+                low_price=float(latest.low),
+                pred=past_pred,
+                stop_threshold=stop_loss_pct,
             )
             score_deltas[model_name].append(delta)
 

@@ -1,4 +1,4 @@
-﻿"""Unit tests for forge_loop helpers."""
+"""Unit tests for forge_loop helpers."""
 from __future__ import annotations
 
 import sys
@@ -114,8 +114,19 @@ class EvaluateRangePredictionTests(unittest.TestCase):
         self.assertEqual(delta, 0.01)
 
     def test_stop_hit(self):
-        # Low breached buy_high * 0.98 = 98.0
+        # Low breached buy_high * stop_threshold (default 0.95 = 95.0)
+        # Use a low that is below 95 to trigger the stop
+        delta = evaluate_range_prediction(high_price=101, low_price=93, pred=self.PRED)
+        self.assertEqual(delta, -0.01)
+
+    def test_stop_threshold_respected(self):
+        # low_price=97 is NOT below 100*0.95=95 -> should be 0.0 (inconclusive)
         delta = evaluate_range_prediction(high_price=101, low_price=97, pred=self.PRED)
+        self.assertEqual(delta, 0.0)
+
+    def test_stop_threshold_custom(self):
+        # With stop_threshold=0.98: low_price=97 IS below 100*0.98=98 -> stop
+        delta = evaluate_range_prediction(high_price=101, low_price=97, pred=self.PRED, stop_threshold=0.98)
         self.assertEqual(delta, -0.01)
 
     def test_no_entry(self):
@@ -140,9 +151,9 @@ class EvaluateRangePredictionTests(unittest.TestCase):
         self.assertEqual(delta, 0.0)
 
     def test_fallback_pred_stop_returns_zero(self):
-        # Fallback stop: would be -0.01, but should be 0.0
+        # Fallback stop: would be -0.01 with explicit threshold, but should be 0.0
         fallback_pred = {**self.PRED, 'fallback': True}
-        delta = evaluate_range_prediction(high_price=101, low_price=97, pred=fallback_pred)
+        delta = evaluate_range_prediction(high_price=101, low_price=93, pred=fallback_pred, stop_threshold=0.95)
         self.assertEqual(delta, 0.0)
 
 

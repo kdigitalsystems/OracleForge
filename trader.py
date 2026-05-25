@@ -1,4 +1,4 @@
-﻿# trader.py ? DAY limit order placement and end-of-day settlement
+# trader.py ? DAY limit order placement and end-of-day settlement
 """
 Two short jobs replace the old polling loop:
 
@@ -22,7 +22,7 @@ import argparse
 import json
 import os
 import time
-from datetime import date, datetime
+from datetime import datetime
 
 import pytz
 
@@ -67,7 +67,7 @@ def load_trading_config() -> dict:
 
 
 def today_str() -> str:
-    return date.today().strftime('%Y-%m-%d')
+    return datetime.now(ET).strftime('%Y-%m-%d')  # always ET to match signal files
 
 
 def now_et() -> str:
@@ -196,6 +196,11 @@ def run_open(dry_run: bool = False) -> None:
         existing = open_orders.get(ticker, {})
         if existing.get('buy_order_id') and existing.get('date') == today:
             log(f"{ticker}: buy order already placed today, skipping")
+            continue
+
+        # Skip if we already hold a position from a prior signal (no unintended pyramiding)
+        if ticker in positions_meta:
+            log(f"{ticker}: position already held (${positions_meta[ticker]['usd_invested']:.2f} invested), skipping buy")
             continue
 
         pos_val = positions.get(ticker, 0.0)
@@ -332,6 +337,12 @@ def run_close(dry_run: bool = False) -> None:
     settled: set[str] = set()  # tickers for which a fill was recorded this run
 
     for ticker, entry in open_orders.items():
+        # Already-closed entries linger if the process crashed after record_sell
+        # but before the final save. Clean them up immediately on the next run.
+        if entry.get('closed'):
+            to_delete.append(ticker)
+            continue
+
         buy_oid = entry.get('buy_order_id')
         sell_oid = entry.get('sell_order_id')
         stop_oid = entry.get('stop_order_id')
@@ -441,6 +452,8 @@ def run_close(dry_run: bool = False) -> None:
                                 f"SELL FILLED {ticker}: {fill_qty} shares @ ${fill_price:.2f} "
                                 f"? P&L ${trade['pnl_usd']:+.4f} ({trade['pnl_pct']:+.2f}%)"
                             )
+                        entry['closed'] = True
+                        save_json(OPEN_ORDERS_FILE, open_orders)
                         settled.add(ticker)
                         to_delete.append(ticker)
 
@@ -485,6 +498,8 @@ def run_close(dry_run: bool = False) -> None:
                                 f"STOP HIT {ticker}: {fill_qty} shares @ ${fill_price:.2f} "
                                 f"? P&L ${trade['pnl_usd']:+.4f} ({trade['pnl_pct']:+.2f}%)"
                             )
+                        entry['closed'] = True
+                        save_json(OPEN_ORDERS_FILE, open_orders)
                         settled.add(ticker)
                         to_delete.append(ticker)
 

@@ -61,7 +61,7 @@ def _esc(v) -> str:
     if v is None:
         return '—'
     s = str(v)
-    return s.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+    return s.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;').replace('"', '&quot;').replace("'", '&#39;')
 
 
 def _fmt_pct(v) -> str:
