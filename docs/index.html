@@ -55,7 +55,7 @@
       <div class="flex items-center gap-3 shrink-0">
         <div class="text-right hidden sm:block">
           <div class="text-xs font-medium text-gray-700">Last built</div>
-          <div class="text-xs text-gray-400" id="build-time-rel" title="May 26, 2026  21:57 UTC">May 26, 2026  21:57 UTC</div>
+          <div class="text-xs text-gray-400" id="build-time-rel" title="May 27, 2026  22:06 UTC">May 27, 2026  22:06 UTC</div>
         </div>
         <button id="rebuild-btn" onclick="onRebuildClick()"
           class="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg transition-colors">
@@ -245,7 +245,7 @@ new Chart(document.getElementById("pnlChart"), {
 
     // ── Relative build time ────────────────────────────────────────────────
     (function() {
-      const built = new Date('2026-05-26T21:57:49Z');
+      const built = new Date('2026-05-27T22:06:04Z');
       function relTime() {
         const diff = Math.floor((Date.now() - built) / 1000);
         if (diff < 60)  return diff + 's ago';
