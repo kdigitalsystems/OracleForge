@@ -24,6 +24,14 @@ from signals import (
 )
 
 BACKTEST_DIR = 'reports/'
+TRADING_CONFIG_FILE = 'config/trading.json'
+DEFAULT_STOP_LOSS_PCT = 0.95
+
+
+def load_stop_loss_pct() -> float:
+    """Read stop_loss_pct from the trading config so the backtest matches live trading."""
+    cfg = load_json(TRADING_CONFIG_FILE, {})
+    return float(cfg.get('stop_loss_pct', DEFAULT_STOP_LOSS_PCT))
 
 
 def fetch_next_session_bar(ticker: str, after_date: str, max_days: int = 10) -> dict | None:
@@ -62,10 +70,15 @@ def fetch_next_session_bar(ticker: str, after_date: str, max_days: int = 10) -> 
     }
 
 
-def simulate_range_outcome(bar: dict, pred: dict) -> dict:
+def simulate_range_outcome(bar: dict, pred: dict, stop_loss_pct: float = 0.95) -> dict:
     """
     Simulate a buy/sell range trade against a realized OHLC bar.
-    Entry assumed at buy_high (conservative); stop at -2% from entry.
+
+    Entry assumed at buy_high (conservative). The stop is placed at
+    buy_high * stop_loss_pct to match the live trader and the nightly scorer,
+    both of which use the same configured stop_loss_pct (default 0.95 = -5%).
+    Path within the bar is unknown, so the stop is checked before the target
+    (pessimistic assumption).
     """
     buy_high = float(pred.get('buy_high') or 0)
     sell_low = float(pred.get('sell_low') or 0)
@@ -80,10 +93,10 @@ def simulate_range_outcome(bar: dict, pred: dict) -> dict:
         return {'outcome': 'no_trigger', 'return_pct': 0.0, 'triggered': False}
 
     entry = buy_high
-    stop = entry * 0.98
+    stop = entry * stop_loss_pct
 
     if low <= stop:
-        return {'outcome': 'stop', 'return_pct': -2.0, 'triggered': True}
+        return {'outcome': 'stop', 'return_pct': round((stop_loss_pct - 1) * 100, 2), 'triggered': True}
 
     if high >= sell_low:
         ret = ((sell_low - entry) / entry) * 100
@@ -97,12 +110,14 @@ def _new_bucket() -> dict:
     return {
         'trades': 0,
         'triggered': 0,
-        'wins': 0,
-        'stops': 0,
-        'misses': 0,
+        'wins': 0,       # categorical: reached the sell target
+        'stops': 0,      # categorical: hit the stop
+        'misses': 0,     # categorical: triggered but neither target nor stop
         'return_pct_sum': 0.0,
-        'gross_profit': 0.0,
-        'gross_loss': 0.0,
+        'gross_profit': 0.0,   # sum of all positive returns
+        'gross_loss': 0.0,     # sum of abs of all negative returns
+        '_win_n': 0,           # count of trades with positive return
+        '_loss_n': 0,          # count of trades with negative return
         '_cur_loss_streak': 0,
         '_max_loss_streak': 0,
     }
@@ -110,37 +125,48 @@ def _new_bucket() -> dict:
 
 def _update_bucket(bucket: dict, outcome: dict) -> None:
     bucket['trades'] += 1
-    if outcome['triggered']:
-        bucket['triggered'] += 1
-        ret = outcome['return_pct']
-        bucket['return_pct_sum'] += ret
-        if outcome['outcome'] == 'win':
-            bucket['wins'] += 1
-            bucket['gross_profit'] += ret
-            bucket['_cur_loss_streak'] = 0
-        elif outcome['outcome'] == 'stop':
-            bucket['stops'] += 1
-            bucket['gross_loss'] += abs(ret)
-            bucket['_cur_loss_streak'] += 1
-            bucket['_max_loss_streak'] = max(
-                bucket['_max_loss_streak'], bucket['_cur_loss_streak']
-            )
-        else:
-            bucket['misses'] += 1
-            if ret < 0:
-                bucket['gross_loss'] += abs(ret)
-            bucket['_cur_loss_streak'] = 0
+    if not outcome['triggered']:
+        return
+
+    bucket['triggered'] += 1
+    ret = outcome['return_pct']
+    bucket['return_pct_sum'] += ret
+
+    # Categorical outcome counts drive win_rate.
+    if outcome['outcome'] == 'win':
+        bucket['wins'] += 1
+    elif outcome['outcome'] == 'stop':
+        bucket['stops'] += 1
+    else:
+        bucket['misses'] += 1
+
+    # P&L aggregation is by the sign of the realized return, so the numerator
+    # and denominator of avg_win_pct / avg_loss_pct always cover the same
+    # population (a "miss" that closed below entry counts as a loss).
+    if ret > 0:
+        bucket['gross_profit'] += ret
+        bucket['_win_n'] += 1
+        bucket['_cur_loss_streak'] = 0
+    elif ret < 0:
+        bucket['gross_loss'] += abs(ret)
+        bucket['_loss_n'] += 1
+        bucket['_cur_loss_streak'] += 1
+        bucket['_max_loss_streak'] = max(
+            bucket['_max_loss_streak'], bucket['_cur_loss_streak']
+        )
+    # ret == 0 (scratch): no P&L, streak unchanged.
 
 
 def _finalize_bucket(bucket: dict) -> dict:
     triggered = bucket['triggered']
     wins = bucket['wins']
-    stops = bucket['stops']
+    win_n = bucket['_win_n']
+    loss_n = bucket['_loss_n']
     gross_profit = bucket['gross_profit']
     gross_loss = bucket['gross_loss']
 
-    avg_win_pct = round(gross_profit / wins, 4) if wins else 0.0
-    avg_loss_pct = round(gross_loss / stops, 4) if stops else 0.0
+    avg_win_pct = round(gross_profit / win_n, 4) if win_n else 0.0
+    avg_loss_pct = round(gross_loss / loss_n, 4) if loss_n else 0.0
     profit_factor = round(gross_profit / gross_loss, 3) if gross_loss > 0 else None
 
     # Build output, excluding internal tracking fields
@@ -156,10 +182,16 @@ def _finalize_bucket(bucket: dict) -> dict:
     return out
 
 
-def run_backtest(dates: list[str] | None = None, scores: dict | None = None) -> dict:
+def run_backtest(
+    dates: list[str] | None = None,
+    scores: dict | None = None,
+    stop_loss_pct: float | None = None,
+) -> dict:
     scores = scores or load_json(SCORES_FILE, {})
     config = load_signal_config()
     dates = dates or list_prediction_dates()
+    if stop_loss_pct is None:
+        stop_loss_pct = load_stop_loss_pct()
 
     by_model: dict[str, dict] = defaultdict(_new_bucket)
     by_signal: dict[str, dict] = defaultdict(_new_bucket)
@@ -200,12 +232,13 @@ def run_backtest(dates: list[str] | None = None, scores: dict | None = None) -> 
             consensus = weighted_consensus_ranges(model_preds, scores)
 
             for model_name, pred in model_preds.items():
-                outcome = simulate_range_outcome(bar, pred)
+                outcome = simulate_range_outcome(bar, pred, stop_loss_pct)
                 _update_bucket(by_model[model_name], outcome)
 
             if consensus:
-                _update_bucket(by_signal['CONSENSUS'], simulate_range_outcome(bar, consensus))
-                _update_bucket(by_signal[signal], simulate_range_outcome(bar, consensus))
+                consensus_outcome = simulate_range_outcome(bar, consensus, stop_loss_pct)
+                _update_bucket(by_signal['CONSENSUS'], consensus_outcome)
+                _update_bucket(by_signal[signal], consensus_outcome)
 
         if day_detail['tickers_evaluated'] > 0:
             daily_rows.append(day_detail)
@@ -214,6 +247,7 @@ def run_backtest(dates: list[str] | None = None, scores: dict | None = None) -> 
         'generated_at': datetime.now().isoformat(timespec='seconds'),
         'prediction_dates': dates,
         'days_in_history': len(dates),
+        'stop_loss_pct': stop_loss_pct,
         'skipped_pairs': skipped,
         'by_model': {name: _finalize_bucket(b) for name, b in sorted(by_model.items())},
         'by_signal': {name: _finalize_bucket(b) for name, b in sorted(by_signal.items())},

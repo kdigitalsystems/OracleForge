@@ -184,8 +184,12 @@ python3 backtest.py --from-date 2026-05-01 --to-date 2026-05-15
 ```
 
 Each `history/predictions_YYYY-MM-DD.json` file is replayed: entry is assumed at `buy_high`
-(conservative), with a −2% stop. Outcomes are bucketed as **win** (price reached `sell_low`),
-**stop** (price fell to −2%), **miss** (triggered but neither target hit), or **no_trigger**.
+(conservative), with the stop at `buy_high × stop_loss_pct` — the **same** `stop_loss_pct`
+(default 0.95 = −5%) used by the live trader and the nightly scorer, read from
+`config/trading.json` so the backtest matches what is actually traded. Outcomes are bucketed as
+**win** (price reached `sell_low`), **stop** (price fell to the stop), **miss** (triggered but
+neither target nor stop hit), or **no_trigger**. Win/loss averages and profit factor are
+aggregated by the sign of each trade's realized return.
 
 **Output:**
 - **Console summary** — per-model and per-signal tables: trade count, win %, avg win %,
@@ -317,7 +321,7 @@ Tracks open position entry data for P&L calculation:
 python3 -m unittest test_signals test_backtest test_forge test_trader -v
 ```
 
-**86 tests** covering:
+**90 tests** covering:
 
 | Module | Areas |
 |---|---|
