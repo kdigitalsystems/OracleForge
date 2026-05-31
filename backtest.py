@@ -238,9 +238,9 @@ def print_backtest_summary(report: dict) -> None:
         pf = f"{stats['profit_factor']:.2f}" if stats['profit_factor'] is not None else 'N/A'
         print(
             f"{model:<36} {stats['trades']:>8} "
-            f"{stats['win_rate'] * 100:>6.1f}%% "
-            f"{stats['avg_win_pct']:>8.2f}%% "
-            f"{stats['avg_loss_pct']:>8.2f}%% "
+            f"{stats['win_rate'] * 100:>6.1f}% "
+            f"{stats['avg_win_pct']:>8.2f}% "
+            f"{stats['avg_loss_pct']:>8.2f}% "
             f"{pf:>7} "
             f"{stats['max_consecutive_losses']:>8}"
         )
@@ -255,9 +255,9 @@ def print_backtest_summary(report: dict) -> None:
         pf = f"{stats['profit_factor']:.2f}" if stats['profit_factor'] is not None else 'N/A'
         print(
             f"{signal:<12} {stats['trades']:>8} "
-            f"{stats['win_rate'] * 100:>6.1f}%% "
-            f"{stats['avg_win_pct']:>8.2f}%% "
-            f"{stats['avg_loss_pct']:>8.2f}%% "
+            f"{stats['win_rate'] * 100:>6.1f}% "
+            f"{stats['avg_win_pct']:>8.2f}% "
+            f"{stats['avg_loss_pct']:>8.2f}% "
             f"{pf:>7}"
         )
 
