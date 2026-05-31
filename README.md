@@ -164,7 +164,40 @@ The self-hosted runner must be registered to this repository. To register:
 | `python3 trader.py --open --dry-run` | Preview orders without placing them |
 | `python3 trader.py --close --dry-run` | Preview settlement without writing state |
 | `python3 backtest.py` | Score historical predictions vs realized OHLC |
+| `python3 backtest.py --from-date 2026-05-01 --to-date 2026-05-15` | Backtest a bounded date window |
 | `python3 scripts/generate_html_report.py` | Regenerate `docs/index.html` from local data |
+
+---
+
+## Backtesting
+
+Walk the saved prediction history and score each predicted buy/sell range against the
+**next trading session's** realized OHLC (fetched from yfinance, independent of Alpaca).
+
+```bash
+# Backtest all available prediction history
+python3 backtest.py
+
+# Restrict to a date range (both inclusive, YYYY-MM-DD)
+python3 backtest.py --from-date 2026-05-01
+python3 backtest.py --from-date 2026-05-01 --to-date 2026-05-15
+```
+
+Each `history/predictions_YYYY-MM-DD.json` file is replayed: entry is assumed at `buy_high`
+(conservative), with a −2% stop. Outcomes are bucketed as **win** (price reached `sell_low`),
+**stop** (price fell to −2%), **miss** (triggered but neither target hit), or **no_trigger**.
+
+**Output:**
+- **Console summary** — per-model and per-signal tables: trade count, win %, avg win %,
+  avg loss %, profit factor, and max consecutive losses.
+- **`reports/backtest_summary.json`** — full report (including a daily breakdown), which the
+  dashboard's **Backtest** tab renders.
+
+**Requirements:**
+- At least one completed nightly run (so `history/predictions_*.json` exists). With no history,
+  the command prints `No prediction history files found in history/.` and exits.
+- Outbound internet for yfinance. Tickers with no available next-session bar (too recent,
+  delisted, etc.) are counted under `skipped_pairs` rather than failing the run.
 
 ---
 
