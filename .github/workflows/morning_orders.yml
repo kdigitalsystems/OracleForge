@@ -43,16 +43,27 @@ jobs:
         run: |
           python3 -c "
           import json, os, sys
-          from datetime import datetime
-          today = datetime.now().strftime('%Y-%m-%d')
-          path = f'reports/signals_{today}.json'
-          if not os.path.exists(path):
-              print(f'ERROR: {path} not found.')
-              print('The nightly forge must run before the morning orders job.')
+          from datetime import datetime, timedelta
+          # Nightly runs at 23:00 UTC the previous calendar day; check that date first,
+          # then today as a fallback (e.g. if nightly ran early or same-day re-run).
+          candidates = [
+              (datetime.now() - timedelta(days=1)).strftime('%Y-%m-%d'),
+              datetime.now().strftime('%Y-%m-%d'),
+          ]
+          path = None
+          for date in candidates:
+              candidate = f'reports/signals_{date}.json'
+              if os.path.exists(candidate):
+                  path = candidate
+                  break
+          if not path:
+              print(f'ERROR: No signals file found for {candidates[0]} or {candidates[1]}.')
+              print('The nightly forge must run successfully before the morning orders job.')
               sys.exit(1)
-          report = json.load(open(path))
+          with open(path) as f:
+              report = json.load(f)
           active = report.get('summary', {}).get('active', 0)
-          print(f'OK: {active} ACTIVE setups for {today}')
+          print(f'OK: {active} ACTIVE setups ({path})')
           "
 
       - name: Place limit buy orders

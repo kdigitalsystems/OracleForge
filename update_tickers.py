@@ -18,6 +18,7 @@ import sys
 import time
 from datetime import datetime, timedelta, timezone
 
+from alpaca.data.enums import DataFeed
 from alpaca.data.requests import StockBarsRequest
 from alpaca.data.timeframe import TimeFrame
 from alpaca.trading.enums import AssetClass, AssetStatus
@@ -79,6 +80,7 @@ def fetch_daily_bars(data_client, symbols: list[str], days: int) -> dict[str, li
                 timeframe=TimeFrame.Day,
                 start=start.strftime('%Y-%m-%d'),
                 end=end.strftime('%Y-%m-%d'),
+                feed=DataFeed.IEX,
             )
             bars = data_client.get_stock_bars(req)
             for sym, sym_bars in bars.data.items():
