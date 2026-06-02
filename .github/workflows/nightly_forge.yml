@@ -35,18 +35,36 @@ jobs:
 
       - name: Start Ollama
         run: |
-          OLLAMA=$(which ollama 2>/dev/null \
-            || ls /usr/local/bin/ollama /usr/bin/ollama "$HOME/.local/bin/ollama" 2>/dev/null | head -1)
+          # Locate the ollama binary. On a self-hosted runner the scheduled job
+          # can fire while the machine is still booting, so the binary / PATH may
+          # not be ready instantly. Retry discovery for up to ~60s before failing.
+          find_ollama() {
+            command -v ollama 2>/dev/null && return 0
+            for p in /usr/local/bin/ollama /usr/bin/ollama /bin/ollama \
+                     "$HOME/.local/bin/ollama" /snap/bin/ollama /opt/ollama/bin/ollama; do
+              if [ -x "$p" ]; then echo "$p"; return 0; fi
+            done
+            return 1
+          }
+
+          OLLAMA=""
+          for i in $(seq 1 12); do
+            OLLAMA=$(find_ollama) && [ -n "$OLLAMA" ] && break
+            echo "ollama binary not found yet (attempt $i/12); waiting 5s..."
+            sleep 5
+          done
           if [ -z "$OLLAMA" ]; then
-            echo "ERROR: ollama binary not found. Install from https://ollama.com"
+            echo "ERROR: ollama binary not found after 60s. Install from https://ollama.com"
+            echo "PATH=$PATH"
             exit 1
           fi
           echo "Found ollama at: $OLLAMA"
+
           if curl -sf http://localhost:11434/api/tags > /dev/null 2>&1; then
             echo "Ollama already running."
           else
             echo "Starting Ollama..."
-            $OLLAMA serve > /tmp/ollama.log 2>&1 &
+            "$OLLAMA" serve > /tmp/ollama.log 2>&1 &
             # Wait up to 60s for Ollama to become ready
             for i in $(seq 1 30); do
               sleep 2
@@ -61,7 +79,7 @@ jobs:
               fi
             done
           fi
-          $OLLAMA list
+          "$OLLAMA" list
 
       - name: Build ticker universe from Alpaca
         run: python3 update_tickers.py
