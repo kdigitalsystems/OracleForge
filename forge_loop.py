@@ -358,16 +358,45 @@ def _technicals_block(t: dict) -> str:
     return "\n".join(lines)
 
 
+def format_recent_ohlc(bars: list, n: int = 10) -> str:
+    """Render the last n daily bars as a compact table for the LLM prompt.
+
+    Giving the model the actual recent price action (not just summary scalars)
+    lets it anchor its buy/sell ranges to how the stock is really trading.
+    """
+    if not bars:
+        return ""
+    recent = bars[-n:]
+    lines = [
+        f"Recent daily price action (last {len(recent)} sessions, oldest first):",
+        "Date         Open      High      Low       Close     Volume",
+    ]
+    for b in recent:
+        ts = getattr(b, 'timestamp', None)
+        date = ts.strftime('%Y-%m-%d') if hasattr(ts, 'strftime') else str(ts)[:10]
+        try:
+            vol = float(b.volume)
+        except (TypeError, ValueError):
+            vol = 0.0
+        vol_str = f"{vol / 1e6:.1f}M" if vol >= 1e6 else f"{vol / 1e3:.0f}K"
+        lines.append(
+            f"{date:<11} {float(b.open):>8.2f}  {float(b.high):>8.2f}  "
+            f"{float(b.low):>8.2f}  {float(b.close):>8.2f}  {vol_str:>8}"
+        )
+    return "\n".join(lines)
+
+
 def call_local_llm(ticker: str, current_price: float, model_name: str,
                    journal: list | None = None,
-                   technicals: dict | None = None) -> dict:
+                   technicals: dict | None = None,
+                   recent_ohlc: str = "") -> dict:
     journal = journal or []
     news_context = fetch_recent_news(ticker)
     perf_context = model_performance_context(model_name, journal)
     history_context = ticker_trade_history(ticker, journal)
     tech_context = _technicals_block(technicals or {})
 
-    context_block = "\n".join(filter(None, [perf_context, history_context, tech_context]))
+    context_block = "\n".join(filter(None, [perf_context, history_context, recent_ohlc, tech_context]))
 
     prompt = f"""You are a quantitative financial analyst.
 {context_block + chr(10) if context_block else ""}The current closing price of {ticker} is ${current_price:.2f}.
@@ -536,12 +565,14 @@ def main():
 
     market_data: dict[str, float] = {}
     technicals_data: dict[str, dict] = {}
+    ohlc_data: dict[str, str] = {}
     for ticker in tickers:
         bar_list = all_bars.get(ticker)
         if not bar_list:
             continue
         market_data[ticker] = float(bar_list[-1].close)
         technicals_data[ticker] = compute_technicals(bar_list)
+        ohlc_data[ticker] = format_recent_ohlc(bar_list)
 
     if not market_data:
         print("ERROR: No market data retrieved for any ticker. Aborting inference.")
@@ -623,6 +654,7 @@ def main():
                 rp = call_local_llm(
                     ticker, market_data[ticker], model_name, journal,
                     technicals=technicals_data.get(ticker),
+                    recent_ohlc=ohlc_data.get(ticker, ""),
                 )
                 if rp.get('fallback'):
                     fallback_count += 1

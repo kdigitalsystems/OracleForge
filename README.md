@@ -48,7 +48,7 @@ Each night, local Ollama models independently analyse every ticker on the watchl
    - **ACTIVE** — consensus buy range is reachable with >1% upside to sell range. Valid setup.
    - **SKIP** — setup exists but upside is too small or buy range is too wide.
    - **STALE** — price has already moved above the sell range (missed opportunity). `upside_pct` is `null` for stale signals.
-6. **Technical context** provided to each model: close price, RSI(14) via Wilder's smoothing, volume ratio, 10d high/low distance, SMA20 distance, Bollinger Band %B, and 5-day price momentum.
+6. **Technical context** provided to each model: a table of the **last ~10 daily OHLC+volume bars** (so the model sees real recent price action, not just summary stats), plus close price, RSI(14) via Wilder's smoothing, volume ratio, 10d high/low distance, SMA20 distance, Bollinger Band %B, and 5-day price momentum.
 7. **Score decay** — model scores decay by 0.99× per day before each update, so recent performance carries more weight than distant history.
 8. **Persist** — saves enriched predictions to `history/predictions_YYYY-MM-DD.json`, signals report to `reports/signals_YYYY-MM-DD.json`, updated model scores to `state/analyst_scores.json`.
 

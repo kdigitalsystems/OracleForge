@@ -13,6 +13,7 @@ from forge_loop import (
     apply_score_deltas,
     compute_technicals,
     evaluate_range_prediction,
+    format_recent_ohlc,
     parse_llm_range,
     score_deltas_from_journal,
 )
@@ -24,11 +25,14 @@ from forge_loop import (
 
 class MockBar:
     """Minimal bar object matching Alpaca's Bar interface."""
-    def __init__(self, close, high=None, low=None, volume=1_000_000):
+    def __init__(self, close, high=None, low=None, volume=1_000_000,
+                 open=None, timestamp=None):
         self.close = close
         self.high = high if high is not None else close * 1.01
         self.low = low if low is not None else close * 0.99
+        self.open = open if open is not None else close
         self.volume = volume
+        self.timestamp = timestamp
 
 
 def _make_bars(closes, volumes=None):
@@ -307,6 +311,44 @@ class ComputeTechnicalsTests(unittest.TestCase):
         bars = _make_bars(closes)
         result = compute_technicals(bars)
         self.assertGreater(result['rsi14'], 50)
+
+
+class FormatRecentOhlcTests(unittest.TestCase):
+
+    def test_empty_bars_returns_empty_string(self):
+        self.assertEqual(format_recent_ohlc([]), "")
+
+    def test_includes_only_last_n_rows(self):
+        bars = _make_bars(list(range(100, 120)))  # 20 bars, closes 100..119
+        out = format_recent_ohlc(bars, n=5)
+        # The 5 most recent closes are 115..119; 114 must be excluded.
+        self.assertIn('119.00', out)
+        self.assertIn('115.00', out)
+        self.assertNotIn('114.00', out)
+
+    def test_renders_date_and_volume(self):
+        from datetime import datetime
+        bars = [
+            MockBar(100.0, 101.0, 99.0, volume=2_500_000, open=99.5,
+                    timestamp=datetime(2026, 5, 20)),
+            MockBar(102.0, 103.0, 100.5, volume=900_000, open=100.0,
+                    timestamp=datetime(2026, 5, 21)),
+        ]
+        out = format_recent_ohlc(bars)
+        self.assertIn('2026-05-20', out)
+        self.assertIn('2026-05-21', out)
+        self.assertIn('2.5M', out)   # millions formatting
+        self.assertIn('900K', out)   # thousands formatting
+        self.assertIn('Open', out)   # header present
+
+    def test_oldest_first_ordering(self):
+        from datetime import datetime
+        bars = [
+            MockBar(100.0, timestamp=datetime(2026, 5, 20)),
+            MockBar(105.0, timestamp=datetime(2026, 5, 21)),
+        ]
+        out = format_recent_ohlc(bars)
+        self.assertLess(out.index('2026-05-20'), out.index('2026-05-21'))
 
 
 if __name__ == '__main__':
