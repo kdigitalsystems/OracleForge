@@ -52,6 +52,8 @@ Each night, local Ollama models independently analyse every ticker on the watchl
 7. **Score decay** — model scores decay by 0.99× per day before each update, so recent performance carries more weight than distant history.
 8. **Persist** — saves enriched predictions to `history/predictions_YYYY-MM-DD.json`, signals report to `reports/signals_YYYY-MM-DD.json`, updated model scores to `state/analyst_scores.json`.
 
+> **Staged & resumable:** a full run is long (one LLM call per model per ticker). `forge_loop.py` processes tickers in batches (`--batch-size`, default 25) and checkpoints predictions/signals to disk after each batch. With `--push` (used by CI) it also commits and pushes after every batch, so partial results appear upstream immediately and a crash/retry only re-runs the unfinished tickers. The model-score update is computed once per day (on the first batch); resumed invocations skip it.
+
 ### Daytime (trader.py — two short jobs, no polling)
 
 **Morning (`trader.py --open`, 9:30 AM ET):**
@@ -159,6 +161,7 @@ The self-hosted runner must be registered to this repository. To register:
 | `python3 update_tickers.py --limit 50 --min-price 20 --max-vol 3.0` | Custom filters |
 | `python3 forge_loop.py` | Overnight analysis for all tickers |
 | `python3 forge_loop.py --tickers NVDA,AAPL` | Selected tickers only |
+| `python3 forge_loop.py --batch-size 10 --push` | Process in batches of 10, committing/pushing after each (CI use) |
 | `python3 trader.py --open` | Place DAY limit buy orders at market open |
 | `python3 trader.py --close` | Settle fills and update P&L journal |
 | `python3 trader.py --open --dry-run` | Preview orders without placing them |

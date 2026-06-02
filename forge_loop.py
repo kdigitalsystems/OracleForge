@@ -3,6 +3,7 @@ import argparse
 import json
 import os
 import re
+import subprocess
 import sys
 import time
 from collections import defaultdict
@@ -431,9 +432,42 @@ def fetch_all_bars(tickers: list[str], days: int = 30) -> dict[str, list]:
     return result
 
 
+def git_checkpoint(message: str, paths: list[str]) -> bool:
+    """Stage paths, commit if anything changed, and push with rebase+retry.
+
+    Used between batches so partial results are pushed upstream and a crash
+    mid-run never loses more than the last batch. Returns True on success
+    (including the nothing-to-commit case), False if the push ultimately failed.
+    """
+    try:
+        subprocess.run(['git', 'add', *paths], check=True)
+        if subprocess.run(['git', 'diff', '--staged', '--quiet']).returncode == 0:
+            return True  # nothing new to commit
+        subprocess.run(['git', 'commit', '-m', message], check=True)
+    except subprocess.CalledProcessError as e:
+        print(f"  [!] git commit failed: {e}")
+        return False
+
+    for attempt in range(1, 6):
+        subprocess.run(['git', 'rebase', '--abort'], capture_output=True)
+        pulled = subprocess.run(['git', 'pull', '--rebase', '--autostash', 'origin', 'main'])
+        if pulled.returncode == 0 and \
+                subprocess.run(['git', 'push', 'origin', 'HEAD:main']).returncode == 0:
+            print(f"  Pushed checkpoint on attempt {attempt}.")
+            return True
+        print(f"  [!] push attempt {attempt} failed; retrying in 5s...")
+        time.sleep(5)
+    print("  [!] Could not push checkpoint after 5 attempts.")
+    return False
+
+
 def main():
     parser = argparse.ArgumentParser(description='Run the OracleForge overnight inference loop.')
     parser.add_argument('--tickers', help='Comma-separated watchlist override.')
+    parser.add_argument('--batch-size', type=int, default=25,
+                        help='Tickers per checkpoint batch (saved/pushed incrementally). 0 = all at once.')
+    parser.add_argument('--push', action='store_true',
+                        help='git commit + push after each batch (CI use). Off by default.')
     args = parser.parse_args()
 
     print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Starting OracleForge Loop...")
@@ -477,71 +511,84 @@ def main():
 
     today_date = datetime.now().strftime('%Y-%m-%d')
     today_log_path = os.path.join(HISTORY_DIR, f'predictions_{today_date}.json')
+    report_path = os.path.join(REPORTS_DIR, f'signals_{today_date}.json')
+
+    # Resume support: the score update is a once-per-day step, so it runs only
+    # on the first invocation (when today's predictions file does not yet
+    # exist). Tickers already present in that file are skipped this run, so a
+    # crash/retry only re-processes what is left.
+    first_run_today = not os.path.exists(today_log_path)
+    existing_enriched = load_json(today_log_path, {})
+    already_done = set(existing_enriched.keys())
 
     prior_log_path, prior_date = find_latest_predictions_path()
     prior_predictions = load_json(prior_log_path, {}) if prior_log_path else {}
-
     if prior_log_path:
         print(f"Evaluating predictions from {prior_date} ({prior_log_path})")
     else:
         print("No prior prediction file found; skipping evaluation this run.")
 
-    today_predictions: dict[str, dict] = {}
-    market_data: dict[str, float] = {}
-    technicals_data: dict[str, dict] = {}
-    score_deltas: dict = defaultdict(list)
-
-    # --- PHASE 1: FETCH MARKET DATA, TECHNICALS & EVALUATE PRIOR PREDICTIONS ---
-    print("\n--- PHASE 1: Market Data & Evaluation ---")
+    # --- PHASE 1: MARKET DATA & TECHNICALS ---
+    print("\n--- PHASE 1: Market Data ---")
     print(f"Batch-fetching 30-day bars for {len(tickers)} tickers via Alpaca...")
     all_bars = fetch_all_bars(tickers, days=30)
     print(f"  Received data for {len(all_bars)} tickers.")
 
-    fallback_count = 0
-
+    market_data: dict[str, float] = {}
+    technicals_data: dict[str, dict] = {}
     for ticker in tickers:
         bar_list = all_bars.get(ticker)
         if not bar_list:
-            print(f"  Skipping {ticker}: no recent market data.")
             continue
-
-        latest = bar_list[-1]
-        market_data[ticker] = float(latest.close)
-        today_predictions[ticker] = {}
+        market_data[ticker] = float(bar_list[-1].close)
         technicals_data[ticker] = compute_technicals(bar_list)
-
-        # Theoretical OHLC-based score update (range quality check)
-        prior_models = extract_model_predictions(prior_predictions.get(ticker, {}))
-        for model_name, past_pred in prior_models.items():
-            if model_name not in scores:
-                continue
-            delta = evaluate_range_prediction(
-                high_price=float(latest.high),
-                low_price=float(latest.low),
-                pred=past_pred,
-                stop_threshold=stop_loss_pct,
-            )
-            score_deltas[model_name].append(delta)
-
-    # Actual P&L-based score update from trade journal
-    if prior_date:
-        journal_deltas = score_deltas_from_journal(journal, prior_date, scores)
-        if journal_deltas:
-            closed = sum(len(v) for v in journal_deltas.values())
-            print(f"  Applying score updates from {closed} actual closed trade(s) on {prior_date}.")
-            for model, deltas in journal_deltas.items():
-                score_deltas[model].extend(deltas)
-
-    apply_score_deltas(scores, score_deltas, decay=score_decay)
 
     if not market_data:
         print("ERROR: No market data retrieved for any ticker. Aborting inference.")
         sys.exit(1)
 
-    # --- PHASE 1b: EARNINGS SCREEN ---
-    print("\n  Screening for upcoming earnings...")
+    # --- SCORE UPDATE (once per day, on the first invocation only) ---
+    if first_run_today:
+        score_deltas: dict = defaultdict(list)
+        for ticker in tickers:
+            bar_list = all_bars.get(ticker)
+            if not bar_list:
+                continue
+            latest = bar_list[-1]
+            prior_models = extract_model_predictions(prior_predictions.get(ticker, {}))
+            for model_name, past_pred in prior_models.items():
+                if model_name not in scores:
+                    continue
+                score_deltas[model_name].append(evaluate_range_prediction(
+                    high_price=float(latest.high),
+                    low_price=float(latest.low),
+                    pred=past_pred,
+                    stop_threshold=stop_loss_pct,
+                ))
+        if prior_date:
+            journal_deltas = score_deltas_from_journal(journal, prior_date, scores)
+            if journal_deltas:
+                closed = sum(len(v) for v in journal_deltas.values())
+                print(f"  Applying score updates from {closed} actual closed trade(s) on {prior_date}.")
+                for model, deltas in journal_deltas.items():
+                    score_deltas[model].extend(deltas)
+        apply_score_deltas(scores, score_deltas, decay=score_decay)
+        save_json(SCORES_FILE, scores)
+        # Persist an (initially empty) predictions file as a "scoring done"
+        # marker so a crash before the first batch does not re-apply deltas.
+        save_json(today_log_path, existing_enriched)
+        print("  Score update applied (first run today).")
+    else:
+        print(f"  Resuming: {len(already_done)} ticker(s) already processed today; skipping score update.")
+
+    # --- PHASE 1b: EARNINGS SCREEN (pending tickers only) ---
+    pending = [t for t in market_data if t not in already_done]
+    if not pending:
+        print("\nAll tickers already processed today. Nothing to do.")
+        return
+    print(f"\n--- PHASE 1b: Earnings screen ({len(pending)} pending) ---")
     earnings_skip: set[str] = set()
-    for ticker in list(market_data.keys()):
+    for ticker in pending:
         if has_upcoming_earnings(ticker):
             earnings_skip.add(ticker)
     if earnings_skip:
@@ -550,46 +597,67 @@ def main():
     else:
         print("  No upcoming earnings found.")
 
-    # --- PHASE 2: MODEL INFERENCE ---
-    print("\n--- PHASE 2: AI Inference (Model by Model) ---")
-    for model_name in scores.keys():
-        print(f"\n>> Loading {model_name} (score: {scores[model_name]:.3f}) <<")
-        for ticker, current_price in market_data.items():
+    # --- PHASE 2 & 3: BATCHED INFERENCE + INCREMENTAL CHECKPOINTS ---
+    print("\n--- PHASE 2: AI Inference (batched) ---")
+    enriched_all = dict(existing_enriched)
+    batch_size = args.batch_size if args.batch_size and args.batch_size > 0 else len(pending)
+    fallback_count = 0
+    total = len(market_data)
+
+    for start in range(0, len(pending), batch_size):
+        batch = pending[start:start + batch_size]
+        active_batch = [t for t in batch if t not in earnings_skip]
+
+        batch_raw: dict[str, dict] = {}
+        # Earnings-skipped tickers still get a record (they classify as SKIP).
+        for ticker in batch:
             if ticker in earnings_skip:
-                today_predictions[ticker][model_name] = {
-                    'skipped': True, 'reason': 'upcoming_earnings'
-                }
-                continue
-            print(f"  [{model_name}] Predicting {ticker} (Close: ${current_price:.2f})...")
-            range_pred = call_local_llm(
-                ticker, current_price, model_name, journal,
-                technicals=technicals_data.get(ticker),
+                batch_raw[ticker] = {m: {'skipped': True, 'reason': 'upcoming_earnings'} for m in scores}
+
+        # Model-major order within the batch so Ollama loads each model once.
+        for model_name in scores:
+            if not active_batch:
+                break
+            print(f"  >> {model_name} (score {scores[model_name]:.3f}) on {len(active_batch)} ticker(s)")
+            for ticker in active_batch:
+                rp = call_local_llm(
+                    ticker, market_data[ticker], model_name, journal,
+                    technicals=technicals_data.get(ticker),
+                )
+                if rp.get('fallback'):
+                    fallback_count += 1
+                batch_raw.setdefault(ticker, {})[model_name] = rp
+
+        # Enrich this batch, merge, and rebuild the report from everything so far.
+        batch_closes = {t: market_data[t] for t in batch}
+        batch_enriched = build_enriched_predictions(batch_raw, batch_closes, scores)
+        enriched_all.update(batch_enriched)
+
+        report = build_signals_report(enriched_all, today_date)
+        save_json(today_log_path, enriched_all)
+        save_signals_json(report_path, report)
+        done = len(enriched_all)
+        print(f"  Checkpoint saved: {done}/{total} tickers ({report['summary']['active']} ACTIVE so far).")
+
+        if args.push:
+            git_checkpoint(
+                f"Forge batch {done}/{total} tickers ({today_date})",
+                ['config/', SCORES_FILE, HISTORY_DIR, REPORTS_DIR],
             )
-            if range_pred.get('fallback'):
-                fallback_count += 1
-            today_predictions[ticker][model_name] = range_pred
 
     if fallback_count:
         print(f"\n  [!] {fallback_count} fallback prediction(s) generated (excluded from consensus).")
 
-    # --- PHASE 3: SIGNALS & SAVE STATE ---
-    print("\n--- PHASE 3: Signals & Persistence ---")
-    enriched = build_enriched_predictions(today_predictions, market_data, scores)
-    report = build_signals_report(enriched, today_date)
-    report_path = os.path.join(REPORTS_DIR, f'signals_{today_date}.json')
-
-    if not enriched:
+    if not enriched_all:
         print("ERROR: No enriched predictions produced.")
         sys.exit(1)
 
-    save_json(SCORES_FILE, scores)
-    save_json(today_log_path, enriched)
-    save_signals_json(report_path, report)
-    print_signals_table(report)
+    final_report = build_signals_report(enriched_all, today_date)
+    print_signals_table(final_report)
     print(f"\nSaved predictions to {today_log_path}")
     print(f"Saved signals report to {report_path}")
-    print(f"Generated {len(enriched)} ticker records ({report['summary']['active']} ACTIVE).")
-    print("OracleForge Loop Complete. Ready for Git Commit.")
+    print(f"Generated {len(enriched_all)} ticker records ({final_report['summary']['active']} ACTIVE).")
+    print("OracleForge Loop Complete.")
 
 
 if __name__ == '__main__':
