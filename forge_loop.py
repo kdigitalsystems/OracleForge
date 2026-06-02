@@ -351,9 +351,9 @@ def _technicals_block(t: dict) -> str:
     if t.get('bb_pct') is not None:
         bp = t['bb_pct']
         note = ' (near upper band — overbought)' if bp > 0.8 else ' (near lower band — oversold)' if bp < 0.2 else ''
-        lines.append(f"- Bollinger %%B: {bp:.2f}{note}")
+        lines.append(f"- Bollinger %B: {bp:.2f}{note}")
     if t.get('price_momentum_5d') is not None:
-        lines.append(f"- 5-day momentum: {t['price_momentum_5d']:+.2f}%%")
+        lines.append(f"- 5-day momentum: {t['price_momentum_5d']:+.2f}%")
     return "\n".join(lines)
 
 

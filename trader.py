@@ -22,13 +22,18 @@ import argparse
 import json
 import os
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import pytz
 
 import alpaca_client
 
 ORDER_SUBMIT_DELAY = 0.3   # seconds between order submissions (~200/min limit)
+# The nightly forge runs the evening before the trading day and names its
+# output files with its own date, so the morning --open job must read the most
+# recent signals file rather than strictly "today". Look back enough days to
+# bridge weekends and holidays (Fri night -> Tue morning after a Mon holiday).
+SIGNALS_MAX_LOOKBACK_DAYS = 4
 
 REPORTS_DIR = 'reports/'
 HISTORY_DIR = 'history/'
@@ -74,13 +79,33 @@ def now_et() -> str:
     return datetime.now(ET).isoformat(timespec='seconds')
 
 
-def load_todays_signals() -> list[dict]:
-    path = os.path.join(REPORTS_DIR, f'signals_{today_str()}.json')
+def find_latest_signals() -> tuple[str | None, str | None]:
+    """Return (path, date_str) of the most recent signals file within the window.
+
+    The signals file is dated by the nightly forge run (evening before the
+    trading day), so the morning job reads the newest available file rather
+    than one keyed to the current calendar date.
+    """
+    base = datetime.now(ET)
+    for days_back in range(0, SIGNALS_MAX_LOOKBACK_DAYS + 1):
+        date_str = (base - timedelta(days=days_back)).strftime('%Y-%m-%d')
+        path = os.path.join(REPORTS_DIR, f'signals_{date_str}.json')
+        if os.path.exists(path):
+            return path, date_str
+    return None, None
+
+
+def load_todays_signals() -> tuple[list[dict], str | None]:
+    """Load ACTIVE rows from the most recent signals file. Returns (rows, date)."""
+    path, date_str = find_latest_signals()
+    if not path:
+        return [], None
     report = load_json(path, {})
-    return [
+    rows = [
         r for r in report.get('active', [])
         if r.get('buy_high') and r.get('sell_low')
     ]
+    return rows, date_str
 
 
 def get_predicting_models(ticker: str, pred_date: str) -> list[str]:
@@ -158,10 +183,11 @@ def run_open(dry_run: bool = False) -> None:
     client = None if dry_run else alpaca_client.get_trading_client()
     today = today_str()
 
-    active_rows = load_todays_signals()
+    active_rows, signals_date = load_todays_signals()
     if not active_rows:
-        print(f"No ACTIVE setups for {today}. Nothing to order.")
+        print(f"No ACTIVE setups found (searched last {SIGNALS_MAX_LOOKBACK_DAYS} days). Nothing to order.")
         return
+    print(f"  Using signals from {signals_date} ({len(active_rows)} ACTIVE).")
 
     # Best upside first — ensures top setups are funded if buying power runs out
     active_rows.sort(key=lambda r: float(r.get('upside_pct', 0)), reverse=True)
@@ -233,7 +259,8 @@ def run_open(dry_run: bool = False) -> None:
                 'sell_limit': sell_low,
                 'stop_limit': None,
                 'qty': qty,
-                'date': today,
+                'date': today,              # placement day — used for same-day idempotency
+                'pred_date': signals_date,  # signals/predictions file date — for model attribution
             }
             log(f"BUY {ticker}: DAY limit {qty} shares @ ${buy_high:.2f} (${order_size:.2f}) → order {order.id}")
             placed += 1
@@ -363,9 +390,12 @@ def run_close(dry_run: bool = False) -> None:
                         fill_qty = float(order.filled_qty or entry['qty'])
                         usd_filled = round(fill_price * fill_qty, 4)
 
+                        # Use the signals/predictions date (not the placement day)
+                        # so predicting_models resolves against the right file.
+                        pred_date = entry.get('pred_date') or entry.get('date', today)
                         record_buy(
                             positions_meta, ticker, fill_price, usd_filled,
-                            entry.get('date', today),
+                            pred_date,
                             entry['buy_limit'], entry['sell_limit'],
                         )
                         log(f"BUY FILLED {ticker}: {fill_qty} shares @ ${fill_price:.2f} (${usd_filled:.2f})")
