@@ -55,5 +55,16 @@ jobs:
             echo "No fills to record today."
           else
             git commit -m "Evening settlement $(date -u '+%Y-%m-%d')"
-            git push origin HEAD:main
+            # Rebase + retry: another scheduled workflow may have advanced main.
+            for attempt in 1 2 3 4 5; do
+              git rebase --abort 2>/dev/null || true
+              if git pull --rebase --autostash origin main && git push origin HEAD:main; then
+                echo "Pushed on attempt $attempt."
+                exit 0
+              fi
+              echo "Push attempt $attempt failed; retrying in 5s..."
+              sleep 5
+            done
+            echo "ERROR: could not push settlement state after 5 attempts."
+            exit 1
           fi

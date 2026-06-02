@@ -123,4 +123,18 @@ jobs:
           fi
 
           git commit -m "Automated OracleForge nightly run"
-          git push origin HEAD:main
+
+          # main may have advanced while this long job ran (another scheduled
+          # workflow or a manual push), so a plain push would be rejected and
+          # the committed state silently lost. Rebase onto origin and retry.
+          for attempt in 1 2 3 4 5; do
+            git rebase --abort 2>/dev/null || true
+            if git pull --rebase --autostash origin main && git push origin HEAD:main; then
+              echo "Pushed on attempt $attempt."
+              exit 0
+            fi
+            echo "Push attempt $attempt failed; retrying in 5s..."
+            sleep 5
+          done
+          echo "ERROR: could not push state after 5 attempts."
+          exit 1
