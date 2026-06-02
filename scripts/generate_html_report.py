@@ -328,34 +328,43 @@ def build_backtest_section(report: dict) -> str:
     by_signal = report.get('by_signal', {})
     by_model = report.get('by_model', {})
 
-    signal_hdrs = ['Signal', 'Trades', 'Triggered', 'Win %', 'Avg Return %']
+    def _pf(s) -> str:
+        pf = s.get('profit_factor')
+        if pf is None:
+            return 'N/A'
+        color = 'text-green-600' if pf >= 1.0 else 'text-red-600'
+        return f'<span class="{color} font-medium">{pf:.2f}</span>'
+
+    def _ret(s) -> str:
+        v = s.get('avg_return_pct', 0)
+        color = 'text-green-600' if v > 0 else 'text-red-600'
+        return f'<span class="{color} font-medium">{v:.2f}%</span>'
+
+    signal_hdrs = ['Signal', 'Trades', 'Win %', 'Avg Return %', 'Avg Win %', 'Avg Loss %', 'Profit Factor']
     signal_rows = []
     for sig, s in sorted(by_signal.items()):
-        triggered = s.get('triggered', 0)
-        win_pct = f'{s.get("win_rate", 0) * 100:.1f}%'
-        avg_ret = f'{s.get("avg_return_pct", 0):.2f}%'
-        color = 'text-green-600' if s.get('avg_return_pct', 0) > 0 else 'text-red-600'
         signal_rows.append([
             _signal_badge(sig) if sig in ('ACTIVE', 'SKIP', 'STALE') else _esc(sig),
             str(s.get('trades', 0)),
-            str(triggered),
-            win_pct,
-            f'<span class="{color} font-medium">{avg_ret}</span>',
+            f'{s.get("win_rate", 0) * 100:.1f}%',
+            _ret(s),
+            f'{s.get("avg_win_pct", 0):.2f}%',
+            f'{s.get("avg_loss_pct", 0):.2f}%',
+            _pf(s),
         ])
 
-    model_hdrs = ['Model', 'Trades', 'Triggered', 'Win %', 'Avg Return %']
+    model_hdrs = ['Model', 'Trades', 'Win %', 'Avg Return %', 'Avg Win %', 'Avg Loss %', 'Profit Factor', 'Max Consec. Losses']
     model_rows = []
     for model, s in sorted(by_model.items(), key=lambda x: x[1].get('win_rate', 0), reverse=True):
-        triggered = s.get('triggered', 0)
-        win_pct = f'{s.get("win_rate", 0) * 100:.1f}%'
-        avg_ret = f'{s.get("avg_return_pct", 0):.2f}%'
-        color = 'text-green-600' if s.get('avg_return_pct', 0) > 0 else 'text-red-600'
         model_rows.append([
             _esc(model),
             str(s.get('trades', 0)),
-            str(triggered),
-            win_pct,
-            f'<span class="{color} font-medium">{avg_ret}</span>',
+            f'{s.get("win_rate", 0) * 100:.1f}%',
+            _ret(s),
+            f'{s.get("avg_win_pct", 0):.2f}%',
+            f'{s.get("avg_loss_pct", 0):.2f}%',
+            _pf(s),
+            str(s.get('max_consecutive_losses', 0)),
         ])
 
     content = f'''
@@ -366,8 +375,11 @@ def build_backtest_section(report: dict) -> str:
 
     days = report.get('days_in_history', 0)
     skipped = report.get('skipped_pairs', 0)
-    return _card('Backtest Summary', content,
-                 subtitle=f'{days} prediction day(s) evaluated · {skipped} ticker/date pairs skipped (no data)')
+    stop = report.get('stop_loss_pct')
+    subtitle = f'{days} prediction day(s) evaluated · {skipped} ticker/date pairs skipped (no data)'
+    if stop is not None:
+        subtitle += f' · stop {(1 - stop) * 100:.0f}% below entry'
+    return _card('Backtest Summary', content, subtitle=subtitle)
 
 
 # ---------------------------------------------------------------------------
