@@ -416,5 +416,43 @@
         ],
         "consensus_buy_high": 68.97,
         "consensus_sell_low": 70.22
+    },
+    {
+        "close_date": "2026-06-03",
+        "ticker": "ARKK",
+        "entry_date": "2026-05-21",
+        "entry_price": 75.668,
+        "exit_price": 78.292,
+        "usd_invested": 6.0,
+        "usd_returned": 2.0693,
+        "pnl_usd": -3.9307,
+        "pnl_pct": -65.51,
+        "outcome": "loss",
+        "predicting_models": [
+            "llama3.1:8b-instruct-q8_0",
+            "gemma4",
+            "mistral-nemo"
+        ],
+        "consensus_buy_high": 75.67,
+        "consensus_sell_low": 78.07
+    },
+    {
+        "close_date": "2026-06-03",
+        "ticker": "CNC",
+        "entry_date": "2026-05-21",
+        "entry_price": 57.822,
+        "exit_price": 59.632,
+        "usd_invested": 5.9817,
+        "usd_returned": 2.0563,
+        "pnl_usd": -3.9254,
+        "pnl_pct": -65.62,
+        "outcome": "loss",
+        "predicting_models": [
+            "llama3.1:8b-instruct-q8_0",
+            "gemma4",
+            "mistral-nemo"
+        ],
+        "consensus_buy_high": 58.0,
+        "consensus_sell_low": 59.63
     }
 ]
