@@ -168,6 +168,7 @@ The self-hosted runner must be registered to this repository. To register:
 | `python3 trader.py --close --dry-run` | Preview settlement without writing state |
 | `python3 backtest.py` | Score historical predictions vs realized OHLC |
 | `python3 backtest.py --from-date 2026-05-01 --to-date 2026-05-15` | Backtest a bounded date window |
+| `python3 backtest.py --compare-executions` | A/B the ACTIVE edge under limit_stop / limit_hold / market_hold execution models |
 | `python3 scripts/generate_html_report.py` | Regenerate `docs/index.html` from local data |
 
 ---

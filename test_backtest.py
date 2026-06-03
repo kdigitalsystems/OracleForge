@@ -223,6 +223,42 @@ class StatsTests(unittest.TestCase):
         self.assertGreaterEqual(s['ci95_high'], s['mean'])
 
 
+class ExecutionModeTests(unittest.TestCase):
+    BAR = {'open': 100.0, 'high': 104.0, 'low': 96.0, 'close': 102.0}
+    PRED = {'buy_high': 98.0, 'sell_low': 110.0}  # entry 98, target unreached
+
+    def test_market_hold_ignores_range_and_uses_open_close(self):
+        out = simulate_range_outcome(self.BAR, self.PRED, execution='market_hold')
+        self.assertTrue(out['triggered'])  # always "in" under market_hold
+        # (close-open)/open = (102-100)/100 = 2%
+        self.assertAlmostEqual(out['return_pct'], 2.0, places=2)
+
+    def test_market_hold_triggers_even_when_limit_would_not(self):
+        # low (96) > buy_high (95) -> limit modes don't trigger, market_hold does
+        bar = {'open': 100.0, 'high': 104.0, 'low': 96.0, 'close': 101.0}
+        pred = {'buy_high': 95.0, 'sell_low': 110.0}
+        self.assertFalse(simulate_range_outcome(bar, pred, execution='limit_stop')['triggered'])
+        self.assertTrue(simulate_range_outcome(bar, pred, execution='market_hold')['triggered'])
+
+    def test_limit_hold_exits_at_close_no_stop(self):
+        # Dips to entry 98 (low 96 <= 98) but no stop; exit at close 102.
+        out = simulate_range_outcome(self.BAR, self.PRED, execution='limit_hold')
+        self.assertTrue(out['triggered'])
+        # (102-98)/98 ~ +4.08%
+        self.assertAlmostEqual(out['return_pct'], (102 - 98) / 98 * 100, places=2)
+
+    def test_limit_hold_no_trigger_when_price_stays_above_buy_high(self):
+        bar = {'open': 100.0, 'high': 104.0, 'low': 99.0, 'close': 103.0}
+        pred = {'buy_high': 98.0, 'sell_low': 110.0}
+        out = simulate_range_outcome(bar, pred, execution='limit_hold')
+        self.assertFalse(out['triggered'])
+
+    def test_default_execution_unchanged(self):
+        # Default path must still behave as the original limit_stop logic.
+        out = simulate_range_outcome({'open': 101, 'high': 108, 'low': 99, 'close': 106}, RANGE_WIN)
+        self.assertEqual(out['outcome'], 'win')
+
+
 class SignificanceWiringTests(unittest.TestCase):
 
     def test_finalize_bucket_includes_significance(self):

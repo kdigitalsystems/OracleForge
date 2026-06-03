@@ -70,8 +70,24 @@ def _stats(returns: list[float]) -> dict:
     }
 
 
+_BAR_CACHE: dict[tuple[str, str], dict | None] = {}
+
+
 def fetch_next_session_bar(ticker: str, after_date: str, max_days: int = 10) -> dict | None:
-    """Return OHLC for the first trading session strictly after after_date."""
+    """Return OHLC for the first trading session strictly after after_date.
+
+    Memoized so running the backtest under several execution modes only hits
+    yfinance once per (ticker, date).
+    """
+    key = (ticker, after_date)
+    if key in _BAR_CACHE:
+        return _BAR_CACHE[key]
+    result = _fetch_next_session_bar_uncached(ticker, after_date, max_days)
+    _BAR_CACHE[key] = result
+    return result
+
+
+def _fetch_next_session_bar_uncached(ticker: str, after_date: str, max_days: int = 10) -> dict | None:
     start = datetime.strptime(after_date, '%Y-%m-%d')
     end = start + timedelta(days=max_days)
     try:
@@ -106,15 +122,23 @@ def fetch_next_session_bar(ticker: str, after_date: str, max_days: int = 10) -> 
     }
 
 
-def simulate_range_outcome(bar: dict, pred: dict, stop_loss_pct: float = 0.95) -> dict:
-    """
-    Simulate a buy/sell range trade against a realized OHLC bar.
+EXECUTION_MODES = ('limit_stop', 'limit_hold', 'market_hold')
 
-    Entry assumed at buy_high (conservative). The stop is placed at
-    buy_high * stop_loss_pct to match the live trader and the nightly scorer,
-    both of which use the same configured stop_loss_pct (default 0.95 = -5%).
-    Path within the bar is unknown, so the stop is checked before the target
-    (pessimistic assumption).
+
+def simulate_range_outcome(bar: dict, pred: dict, stop_loss_pct: float = 0.95,
+                           execution: str = 'limit_stop') -> dict:
+    """
+    Simulate a trade against a realized OHLC bar under one of three execution
+    models, so we can A/B which mechanics actually help:
+
+      limit_stop  (current live behavior): enter only if price dips to buy_high;
+                  exit at sell_low (win), at buy_high*stop_loss_pct (stop), or
+                  at the day's high (miss).
+      limit_hold: enter only if price dips to buy_high; no stop/target — exit at
+                  the close. Isolates whether the stop/target is the leak.
+      market_hold: ignore the range entirely — buy at the open, sell at the
+                  close. Isolates whether the *selection* (not the mechanics)
+                  has any edge.
     """
     buy_high = float(pred.get('buy_high') or 0)
     sell_low = float(pred.get('sell_low') or 0)
@@ -124,13 +148,27 @@ def simulate_range_outcome(bar: dict, pred: dict, stop_loss_pct: float = 0.95) -
 
     low = bar['low']
     high = bar['high']
+    close = bar['close']
+    open_ = bar.get('open') or close
 
+    if execution == 'market_hold':
+        ret = ((close - open_) / open_) * 100 if open_ else 0.0
+        return {'outcome': 'win' if ret >= 0 else 'stop',
+                'return_pct': round(ret, 2), 'triggered': True}
+
+    # limit-entry modes only trigger if the day traded down to buy_high
     if low > buy_high:
         return {'outcome': 'no_trigger', 'return_pct': 0.0, 'triggered': False}
 
     entry = buy_high
-    stop = entry * stop_loss_pct
 
+    if execution == 'limit_hold':
+        ret = ((close - entry) / entry) * 100
+        return {'outcome': 'win' if ret >= 0 else 'stop',
+                'return_pct': round(ret, 2), 'triggered': True}
+
+    # default: limit_stop
+    stop = entry * stop_loss_pct
     if low <= stop:
         return {'outcome': 'stop', 'return_pct': round((stop_loss_pct - 1) * 100, 2), 'triggered': True}
 
@@ -226,6 +264,7 @@ def run_backtest(
     dates: list[str] | None = None,
     scores: dict | None = None,
     stop_loss_pct: float | None = None,
+    execution: str = 'limit_stop',
 ) -> dict:
     scores = scores or load_json(SCORES_FILE, {})
     config = load_signal_config()
@@ -243,6 +282,10 @@ def run_backtest(
     active_strategy_rets: list[float] = []
     active_buyhold_rets: list[float] = []
     universe_buyhold_rets: list[float] = []
+    # Selection diagnostic: buy-and-hold return grouped by the signal the
+    # classifier assigned. If ACTIVE's buy&hold < SKIP's, selection is
+    # anti-predictive independent of any execution mechanics.
+    signal_buyhold: dict[str, list] = defaultdict(list)
 
     for pred_date in dates:
         path = os.path.join(HISTORY_DIR, f'predictions_{pred_date}.json')
@@ -282,15 +325,16 @@ def run_backtest(
             if prior_close and prior_close > 0:
                 buyhold_ret = (bar['close'] - prior_close) / prior_close * 100
                 universe_buyhold_rets.append(buyhold_ret)
+                signal_buyhold[signal].append(buyhold_ret)
 
             consensus = weighted_consensus_ranges(model_preds, scores)
 
             for model_name, pred in model_preds.items():
-                outcome = simulate_range_outcome(bar, pred, stop_loss_pct)
+                outcome = simulate_range_outcome(bar, pred, stop_loss_pct, execution)
                 _update_bucket(by_model[model_name], outcome)
 
             if consensus:
-                consensus_outcome = simulate_range_outcome(bar, consensus, stop_loss_pct)
+                consensus_outcome = simulate_range_outcome(bar, consensus, stop_loss_pct, execution)
                 _update_bucket(by_signal['CONSENSUS'], consensus_outcome)
                 _update_bucket(by_signal[signal], consensus_outcome)
                 day_consensus_rets.append(consensus_outcome['return_pct'])
@@ -322,6 +366,7 @@ def run_backtest(
         'prediction_dates': dates,
         'days_in_history': len(dates),
         'stop_loss_pct': stop_loss_pct,
+        'execution': execution,
         'skipped_pairs': skipped,
         'by_model': {name: _finalize_bucket(b) for name, b in sorted(by_model.items())},
         'by_signal': {name: _finalize_bucket(b) for name, b in sorted(by_signal.items())},
@@ -331,8 +376,25 @@ def run_backtest(
             'active_edge_vs_buy_hold': _stats(active_edge),
             'universe_buy_hold': _stats(universe_buyhold_rets),
         },
+        # Selection quality: buy&hold return by assigned signal (mechanics-free).
+        'selection': {sig: _stats(rets) for sig, rets in sorted(signal_buyhold.items())},
         'daily': daily_rows,
     }
+
+
+def compare_executions(dates: list[str], scores: dict | None = None) -> dict:
+    """Run the backtest under each execution model (bars are cached, so this is
+    cheap) and return the ACTIVE strategy return + edge vs buy-and-hold for each.
+    """
+    results = {}
+    for mode in EXECUTION_MODES:
+        rep = run_backtest(dates, scores=scores, execution=mode)
+        b = rep['benchmark']
+        results[mode] = {
+            'active_strategy': b['active_strategy'],
+            'active_edge_vs_buy_hold': b['active_edge_vs_buy_hold'],
+        }
+    return results
 
 
 def print_backtest_summary(report: dict) -> None:
@@ -412,11 +474,32 @@ def print_backtest_summary(report: dict) -> None:
             print(f"  No significant edge over buy-and-hold (mean {edge.get('mean', 0):+.3f}%/trade, "
                   "not distinguishable from zero). The signal isn't adding measurable value yet.")
 
+    # --- Selection diagnostic: is the classifier picking better names than it
+    #     discards? (buy&hold by assigned signal, free of execution mechanics) ---
+    selection = report.get('selection', {})
+    if selection:
+        print('\nSelection — buy-and-hold return by assigned signal (mechanics removed):')
+        for sig in ('ACTIVE', 'SKIP', 'STALE'):
+            s = selection.get(sig)
+            if s and s.get('n'):
+                print(f"  {sig:<8} n={s['n']:<5} mean buy&hold={s['mean']:+.3f}%/name")
+        active_s = selection.get('ACTIVE', {})
+        skip_s = selection.get('SKIP', {})
+        if active_s.get('n') and skip_s.get('n'):
+            diff = active_s['mean'] - skip_s['mean']
+            verdict = ('picks BETTER names than it skips' if diff > 0
+                       else 'picks WORSE names than it skips — selection is anti-predictive')
+            print(f"  -> ACTIVE minus SKIP = {diff:+.3f}%/name: classifier {verdict}.")
+
 
 def main() -> None:
     parser = argparse.ArgumentParser(description='Backtest OracleForge predictions against realized OHLC.')
     parser.add_argument('--from-date', help='Start date YYYY-MM-DD (inclusive)')
     parser.add_argument('--to-date', help='End date YYYY-MM-DD (inclusive)')
+    parser.add_argument('--execution', choices=EXECUTION_MODES, default='limit_stop',
+                        help='Execution model to simulate (default: limit_stop = live behavior).')
+    parser.add_argument('--compare-executions', action='store_true',
+                        help='Run all execution models and print an A/B comparison of the ACTIVE edge.')
     args = parser.parse_args()
 
     dates = list_prediction_dates()
@@ -430,7 +513,23 @@ def main() -> None:
         return
 
     print(f"Backtesting {len(dates)} day(s): {dates[0]} .. {dates[-1]}")
-    report = run_backtest(dates)
+
+    if args.compare_executions:
+        print("\n=== Execution A/B (ACTIVE signals) ===")
+        print(f"{'Execution':<14} {'N':>5} {'Strategy ret%':>14} {'Edge vs hold%':>15} {'Signif?':>9}")
+        print('-' * 60)
+        comp = compare_executions(dates)
+        for mode in EXECUTION_MODES:
+            strat = comp[mode]['active_strategy']
+            edge = comp[mode]['active_edge_vs_buy_hold']
+            flag = 'YES' if edge.get('significant') else ('thin' if not edge.get('sample_adequate') else 'no')
+            print(f"{mode:<14} {strat.get('n', 0):>5} {strat.get('mean', 0):>13.3f}% "
+                  f"{edge.get('mean', 0):>14.3f}% {flag:>9}")
+        print("\n(limit_stop = live; limit_hold = drop stop/target, exit at close; "
+              "market_hold = ignore ranges, buy open/sell close)")
+        return
+
+    report = run_backtest(dates, execution=args.execution)
 
     os.makedirs(BACKTEST_DIR, exist_ok=True)
     out_path = os.path.join(BACKTEST_DIR, 'backtest_summary.json')
