@@ -197,8 +197,16 @@ aggregated by the sign of each trade's realized return.
 **Output:**
 - **Console summary** — per-model and per-signal tables: trade count, win %, avg win %,
   avg loss %, profit factor, and max consecutive losses.
-- **`reports/backtest_summary.json`** — full report (including a daily breakdown), which the
-  dashboard's **Backtest** tab renders.
+- **Significance read** — each signal bucket reports whether its mean per-trade return is
+  statistically distinguishable from zero, and whether the sample is even large enough
+  (`>= 30` trades) to trust. Guards against tuning on noise.
+- **Benchmark vs. buy-and-hold** — for ACTIVE names it compares the strategy return against
+  simply buying the same names at the prior close and holding to the next close (paired,
+  with significance), plus the whole-universe drift. A one-line **verdict** states whether the
+  signal layer is actually adding value, hurting, or indistinguishable from the baseline.
+- **`reports/backtest_summary.json`** — full report (daily equity curve, significance,
+  benchmark), which the dashboard's **Backtest** tab renders. A timestamped snapshot is also
+  archived to `reports/backtest_history/` so metric evolution is trackable over time.
 
 **Requirements:**
 - At least one completed nightly run (so `history/predictions_*.json` exists). With no history,
@@ -324,7 +332,7 @@ Tracks open position entry data for P&L calculation:
 python3 -m unittest test_signals test_backtest test_forge test_trader -v
 ```
 
-**90 tests** covering:
+**103 tests** covering:
 
 | Module | Areas |
 |---|---|

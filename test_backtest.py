@@ -1,7 +1,14 @@
 ﻿"""Unit tests for backtest helpers"""
 import unittest
 
-from backtest import _finalize_bucket, _new_bucket, _update_bucket, simulate_range_outcome
+from backtest import (
+    MIN_ADEQUATE_SAMPLE,
+    _finalize_bucket,
+    _new_bucket,
+    _stats,
+    _update_bucket,
+    simulate_range_outcome,
+)
 
 
 RANGE_WIN = {'buy_high': 100.0, 'sell_low': 107.0}
@@ -166,6 +173,68 @@ class BucketTests(unittest.TestCase):
         final = _finalize_bucket(_new_bucket())
         for key in final:
             self.assertFalse(key.startswith('_'), f"Internal field leaked to output: {key}")
+
+
+class StatsTests(unittest.TestCase):
+
+    def test_empty_returns_zeroed(self):
+        s = _stats([])
+        self.assertEqual(s['n'], 0)
+        self.assertFalse(s['significant'])
+        self.assertFalse(s['sample_adequate'])
+        self.assertIsNone(s['t_stat'])
+
+    def test_single_value_no_std(self):
+        s = _stats([1.5])
+        self.assertEqual(s['n'], 1)
+        self.assertAlmostEqual(s['mean'], 1.5)
+        self.assertEqual(s['std'], 0.0)
+        self.assertIsNone(s['t_stat'])  # cannot compute with n<2
+        self.assertFalse(s['significant'])
+
+    def test_sample_adequacy_threshold(self):
+        self.assertFalse(_stats([0.1] * (MIN_ADEQUATE_SAMPLE - 1))['sample_adequate'])
+        self.assertTrue(_stats([0.1] * MIN_ADEQUATE_SAMPLE)['sample_adequate'])
+
+    def test_significant_requires_adequate_sample(self):
+        # A tiny but perfectly consistent sample must NOT be called significant.
+        small = _stats([1.0, 1.0, 1.0])
+        self.assertFalse(small['significant'])
+        self.assertFalse(small['sample_adequate'])
+
+    def test_strong_consistent_signal_is_significant(self):
+        # 40 trades, all clearly positive with low variance -> significant.
+        rets = [1.0 + (0.01 if i % 2 else -0.01) for i in range(40)]
+        s = _stats(rets)
+        self.assertTrue(s['sample_adequate'])
+        self.assertTrue(s['significant'])
+        self.assertGreater(s['t_stat'], 1.96)
+
+    def test_noisy_zero_mean_not_significant(self):
+        # 40 trades centered on zero with high variance -> not significant.
+        rets = [(-3.0 if i % 2 else 3.0) for i in range(40)]
+        s = _stats(rets)
+        self.assertTrue(s['sample_adequate'])
+        self.assertFalse(s['significant'])
+
+    def test_ci_brackets_mean(self):
+        s = _stats([1.0, 2.0, 3.0, 4.0, 5.0])
+        self.assertLessEqual(s['ci95_low'], s['mean'])
+        self.assertGreaterEqual(s['ci95_high'], s['mean'])
+
+
+class SignificanceWiringTests(unittest.TestCase):
+
+    def test_finalize_bucket_includes_significance(self):
+        bucket = _new_bucket()
+        _update_bucket(bucket, simulate_range_outcome({'open': 101, 'high': 108, 'low': 99, 'close': 106}, RANGE_WIN))
+        final = _finalize_bucket(bucket)
+        self.assertIn('significance', final)
+        self.assertEqual(final['significance']['n'], 1)
+
+    def test_returns_list_excluded_from_output(self):
+        final = _finalize_bucket(_new_bucket())
+        self.assertNotIn('_returns', final)
 
 
 if __name__ == '__main__':
