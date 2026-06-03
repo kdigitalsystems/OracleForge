@@ -1,6 +1,6 @@
 {
     "date": "2026-06-03",
-    "generated_at": "2026-06-03T07:10:25",
+    "generated_at": "2026-06-03T07:24:17",
     "config": {
         "min_upside_pct": 1.5,
         "min_range_width_pct": 0.5,
@@ -10,12 +10,22 @@
         "max_consensus_cv": 0.1
     },
     "summary": {
-        "total": 140,
-        "active": 58,
-        "skip": 69,
-        "stale": 13
+        "total": 146,
+        "active": 60,
+        "skip": 72,
+        "stale": 14
     },
     "active": [
+        {
+            "ticker": "XPEV",
+            "close": 17.86,
+            "buy_low": 16.8,
+            "buy_high": 17.18,
+            "sell_low": 18.39,
+            "sell_high": 18.85,
+            "upside_pct": 7.04,
+            "signal": "ACTIVE"
+        },
         {
             "ticker": "JD",
             "close": 30.14,
@@ -114,6 +124,16 @@
             "sell_low": 31.33,
             "sell_high": 31.79,
             "upside_pct": 3.57,
+            "signal": "ACTIVE"
+        },
+        {
+            "ticker": "CTSH",
+            "close": 55.14,
+            "buy_low": 53.42,
+            "buy_high": 54.15,
+            "sell_low": 56.03,
+            "sell_high": 56.89,
+            "upside_pct": 3.47,
             "signal": "ACTIVE"
         },
         {
@@ -739,6 +759,16 @@
             "signal": "SKIP"
         },
         {
+            "ticker": "SCHB",
+            "close": 29.32,
+            "buy_low": 28.68,
+            "buy_high": 28.96,
+            "sell_low": 29.34,
+            "sell_high": 29.45,
+            "upside_pct": 1.31,
+            "signal": "SKIP"
+        },
+        {
             "ticker": "VZ",
             "close": 47.88,
             "buy_low": 47.2,
@@ -839,6 +869,16 @@
             "signal": "SKIP"
         },
         {
+            "ticker": "GOOG",
+            "close": 358.5,
+            "buy_low": 352.48,
+            "buy_high": 359.24,
+            "sell_low": 363.47,
+            "sell_high": 370.25,
+            "upside_pct": 1.18,
+            "signal": "SKIP"
+        },
+        {
             "ticker": "PYPL",
             "close": 44.52,
             "buy_low": 43.96,
@@ -866,6 +906,16 @@
             "sell_low": 12.48,
             "sell_high": 12.62,
             "upside_pct": 1.13,
+            "signal": "SKIP"
+        },
+        {
+            "ticker": "AEO",
+            "close": 16.02,
+            "buy_low": 15.42,
+            "buy_high": 16.01,
+            "sell_low": 16.18,
+            "sell_high": 17.58,
+            "upside_pct": 1.06,
             "signal": "SKIP"
         },
         {
@@ -1417,6 +1467,16 @@
             "buy_high": 85.72,
             "sell_low": 86.81,
             "sell_high": 87.6,
+            "upside_pct": null,
+            "signal": "STALE"
+        },
+        {
+            "ticker": "FITB",
+            "close": 50.3,
+            "buy_low": 48.32,
+            "buy_high": 49.53,
+            "sell_low": 50.22,
+            "sell_high": 50.9,
             "upside_pct": null,
             "signal": "STALE"
         }
