@@ -1,6 +1,6 @@
 {
     "date": "2026-06-03",
-    "generated_at": "2026-06-03T04:12:38",
+    "generated_at": "2026-06-03T04:35:19",
     "config": {
         "min_upside_pct": 1.5,
         "min_range_width_pct": 0.5,
@@ -10,12 +10,22 @@
         "max_consensus_cv": 0.1
     },
     "summary": {
-        "total": 50,
-        "active": 21,
-        "skip": 24,
-        "stale": 5
+        "total": 60,
+        "active": 23,
+        "skip": 29,
+        "stale": 8
     },
     "active": [
+        {
+            "ticker": "CNH",
+            "close": 10.97,
+            "buy_low": 10.13,
+            "buy_high": 10.35,
+            "sell_low": 11.0,
+            "sell_high": 11.25,
+            "upside_pct": 6.28,
+            "signal": "ACTIVE"
+        },
         {
             "ticker": "ETHA",
             "close": 14.41,
@@ -197,6 +207,16 @@
             "signal": "ACTIVE"
         },
         {
+            "ticker": "WFC",
+            "close": 79.44,
+            "buy_low": 77.26,
+            "buy_high": 78.59,
+            "sell_low": 79.96,
+            "sell_high": 81.15,
+            "upside_pct": 1.74,
+            "signal": "ACTIVE"
+        },
+        {
             "ticker": "OWL",
             "close": 10.06,
             "buy_low": 9.87,
@@ -239,6 +259,16 @@
             "signal": "SKIP"
         },
         {
+            "ticker": "LYFT",
+            "close": 14.12,
+            "buy_low": 13.52,
+            "buy_high": 13.95,
+            "sell_low": 14.81,
+            "sell_high": 15.1,
+            "upside_pct": 6.16,
+            "signal": "SKIP"
+        },
+        {
             "ticker": "BMNR",
             "close": 17.97,
             "buy_low": 17.53,
@@ -266,6 +296,26 @@
             "sell_low": 28.37,
             "sell_high": 28.93,
             "upside_pct": 2.6,
+            "signal": "SKIP"
+        },
+        {
+            "ticker": "TQQQ",
+            "close": 87.27,
+            "buy_low": 84.66,
+            "buy_high": 86.2,
+            "sell_low": 87.42,
+            "sell_high": 89.1,
+            "upside_pct": 1.42,
+            "signal": "SKIP"
+        },
+        {
+            "ticker": "VZ",
+            "close": 47.88,
+            "buy_low": 47.2,
+            "buy_high": 47.73,
+            "sell_low": 48.35,
+            "sell_high": 48.49,
+            "upside_pct": 1.3,
             "signal": "SKIP"
         },
         {
@@ -429,6 +479,26 @@
             "signal": "SKIP"
         },
         {
+            "ticker": "IWM",
+            "close": 291.64,
+            "buy_low": 287.74,
+            "buy_high": 290.83,
+            "sell_low": 291.92,
+            "sell_high": 294.51,
+            "upside_pct": 0.37,
+            "signal": "SKIP"
+        },
+        {
+            "ticker": "VCIT",
+            "close": 82.45,
+            "buy_low": 82.14,
+            "buy_high": 82.3,
+            "sell_low": 82.55,
+            "sell_high": 82.78,
+            "upside_pct": 0.3,
+            "signal": "SKIP"
+        },
+        {
             "ticker": "KVUE",
             "close": 17.34,
             "buy_low": 17.18,
@@ -517,6 +587,36 @@
             "buy_high": 103.88,
             "sell_low": 104.83,
             "sell_high": 105.22,
+            "upside_pct": null,
+            "signal": "STALE"
+        },
+        {
+            "ticker": "GDX",
+            "close": 88.03,
+            "buy_low": 84.99,
+            "buy_high": 86.07,
+            "sell_low": 87.24,
+            "sell_high": 88.64,
+            "upside_pct": null,
+            "signal": "STALE"
+        },
+        {
+            "ticker": "PCG",
+            "close": 16.58,
+            "buy_low": 16.06,
+            "buy_high": 16.28,
+            "sell_low": 16.52,
+            "sell_high": 16.75,
+            "upside_pct": null,
+            "signal": "STALE"
+        },
+        {
+            "ticker": "B",
+            "close": 43.17,
+            "buy_low": 41.78,
+            "buy_high": 42.4,
+            "sell_low": 43.02,
+            "sell_high": 43.8,
             "upside_pct": null,
             "signal": "STALE"
         }
