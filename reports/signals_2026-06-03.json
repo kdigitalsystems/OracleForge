@@ -1,6 +1,6 @@
 {
     "date": "2026-06-03",
-    "generated_at": "2026-06-03T04:35:19",
+    "generated_at": "2026-06-03T04:51:51",
     "config": {
         "min_upside_pct": 1.5,
         "min_range_width_pct": 0.5,
@@ -10,10 +10,10 @@
         "max_consensus_cv": 0.1
     },
     "summary": {
-        "total": 60,
-        "active": 23,
-        "skip": 29,
-        "stale": 8
+        "total": 70,
+        "active": 27,
+        "skip": 33,
+        "stale": 10
     },
     "active": [
         {
@@ -54,6 +54,26 @@
             "sell_low": 13.25,
             "sell_high": 13.45,
             "upside_pct": 4.83,
+            "signal": "ACTIVE"
+        },
+        {
+            "ticker": "DKNG",
+            "close": 25.31,
+            "buy_low": 24.62,
+            "buy_high": 25.04,
+            "sell_low": 26.11,
+            "sell_high": 26.59,
+            "upside_pct": 4.27,
+            "signal": "ACTIVE"
+        },
+        {
+            "ticker": "TSCO",
+            "close": 30.0,
+            "buy_low": 29.87,
+            "buy_high": 30.25,
+            "sell_low": 31.33,
+            "sell_high": 31.79,
+            "upside_pct": 3.57,
             "signal": "ACTIVE"
         },
         {
@@ -147,6 +167,16 @@
             "signal": "ACTIVE"
         },
         {
+            "ticker": "GOOGL",
+            "close": 361.84,
+            "buy_low": 358.84,
+            "buy_high": 363.09,
+            "sell_low": 370.81,
+            "sell_high": 378.44,
+            "upside_pct": 2.13,
+            "signal": "ACTIVE"
+        },
+        {
             "ticker": "NKE",
             "close": 43.72,
             "buy_low": 43.25,
@@ -194,6 +224,16 @@
             "sell_low": 27.94,
             "sell_high": 28.39,
             "upside_pct": 1.93,
+            "signal": "ACTIVE"
+        },
+        {
+            "ticker": "XLP",
+            "close": 81.83,
+            "buy_low": 81.48,
+            "buy_high": 82.0,
+            "sell_low": 83.54,
+            "sell_high": 84.65,
+            "upside_pct": 1.88,
             "signal": "ACTIVE"
         },
         {
@@ -399,6 +439,16 @@
             "signal": "SKIP"
         },
         {
+            "ticker": "DVN",
+            "close": 46.23,
+            "buy_low": 46.0,
+            "buy_high": 46.24,
+            "sell_low": 46.67,
+            "sell_high": 47.26,
+            "upside_pct": 0.93,
+            "signal": "SKIP"
+        },
+        {
             "ticker": "FXI",
             "close": 36.36,
             "buy_low": 35.8,
@@ -429,6 +479,16 @@
             "signal": "SKIP"
         },
         {
+            "ticker": "MSFT",
+            "close": 441.35,
+            "buy_low": 436.69,
+            "buy_high": 442.34,
+            "sell_low": 445.66,
+            "sell_high": 453.37,
+            "upside_pct": 0.75,
+            "signal": "SKIP"
+        },
+        {
             "ticker": "RWM",
             "close": 13.86,
             "buy_low": 13.8,
@@ -446,6 +506,16 @@
             "sell_low": 85.89,
             "sell_high": 86.22,
             "upside_pct": 0.7,
+            "signal": "SKIP"
+        },
+        {
+            "ticker": "CSX",
+            "close": 46.13,
+            "buy_low": 45.62,
+            "buy_high": 45.95,
+            "sell_low": 46.24,
+            "sell_high": 46.7,
+            "upside_pct": 0.63,
             "signal": "SKIP"
         },
         {
@@ -476,6 +546,16 @@
             "sell_low": 27.22,
             "sell_high": 27.36,
             "upside_pct": 0.52,
+            "signal": "SKIP"
+        },
+        {
+            "ticker": "VCLT",
+            "close": 75.13,
+            "buy_low": 74.12,
+            "buy_high": 74.99,
+            "sell_low": 75.36,
+            "sell_high": 75.71,
+            "upside_pct": 0.49,
             "signal": "SKIP"
         },
         {
@@ -617,6 +697,26 @@
             "buy_high": 42.4,
             "sell_low": 43.02,
             "sell_high": 43.8,
+            "upside_pct": null,
+            "signal": "STALE"
+        },
+        {
+            "ticker": "FCX",
+            "close": 71.73,
+            "buy_low": 68.24,
+            "buy_high": 69.34,
+            "sell_low": 71.49,
+            "sell_high": 73.15,
+            "upside_pct": null,
+            "signal": "STALE"
+        },
+        {
+            "ticker": "FRSH",
+            "close": 10.18,
+            "buy_low": 9.55,
+            "buy_high": 9.71,
+            "sell_low": 10.08,
+            "sell_high": 10.62,
             "upside_pct": null,
             "signal": "STALE"
         }
