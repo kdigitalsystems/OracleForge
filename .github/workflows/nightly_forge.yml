@@ -111,15 +111,16 @@ jobs:
           git config --local user.name "github-actions[bot]"
 
       - name: Execute OracleForge AI Inference
-        # Process tickers in batches of 10, committing + pushing after each so
-        # partial results appear upstream and a crash never loses more than the
-        # last batch. forge_loop is resumable (skips finished tickers; the
-        # once-per-day score update is guarded), so on a transient mid-run crash
-        # we simply re-invoke it and it picks up where it left off.
+        # Checkpoint to disk every 10 tickers (fine-grained resume) but push
+        # upstream only every 100 tickers — i.e. process ~100 tickers, push,
+        # process the next ~100, and so on. forge_loop is resumable (skips
+        # finished tickers; the once-per-day score update is guarded), so on a
+        # transient mid-run crash we re-invoke it and it continues from the last
+        # checkpoint (losing at most 10 tickers of work, not a whole stage).
         run: |
           for attempt in 1 2 3; do
             echo "=== Forge attempt $attempt ==="
-            if python3 forge_loop.py --batch-size 10 --push; then
+            if python3 forge_loop.py --batch-size 10 --push-every 100 --push; then
               echo "Forge completed on attempt $attempt."
               exit 0
             fi

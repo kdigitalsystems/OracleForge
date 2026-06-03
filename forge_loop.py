@@ -494,9 +494,13 @@ def main():
     parser = argparse.ArgumentParser(description='Run the OracleForge overnight inference loop.')
     parser.add_argument('--tickers', help='Comma-separated watchlist override.')
     parser.add_argument('--batch-size', type=int, default=25,
-                        help='Tickers per checkpoint batch (saved/pushed incrementally). 0 = all at once.')
+                        help='Tickers per disk checkpoint (resume granularity). 0 = all at once.')
     parser.add_argument('--push', action='store_true',
-                        help='git commit + push after each batch (CI use). Off by default.')
+                        help='git commit + push progress (CI use). Off by default.')
+    parser.add_argument('--push-every', type=int, default=0,
+                        help='Push after at least this many new tickers (a "stage"). '
+                             'Decoupled from --batch-size so checkpoints stay fine-grained '
+                             'while pushes stay infrequent. 0 = push every batch.')
     args = parser.parse_args()
 
     print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Starting OracleForge Loop...")
@@ -632,6 +636,11 @@ def main():
     print("\n--- PHASE 2: AI Inference (batched) ---")
     enriched_all = dict(existing_enriched)
     batch_size = args.batch_size if args.batch_size and args.batch_size > 0 else len(pending)
+    # Push frequency is decoupled from checkpoint frequency: we save to disk
+    # every batch (fine-grained resume) but only push every `push_every` new
+    # tickers (a "stage"), so commits stay infrequent without losing resilience.
+    push_every = args.push_every if args.push_every and args.push_every > 0 else batch_size
+    last_push_done = len(existing_enriched)
     fallback_count = 0
     total = len(market_data)
 
@@ -671,11 +680,14 @@ def main():
         done = len(enriched_all)
         print(f"  Checkpoint saved: {done}/{total} tickers ({report['summary']['active']} ACTIVE so far).")
 
-        if args.push:
+        # Push only once a full stage of new tickers has accumulated.
+        is_last_batch = (start + batch_size) >= len(pending)
+        if args.push and (done - last_push_done >= push_every or is_last_batch):
             git_checkpoint(
-                f"Forge batch {done}/{total} tickers ({today_date})",
+                f"Forge stage {done}/{total} tickers ({today_date})",
                 ['config/', SCORES_FILE, HISTORY_DIR, REPORTS_DIR],
             )
+            last_push_done = done
 
     if fallback_count:
         print(f"\n  [!] {fallback_count} fallback prediction(s) generated (excluded from consensus).")
