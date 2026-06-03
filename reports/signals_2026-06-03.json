@@ -1,6 +1,6 @@
 {
     "date": "2026-06-03",
-    "generated_at": "2026-06-03T03:10:31",
+    "generated_at": "2026-06-03T03:22:21",
     "config": {
         "min_upside_pct": 1.5,
         "min_range_width_pct": 0.5,
@@ -10,12 +10,32 @@
         "max_consensus_cv": 0.1
     },
     "summary": {
-        "total": 20,
-        "active": 7,
-        "skip": 13,
-        "stale": 0
+        "total": 30,
+        "active": 11,
+        "skip": 16,
+        "stale": 3
     },
     "active": [
+        {
+            "ticker": "MARA",
+            "close": 14.29,
+            "buy_low": 13.73,
+            "buy_high": 14.08,
+            "sell_low": 14.8,
+            "sell_high": 15.15,
+            "upside_pct": 5.11,
+            "signal": "ACTIVE"
+        },
+        {
+            "ticker": "INFY",
+            "close": 13.06,
+            "buy_low": 12.53,
+            "buy_high": 12.64,
+            "sell_low": 13.25,
+            "sell_high": 13.45,
+            "upside_pct": 4.83,
+            "signal": "ACTIVE"
+        },
         {
             "ticker": "SOFI",
             "close": 17.73,
@@ -64,6 +84,26 @@
             "sell_low": 27.94,
             "sell_high": 28.39,
             "upside_pct": 1.93,
+            "signal": "ACTIVE"
+        },
+        {
+            "ticker": "BSX",
+            "close": 47.69,
+            "buy_low": 47.24,
+            "buy_high": 48.06,
+            "sell_low": 48.9,
+            "sell_high": 50.13,
+            "upside_pct": 1.75,
+            "signal": "ACTIVE"
+        },
+        {
+            "ticker": "OWL",
+            "close": 10.06,
+            "buy_low": 9.87,
+            "buy_high": 10.06,
+            "sell_low": 10.23,
+            "sell_high": 10.48,
+            "upside_pct": 1.69,
             "signal": "ACTIVE"
         },
         {
@@ -119,6 +159,26 @@
             "signal": "SKIP"
         },
         {
+            "ticker": "IGV",
+            "close": 104.79,
+            "buy_low": 102.97,
+            "buy_high": 104.4,
+            "sell_low": 105.75,
+            "sell_high": 107.08,
+            "upside_pct": 1.29,
+            "signal": "SKIP"
+        },
+        {
+            "ticker": "XLU",
+            "close": 43.91,
+            "buy_low": 43.08,
+            "buy_high": 43.5,
+            "sell_low": 44.05,
+            "sell_high": 44.73,
+            "upside_pct": 1.26,
+            "signal": "SKIP"
+        },
+        {
             "ticker": "NVDA",
             "close": 222.82,
             "buy_low": 216.9,
@@ -166,6 +226,16 @@
             "sell_low": 36.41,
             "sell_high": 36.65,
             "upside_pct": 0.86,
+            "signal": "SKIP"
+        },
+        {
+            "ticker": "KRE",
+            "close": 69.53,
+            "buy_low": 68.22,
+            "buy_high": 69.52,
+            "sell_low": 70.1,
+            "sell_high": 70.91,
+            "upside_pct": 0.83,
             "signal": "SKIP"
         },
         {
@@ -219,5 +289,36 @@
             "signal": "SKIP"
         }
     ],
-    "stale": []
+    "stale": [
+        {
+            "ticker": "VALE",
+            "close": 16.82,
+            "buy_low": 16.2,
+            "buy_high": 16.49,
+            "sell_low": 16.76,
+            "sell_high": 17.1,
+            "upside_pct": null,
+            "signal": "STALE"
+        },
+        {
+            "ticker": "PINS",
+            "close": 20.88,
+            "buy_low": 19.51,
+            "buy_high": 20.05,
+            "sell_low": 20.53,
+            "sell_high": 21.09,
+            "upside_pct": null,
+            "signal": "STALE"
+        },
+        {
+            "ticker": "AAPL",
+            "close": 315.19,
+            "buy_low": 307.54,
+            "buy_high": 309.77,
+            "sell_low": 314.65,
+            "sell_high": 316.49,
+            "upside_pct": null,
+            "signal": "STALE"
+        }
+    ]
 }
