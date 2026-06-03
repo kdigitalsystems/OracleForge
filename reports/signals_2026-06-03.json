@@ -1,6 +1,6 @@
 {
     "date": "2026-06-03",
-    "generated_at": "2026-06-03T02:43:17",
+    "generated_at": "2026-06-03T03:10:31",
     "config": {
         "min_upside_pct": 1.5,
         "min_range_width_pct": 0.5,
@@ -10,12 +10,32 @@
         "max_consensus_cv": 0.1
     },
     "summary": {
-        "total": 10,
-        "active": 3,
-        "skip": 7,
+        "total": 20,
+        "active": 7,
+        "skip": 13,
         "stale": 0
     },
     "active": [
+        {
+            "ticker": "SOFI",
+            "close": 17.73,
+            "buy_low": 17.47,
+            "buy_high": 17.71,
+            "sell_low": 18.13,
+            "sell_high": 18.38,
+            "upside_pct": 2.37,
+            "signal": "ACTIVE"
+        },
+        {
+            "ticker": "AMZN",
+            "close": 256.53,
+            "buy_low": 253.68,
+            "buy_high": 256.44,
+            "sell_low": 261.63,
+            "sell_high": 264.84,
+            "upside_pct": 2.02,
+            "signal": "ACTIVE"
+        },
         {
             "ticker": "BAC",
             "close": 52.49,
@@ -34,6 +54,26 @@
             "sell_low": 39.02,
             "sell_high": 40.41,
             "upside_pct": 1.93,
+            "signal": "ACTIVE"
+        },
+        {
+            "ticker": "CCL",
+            "close": 27.64,
+            "buy_low": 27.02,
+            "buy_high": 27.41,
+            "sell_low": 27.94,
+            "sell_high": 28.39,
+            "upside_pct": 1.93,
+            "signal": "ACTIVE"
+        },
+        {
+            "ticker": "EEM",
+            "close": 70.83,
+            "buy_low": 69.26,
+            "buy_high": 70.09,
+            "sell_low": 71.25,
+            "sell_high": 72.25,
+            "upside_pct": 1.66,
             "signal": "ACTIVE"
         },
         {
@@ -69,6 +109,16 @@
             "signal": "SKIP"
         },
         {
+            "ticker": "KWEB",
+            "close": 28.32,
+            "buy_low": 26.79,
+            "buy_high": 27.65,
+            "sell_low": 28.37,
+            "sell_high": 28.93,
+            "upside_pct": 2.6,
+            "signal": "SKIP"
+        },
+        {
             "ticker": "NVDA",
             "close": 222.82,
             "buy_low": 216.9,
@@ -89,6 +139,36 @@
             "signal": "SKIP"
         },
         {
+            "ticker": "PFE",
+            "close": 25.56,
+            "buy_low": 25.38,
+            "buy_high": 25.61,
+            "sell_low": 25.88,
+            "sell_high": 26.2,
+            "upside_pct": 1.05,
+            "signal": "SKIP"
+        },
+        {
+            "ticker": "NFLX",
+            "close": 83.32,
+            "buy_low": 82.75,
+            "buy_high": 83.76,
+            "sell_low": 84.59,
+            "sell_high": 86.39,
+            "upside_pct": 0.99,
+            "signal": "SKIP"
+        },
+        {
+            "ticker": "FXI",
+            "close": 36.36,
+            "buy_low": 35.8,
+            "buy_high": 36.1,
+            "sell_low": 36.41,
+            "sell_high": 36.65,
+            "upside_pct": 0.86,
+            "signal": "SKIP"
+        },
+        {
             "ticker": "XLF",
             "close": 51.47,
             "buy_low": 50.99,
@@ -96,6 +176,26 @@
             "sell_low": 51.63,
             "sell_high": 51.81,
             "upside_pct": 0.8,
+            "signal": "SKIP"
+        },
+        {
+            "ticker": "T",
+            "close": 24.62,
+            "buy_low": 24.38,
+            "buy_high": 24.58,
+            "sell_low": 24.73,
+            "sell_high": 24.91,
+            "upside_pct": 0.61,
+            "signal": "SKIP"
+        },
+        {
+            "ticker": "EWZ",
+            "close": 35.78,
+            "buy_low": 35.53,
+            "buy_high": 35.75,
+            "sell_low": 35.94,
+            "sell_high": 36.51,
+            "upside_pct": 0.53,
             "signal": "SKIP"
         },
         {
