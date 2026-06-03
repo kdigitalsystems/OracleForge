@@ -23,7 +23,8 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-          cache: 'pip'
+          # No pip cache: redundant on a self-hosted runner and its cache-save
+          # post-step is a flaky cleanup surface that can fail the job.
 
       - name: Install Dependencies
         run: |
