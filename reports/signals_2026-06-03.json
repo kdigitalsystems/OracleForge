@@ -1,6 +1,6 @@
 {
     "date": "2026-06-03",
-    "generated_at": "2026-06-03T03:22:21",
+    "generated_at": "2026-06-03T03:47:35",
     "config": {
         "min_upside_pct": 1.5,
         "min_range_width_pct": 0.5,
@@ -10,10 +10,10 @@
         "max_consensus_cv": 0.1
     },
     "summary": {
-        "total": 30,
-        "active": 11,
-        "skip": 16,
-        "stale": 3
+        "total": 40,
+        "active": 16,
+        "skip": 20,
+        "stale": 4
     },
     "active": [
         {
@@ -37,6 +37,46 @@
             "signal": "ACTIVE"
         },
         {
+            "ticker": "QXO",
+            "close": 16.3,
+            "buy_low": 15.97,
+            "buy_high": 16.37,
+            "sell_low": 16.89,
+            "sell_high": 17.64,
+            "upside_pct": 3.18,
+            "signal": "ACTIVE"
+        },
+        {
+            "ticker": "SQQQ",
+            "close": 36.9,
+            "buy_low": 36.5,
+            "buy_high": 37.05,
+            "sell_low": 38.2,
+            "sell_high": 39.2,
+            "upside_pct": 3.1,
+            "signal": "ACTIVE"
+        },
+        {
+            "ticker": "UBER",
+            "close": 71.67,
+            "buy_low": 70.33,
+            "buy_high": 71.27,
+            "sell_low": 73.28,
+            "sell_high": 74.34,
+            "upside_pct": 2.82,
+            "signal": "ACTIVE"
+        },
+        {
+            "ticker": "RIVN",
+            "close": 17.28,
+            "buy_low": 16.59,
+            "buy_high": 17.01,
+            "sell_low": 17.45,
+            "sell_high": 18.1,
+            "upside_pct": 2.59,
+            "signal": "ACTIVE"
+        },
+        {
             "ticker": "SOFI",
             "close": 17.73,
             "buy_low": 17.47,
@@ -44,6 +84,16 @@
             "sell_low": 18.13,
             "sell_high": 18.38,
             "upside_pct": 2.37,
+            "signal": "ACTIVE"
+        },
+        {
+            "ticker": "HBAN",
+            "close": 16.21,
+            "buy_low": 15.76,
+            "buy_high": 15.91,
+            "sell_low": 16.26,
+            "sell_high": 16.4,
+            "upside_pct": 2.2,
             "signal": "ACTIVE"
         },
         {
@@ -189,6 +239,16 @@
             "signal": "SKIP"
         },
         {
+            "ticker": "PBR",
+            "close": 18.72,
+            "buy_low": 18.63,
+            "buy_high": 18.77,
+            "sell_low": 19.0,
+            "sell_high": 19.47,
+            "upside_pct": 1.23,
+            "signal": "SKIP"
+        },
+        {
             "ticker": "CMCSA",
             "close": 24.84,
             "buy_low": 24.59,
@@ -205,6 +265,16 @@
             "buy_high": 25.61,
             "sell_low": 25.88,
             "sell_high": 26.2,
+            "upside_pct": 1.05,
+            "signal": "SKIP"
+        },
+        {
+            "ticker": "NCLH",
+            "close": 18.14,
+            "buy_low": 17.82,
+            "buy_high": 18.04,
+            "sell_low": 18.23,
+            "sell_high": 18.45,
             "upside_pct": 1.05,
             "signal": "SKIP"
         },
@@ -269,6 +339,16 @@
             "signal": "SKIP"
         },
         {
+            "ticker": "KVUE",
+            "close": 17.34,
+            "buy_low": 17.18,
+            "buy_high": 17.32,
+            "sell_low": 17.37,
+            "sell_high": 17.57,
+            "upside_pct": 0.29,
+            "signal": "SKIP"
+        },
+        {
             "ticker": "LQD",
             "close": 108.92,
             "buy_low": 108.49,
@@ -286,6 +366,16 @@
             "sell_low": 80.0,
             "sell_high": 80.27,
             "upside_pct": 0.24,
+            "signal": "SKIP"
+        },
+        {
+            "ticker": "SPY",
+            "close": 759.47,
+            "buy_low": 756.37,
+            "buy_high": 758.44,
+            "sell_low": 759.93,
+            "sell_high": 761.75,
+            "upside_pct": 0.2,
             "signal": "SKIP"
         }
     ],
@@ -317,6 +407,16 @@
             "buy_high": 309.77,
             "sell_low": 314.65,
             "sell_high": 316.49,
+            "upside_pct": null,
+            "signal": "STALE"
+        },
+        {
+            "ticker": "CSCO",
+            "close": 128.0,
+            "buy_low": 122.2,
+            "buy_high": 123.89,
+            "sell_low": 127.46,
+            "sell_high": 130.32,
             "upside_pct": null,
             "signal": "STALE"
         }
