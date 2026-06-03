@@ -38,55 +38,51 @@ jobs:
 
       - name: Start Ollama
         run: |
-          # What matters for the nightly run is that the Ollama HTTP API is
-          # serving on :11434 — forge_loop.py only talks to that API, never the
-          # binary directly. On this self-hosted runner Ollama runs as a
-          # persistent systemd service (started at boot), so check the endpoint
-          # FIRST. The runner's job process can run in a mount namespace where
-          # /usr/local/bin/ollama is not visible as a file even though the
-          # already-running server is reachable, so locating the binary is only
-          # a fallback for when the server is genuinely down.
+          # forge_loop.py only needs the Ollama HTTP API on :11434. Ollama runs
+          # as a persistent systemd service here, but it can briefly stop
+          # answering /api/tags (busy, post-reboot, transient blip) — which is
+          # what failed a run while the service was actually up for 11h. So:
+          # check the endpoint; if it's down, deterministically RESTART the
+          # service (the runner has passwordless sudo), wait generously, and
+          # only then fall back to launching the binary. Fail only if it never
+          # comes up.
           check() { curl -sf http://localhost:11434/api/tags > /dev/null 2>&1; }
 
-          find_ollama() {
-            command -v ollama 2>/dev/null && return 0
-            for p in /usr/local/bin/ollama /usr/bin/ollama /bin/ollama \
-                     "$HOME/.local/bin/ollama" /snap/bin/ollama /opt/ollama/bin/ollama; do
-              if [ -x "$p" ]; then echo "$p"; return 0; fi
+          wait_up() {  # $1 = max seconds
+            for _ in $(seq 1 "$(( $1 / 5 ))"); do
+              check && return 0
+              sleep 5
             done
-            return 1
+            check
           }
 
           if check; then
             echo "Ollama already serving on :11434."
           else
-            echo "Ollama not reachable yet; waiting and locating the binary (up to ~60s)..."
-            OLLAMA=""
-            for i in $(seq 1 12); do
-              if check; then break; fi
-              OLLAMA=$(find_ollama) && [ -n "$OLLAMA" ] && break
-              echo "  waiting for ollama (attempt $i/12)..."
-              sleep 5
-            done
-
-            if ! check; then
-              if [ -z "$OLLAMA" ]; then
-                echo "ERROR: Ollama is not serving and its binary was not found."
-                echo "PATH=$PATH"
-                exit 1
+            echo "Ollama not reachable; restarting the systemd service..."
+            sudo -n systemctl restart ollama 2>/dev/null \
+              || systemctl --user restart ollama 2>/dev/null \
+              || true
+            if wait_up 180; then
+              echo "Ollama came up after service restart."
+            else
+              echo "Service restart did not help; trying to launch the binary directly..."
+              OLLAMA=$(command -v ollama 2>/dev/null \
+                || ls /usr/local/bin/ollama /usr/bin/ollama /bin/ollama \
+                      "$HOME/.local/bin/ollama" /snap/bin/ollama 2>/dev/null | head -1)
+              if [ -n "$OLLAMA" ]; then
+                echo "Launching $OLLAMA serve ..."
+                "$OLLAMA" serve > /tmp/ollama.log 2>&1 &
+                wait_up 120 || true
               fi
-              echo "Starting Ollama from $OLLAMA ..."
-              "$OLLAMA" serve > /tmp/ollama.log 2>&1 &
-              for i in $(seq 1 30); do
-                sleep 2
-                if check; then echo "Ollama ready after $((i * 2))s"; break; fi
-                if [ $i -eq 30 ]; then
-                  echo "ERROR: Ollama did not start within 60s"
-                  cat /tmp/ollama.log
-                  exit 1
-                fi
-              done
             fi
+          fi
+
+          if ! check; then
+            echo "ERROR: Ollama is not serving after restart + launch attempts."
+            sudo -n systemctl status ollama --no-pager 2>/dev/null | tail -20 || true
+            [ -f /tmp/ollama.log ] && tail -20 /tmp/ollama.log || true
+            exit 1
           fi
 
           # Confirm models are available via the API (no binary required).
