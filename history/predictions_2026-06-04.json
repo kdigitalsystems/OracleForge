@@ -3447,5 +3447,1656 @@
         },
         "signal": "ACTIVE",
         "upside_pct": 1.78
+    },
+    "XOM": {
+        "close": 152.74,
+        "models": {
+            "llama3.1:8b-instruct-q8_0": {
+                "buy_low": 149.44,
+                "buy_high": 150.6,
+                "sell_low": 153.23,
+                "sell_high": 154.54,
+                "rationale": "Based on the recent price action and technical indicators, I'm looking for a bounce off support near $149.76 to enter a long position with a target near resistance at $154.83."
+            },
+            "qwen2.5:14b-instruct-q4_K_M": {
+                "buy_low": 150.45,
+                "buy_high": 151.98,
+                "sell_low": 155.03,
+                "sell_high": 156.56,
+                "rationale": "Fallback range (model output unparseable)",
+                "fallback": true
+            },
+            "deepseek-r1:8b": {
+                "buy_low": 150.45,
+                "buy_high": 151.98,
+                "sell_low": 155.03,
+                "sell_high": 156.56,
+                "rationale": "Fallback range (model output unparseable)",
+                "fallback": true
+            }
+        },
+        "consensus": null,
+        "signal": "SKIP",
+        "upside_pct": null
+    },
+    "BMY": {
+        "close": 54.74,
+        "models": {
+            "llama3.1:8b-instruct-q8_0": {
+                "buy_low": 54.33,
+                "buy_high": 55.09,
+                "sell_low": 56.27,
+                "sell_high": 57.18,
+                "rationale": "Based on the oversold Bollinger %B reading and recent price action, I'm looking for a bounce from support near $54.33 to enter a long position, with profit targets set above resistance near $56.27 and"
+            },
+            "qwen2.5:14b-instruct-q4_K_M": {
+                "buy_low": 54.33,
+                "buy_high": 54.74,
+                "sell_low": 56.27,
+                "sell_high": 58.14,
+                "rationale": "Price is near support and oversold, offering a potential long entry with resistance at recent high."
+            },
+            "deepseek-r1:8b": {
+                "buy_low": 54.74,
+                "buy_high": 57.0,
+                "sell_low": 57.01,
+                "sell_high": 59.96,
+                "rationale": "Entry near current price and 10-day low, target near 10-day high with oversold conditions and volume spike suggesting potential rebound."
+            }
+        },
+        "consensus": {
+            "buy_low": 54.47,
+            "buy_high": 55.62,
+            "sell_low": 56.52,
+            "sell_high": 58.44
+        },
+        "signal": "ACTIVE",
+        "upside_pct": 1.62
+    },
+    "HAL": {
+        "close": 41.03,
+        "models": {
+            "llama3.1:8b-instruct-q8_0": {
+                "buy_low": 40.13,
+                "buy_high": 40.5,
+                "sell_low": 41.2,
+                "sell_high": 41.6,
+                "rationale": "Given the recent price action and technical indicators, I'm looking for a bounce off support near $40.13 and a potential sell at resistance around $41.20."
+            },
+            "qwen2.5:14b-instruct-q4_K_M": {
+                "buy_low": 39.59,
+                "buy_high": 40.12,
+                "sell_low": 41.03,
+                "sell_high": 41.89,
+                "rationale": "Current price is near the 10-day resistance and 20-day SMA, suggesting a potential pullback to support before further gains."
+            },
+            "deepseek-r1:8b": {
+                "buy_low": 38.5,
+                "buy_high": 40.0,
+                "sell_low": 42.0,
+                "sell_high": 44.0,
+                "rationale": ""
+            }
+        },
+        "consensus": {
+            "buy_low": 39.4,
+            "buy_high": 40.2,
+            "sell_low": 41.41,
+            "sell_high": 42.51
+        },
+        "signal": "ACTIVE",
+        "upside_pct": 3.01
+    },
+    "CPRT": {
+        "close": 30.36,
+        "models": {
+            "llama3.1:8b-instruct-q8_0": {
+                "buy_low": 29.97,
+                "buy_high": 30.77,
+                "sell_low": 31.95,
+                "sell_high": 32.95,
+                "rationale": "Based on the oversold technical context, near support at the 10-day low and -7.9% from 20-day SMA, a long position can be considered with a buy range of $29.97 to $30.77."
+            },
+            "qwen2.5:14b-instruct-q4_K_M": {
+                "buy_low": 30.16,
+                "buy_high": 30.56,
+                "sell_low": 32.06,
+                "sell_high": 34.06,
+                "rationale": "Given the current oversold conditions and recent price action, a potential bounce towards resistance is likely."
+            },
+            "deepseek-r1:8b": {
+                "buy_low": 30.0,
+                "buy_high": 30.5,
+                "sell_low": 32.0,
+                "sell_high": 32.5,
+                "rationale": "Oversold conditions (RSI, Bollinger %B) and proximity to 10-day low support a buy near $30.36, targeting a bounce to the 20-day SMA."
+            }
+        },
+        "consensus": {
+            "buy_low": 30.04,
+            "buy_high": 30.61,
+            "sell_low": 32.0,
+            "sell_high": 33.17
+        },
+        "signal": "ACTIVE",
+        "upside_pct": 4.54
+    },
+    "APH": {
+        "close": 147.69,
+        "models": {
+            "llama3.1:8b-instruct-q8_0": {
+                "buy_low": 145.0,
+                "buy_high": 146.5,
+                "sell_low": 149.2,
+                "sell_high": 151.0,
+                "rationale": "Based on the recent price action and technical indicators, I'm looking for a bounce off support near $145.00-$146.50 before potentially reaching resistance around $149.20-$151.00."
+            },
+            "qwen2.5:14b-instruct-q4_K_M": {
+                "buy_low": 146.09,
+                "buy_high": 147.69,
+                "sell_low": 148.49,
+                "sell_high": 151.83,
+                "rationale": "Current price is near the upper Bollinger band, indicating overbought conditions."
+            },
+            "deepseek-r1:8b": {
+                "buy_low": 139.57,
+                "buy_high": 147.69,
+                "sell_low": 148.49,
+                "sell_high": 149.09,
+                "rationale": "Price near 10-day low support and 10-day high resistance, with slightly overbought conditions but still above 20-day SMA."
+            }
+        },
+        "consensus": {
+            "buy_low": 143.54,
+            "buy_high": 147.3,
+            "sell_low": 148.72,
+            "sell_high": 150.64
+        },
+        "signal": "SKIP",
+        "upside_pct": 0.96
+    },
+    "CAG": {
+        "close": 12.57,
+        "models": {
+            "llama3.1:8b-instruct-q8_0": {
+                "buy_low": 12.55,
+                "buy_high": 12.65,
+                "sell_low": 13.0,
+                "sell_high": 13.1,
+                "rationale": "Given the oversold technical context and recent price action, a long entry is likely near the 10-day low support at $12.55-$12.65, with a profit target near the 20-day SMA resistance at $13.00-$13.10."
+            },
+            "qwen2.5:14b-instruct-q4_K_M": {
+                "buy_low": 12.5,
+                "buy_high": 12.6,
+                "sell_low": 13.0,
+                "sell_high": 13.4,
+                "rationale": "Given the oversold RSI and price near support, a long position could be considered with a take profit level at resistance."
+            },
+            "deepseek-r1:8b": {
+                "buy_low": 12.38,
+                "buy_high": 12.51,
+                "sell_low": 12.76,
+                "sell_high": 12.88,
+                "rationale": "Fallback range (model output unparseable)",
+                "fallback": true
+            }
+        },
+        "consensus": {
+            "buy_low": 12.52,
+            "buy_high": 12.62,
+            "sell_low": 13.0,
+            "sell_high": 13.25
+        },
+        "signal": "ACTIVE",
+        "upside_pct": 3.01
+    },
+    "CVE": {
+        "close": 29.49,
+        "models": {
+            "llama3.1:8b-instruct-q8_0": {
+                "buy_low": 28.2,
+                "buy_high": 29.0,
+                "sell_low": 30.1,
+                "sell_high": 31.5,
+                "rationale": "Based on the recent price action and technical indicators, I'm looking for a bounce off support near $28.20 and a potential sell at resistance near $31.50."
+            },
+            "qwen2.5:14b-instruct-q4_K_M": {
+                "buy_low": 28.5,
+                "buy_high": 29.1,
+                "sell_low": 29.6,
+                "sell_high": 30.4,
+                "rationale": "Current price is near the midpoint of recent trading range, suggesting potential for both short-term support and resistance within defined levels."
+            },
+            "deepseek-r1:8b": {
+                "buy_low": 27.37,
+                "buy_high": 29.0,
+                "sell_low": 29.5,
+                "sell_high": 32.07,
+                "rationale": "Based on support and resistance levels from the 10-day low and high, with neutral RSI and low volume suggesting potential consolidation."
+            }
+        },
+        "consensus": {
+            "buy_low": 28.02,
+            "buy_high": 29.03,
+            "sell_low": 29.73,
+            "sell_high": 31.32
+        },
+        "signal": "SKIP",
+        "upside_pct": 2.41
+    },
+    "XLK": {
+        "close": 196.23,
+        "models": {
+            "llama3.1:8b-instruct-q8_0": {
+                "buy_low": 194.53,
+                "buy_high": 195.76,
+                "sell_low": 197.19,
+                "sell_high": 198.29,
+                "rationale": "Given the overbought conditions and recent price action, I'm looking for a pullback to near the 10-day low (support) as a buying opportunity, while setting a profit target near the 20-day SMA."
+            },
+            "qwen2.5:14b-instruct-q4_K_M": {
+                "buy_low": 194.53,
+                "buy_high": 196.23,
+                "sell_low": 197.0,
+                "sell_high": 198.61,
+                "rationale": "Given the overbought conditions and recent price action, a cautious approach is warranted."
+            },
+            "deepseek-r1:8b": {
+                "buy_low": 193.29,
+                "buy_high": 195.25,
+                "sell_low": 199.17,
+                "sell_high": 201.14,
+                "rationale": "Fallback range (model output unparseable)",
+                "fallback": true
+            }
+        },
+        "consensus": {
+            "buy_low": 194.53,
+            "buy_high": 196.0,
+            "sell_low": 197.09,
+            "sell_high": 198.45
+        },
+        "signal": "SKIP",
+        "upside_pct": 0.56
+    },
+    "VFC": {
+        "close": 16.41,
+        "models": {
+            "llama3.1:8b-instruct-q8_0": {
+                "buy_low": 16.22,
+                "buy_high": 16.41,
+                "sell_low": 17.09,
+                "sell_high": 17.18,
+                "rationale": "Based on the recent price action and technical indicators, I'm looking for a bounce off support near $16.22 and a potential sell at resistance around $17.09-$17.18."
+            },
+            "qwen2.5:14b-instruct-q4_K_M": {
+                "buy_low": 16.2,
+                "buy_high": 16.41,
+                "sell_low": 16.5,
+                "sell_high": 16.7,
+                "rationale": "Current price is near support and below the 20-day SMA, indicating a potential buying opportunity."
+            },
+            "deepseek-r1:8b": {
+                "buy_low": 16.16,
+                "buy_high": 16.33,
+                "sell_low": 16.66,
+                "sell_high": 16.82,
+                "rationale": "Fallback range (model output unparseable)",
+                "fallback": true
+            }
+        },
+        "consensus": {
+            "buy_low": 16.21,
+            "buy_high": 16.41,
+            "sell_low": 16.79,
+            "sell_high": 16.94
+        },
+        "signal": "ACTIVE",
+        "upside_pct": 2.32
+    },
+    "CRBG": {
+        "close": 25.93,
+        "models": {
+            "llama3.1:8b-instruct-q8_0": {
+                "buy_low": 25.64,
+                "buy_high": 26.0,
+                "sell_low": 27.5,
+                "sell_high": 28.2,
+                "rationale": "Based on the oversold Bollinger %B reading and recent price action, I'm looking for a bounce from support near $25.64 to enter a long position, with profit taking above resistance near $27.50."
+            },
+            "qwen2.5:14b-instruct-q4_K_M": {
+                "buy_low": 25.64,
+                "buy_high": 25.93,
+                "sell_low": 26.56,
+                "sell_high": 27.03,
+                "rationale": "Price is near support and oversold, with potential to rebound towards resistance."
+            },
+            "deepseek-r1:8b": {
+                "buy_low": 25.93,
+                "buy_high": 26.5,
+                "sell_low": 26.8,
+                "sell_high": 27.5,
+                "rationale": "Price near 10-day low support and oversold conditions suggest a potential rebound, but resistance remains intact."
+            }
+        },
+        "consensus": {
+            "buy_low": 25.74,
+            "buy_high": 26.15,
+            "sell_low": 26.95,
+            "sell_high": 27.57
+        },
+        "signal": "ACTIVE",
+        "upside_pct": 3.06
+    },
+    "IBN": {
+        "close": 25.5,
+        "models": {
+            "llama3.1:8b-instruct-q8_0": {
+                "buy_low": 25.26,
+                "buy_high": 25.5,
+                "sell_low": 25.51,
+                "sell_high": 25.86,
+                "rationale": "Based on the oversold Bollinger %B reading and recent price action, I'm expecting a bounce from current levels to test resistance near $25.86."
+            },
+            "qwen2.5:14b-instruct-q4_K_M": {
+                "buy_low": 25.3,
+                "buy_high": 25.4,
+                "sell_low": 25.7,
+                "sell_high": 25.8,
+                "rationale": "Price is near support and oversold, with a potential rebound towards resistance."
+            },
+            "deepseek-r1:8b": {
+                "buy_low": 25.12,
+                "buy_high": 25.37,
+                "sell_low": 25.88,
+                "sell_high": 26.14,
+                "rationale": "Fallback range (model output unparseable)",
+                "fallback": true
+            }
+        },
+        "consensus": {
+            "buy_low": 25.28,
+            "buy_high": 25.45,
+            "sell_low": 25.61,
+            "sell_high": 25.83
+        },
+        "signal": "SKIP",
+        "upside_pct": 0.63
+    },
+    "KMI": {
+        "close": 31.38,
+        "models": {
+            "llama3.1:8b-instruct-q8_0": {
+                "buy_low": 31.09,
+                "buy_high": 31.34,
+                "sell_low": 32.21,
+                "sell_high": 32.69,
+                "rationale": "Based on the recent price action and technical indicators, I'm looking for a bounce off the 10-day low support level, with a potential long entry between $31.09 and $31.34, and a profit take above $32"
+            },
+            "qwen2.5:14b-instruct-q4_K_M": {
+                "buy_low": 31.09,
+                "buy_high": 31.47,
+                "sell_low": 31.51,
+                "sell_high": 31.93,
+                "rationale": "Price is near support and resistance levels, indicating potential for a range-bound session."
+            },
+            "deepseek-r1:8b": {
+                "buy_low": 30.91,
+                "buy_high": 31.22,
+                "sell_low": 31.85,
+                "sell_high": 32.16,
+                "rationale": "Fallback range (model output unparseable)",
+                "fallback": true
+            }
+        },
+        "consensus": {
+            "buy_low": 31.09,
+            "buy_high": 31.41,
+            "sell_low": 31.85,
+            "sell_high": 32.3
+        },
+        "signal": "SKIP",
+        "upside_pct": 1.4
+    },
+    "ET": {
+        "close": 19.55,
+        "models": {
+            "llama3.1:8b-instruct-q8_0": {
+                "buy_low": 19.3,
+                "buy_high": 19.4,
+                "sell_low": 20.0,
+                "sell_high": 20.1,
+                "rationale": "Based on the recent price action and technical indicators, I'm looking for a bounce off support near $19.30-$19.40 before potentially reaching resistance around $20.00-$20.10."
+            },
+            "qwen2.5:14b-instruct-q4_K_M": {
+                "buy_low": 19.2,
+                "buy_high": 19.45,
+                "sell_low": 19.6,
+                "sell_high": 19.79,
+                "rationale": "Current price is near support and below resistance, indicating potential for a bounce but also caution towards overbought conditions."
+            },
+            "deepseek-r1:8b": {
+                "buy_low": 19.26,
+                "buy_high": 19.45,
+                "sell_low": 19.84,
+                "sell_high": 20.04,
+                "rationale": "Fallback range (model output unparseable)",
+                "fallback": true
+            }
+        },
+        "consensus": {
+            "buy_low": 19.25,
+            "buy_high": 19.43,
+            "sell_low": 19.8,
+            "sell_high": 19.94
+        },
+        "signal": "ACTIVE",
+        "upside_pct": 1.9
+    },
+    "SAN": {
+        "close": 12.16,
+        "models": {
+            "llama3.1:8b-instruct-q8_0": {
+                "buy_low": 11.88,
+                "buy_high": 12.1,
+                "sell_low": 12.4,
+                "sell_high": 12.6,
+                "rationale": "Based on the recent price action and technical indicators, I'm looking for a bounce off support near $11.88 and a potential sell at resistance around $12.60."
+            },
+            "qwen2.5:14b-instruct-q4_K_M": {
+                "buy_low": 12.05,
+                "buy_high": 12.16,
+                "sell_low": 12.38,
+                "sell_high": 12.49,
+                "rationale": "Price is near support and resistance levels, indicating potential for a range-bound session."
+            },
+            "deepseek-r1:8b": {
+                "buy_low": 11.88,
+                "buy_high": 12.16,
+                "sell_low": 12.5,
+                "sell_high": 12.71,
+                "rationale": "Price near 10-day support and resistance levels with neutral RSI and above-average volume suggesting potential bounce and upside."
+            }
+        },
+        "consensus": {
+            "buy_low": 11.94,
+            "buy_high": 12.14,
+            "sell_low": 12.43,
+            "sell_high": 12.6
+        },
+        "signal": "ACTIVE",
+        "upside_pct": 2.39
+    },
+    "USB": {
+        "close": 53.16,
+        "models": {
+            "llama3.1:8b-instruct-q8_0": {
+                "buy_low": 52.95,
+                "buy_high": 53.25,
+                "sell_low": 54.0,
+                "sell_high": 54.5,
+                "rationale": "Given the oversold condition, recent support at $53.12, and a potential bounce from the lower Bollinger band, I'm looking for a short-term reversal to enter long positions near current price levels."
+            },
+            "qwen2.5:14b-instruct-q4_K_M": {
+                "buy_low": 52.8,
+                "buy_high": 53.16,
+                "sell_low": 54.0,
+                "sell_high": 54.7,
+                "rationale": "Price is near support and oversold, with potential for a bounce."
+            },
+            "deepseek-r1:8b": {
+                "buy_low": 53.0,
+                "buy_high": 53.5,
+                "sell_low": 54.0,
+                "sell_high": 54.55,
+                "rationale": "Near oversold conditions (Bollinger %B 0.17) and support near 10-day low, suggesting a potential bounce with resistance near 10-day high."
+            }
+        },
+        "consensus": {
+            "buy_low": 52.92,
+            "buy_high": 53.3,
+            "sell_low": 54.0,
+            "sell_high": 54.58
+        },
+        "signal": "SKIP",
+        "upside_pct": 1.31
+    },
+    "MOS": {
+        "close": 23.3,
+        "models": {
+            "llama3.1:8b-instruct-q8_0": {
+                "buy_low": 22.5,
+                "buy_high": 23.0,
+                "sell_low": 24.2,
+                "sell_high": 25.0,
+                "rationale": "Based on the recent price action and technical indicators, I'm looking for a bounce off support near $22.50 and a potential breakout above resistance around $24.20."
+            },
+            "qwen2.5:14b-instruct-q4_K_M": {
+                "buy_low": 23.0,
+                "buy_high": 23.17,
+                "sell_low": 23.5,
+                "sell_high": 24.0,
+                "rationale": "Current price is near support and resistance levels, indicating potential for a range-bound session."
+            },
+            "deepseek-r1:8b": {
+                "buy_low": 22.95,
+                "buy_high": 23.18,
+                "sell_low": 23.65,
+                "sell_high": 23.88,
+                "rationale": "Fallback range (model output unparseable)",
+                "fallback": true
+            }
+        },
+        "consensus": {
+            "buy_low": 22.75,
+            "buy_high": 23.09,
+            "sell_low": 23.84,
+            "sell_high": 24.49
+        },
+        "signal": "ACTIVE",
+        "upside_pct": 3.25
+    },
+    "SCHD": {
+        "close": 32.35,
+        "models": {
+            "llama3.1:8b-instruct-q8_0": {
+                "buy_low": 32.1,
+                "buy_high": 32.2,
+                "sell_low": 32.4,
+                "sell_high": 32.6,
+                "rationale": "Given the recent price action and technical context, I'm looking for a bounce off support near $32.10-$32.20 before potentially reaching resistance around $32.40-$32.60."
+            },
+            "qwen2.5:14b-instruct-q4_K_M": {
+                "buy_low": 32.05,
+                "buy_high": 32.18,
+                "sell_low": 32.41,
+                "sell_high": 32.51,
+                "rationale": "Current price is near support and resistance levels, indicating potential for a range-bound session."
+            },
+            "deepseek-r1:8b": {
+                "buy_low": 32.0,
+                "buy_high": 32.1,
+                "sell_low": 32.4,
+                "sell_high": 32.5,
+                "rationale": "Buy near 10-day support (1.5% below current), sell near 10-day resistance (1.7% above current) with slightly overbought RSI and positive dividend news sentiment."
+            }
+        },
+        "consensus": {
+            "buy_low": 32.05,
+            "buy_high": 32.16,
+            "sell_low": 32.4,
+            "sell_high": 32.54
+        },
+        "signal": "SKIP",
+        "upside_pct": 0.75
+    },
+    "HDB": {
+        "close": 23.55,
+        "models": {
+            "llama3.1:8b-instruct-q8_0": {
+                "buy_low": 23.4,
+                "buy_high": 23.6,
+                "sell_low": 24.0,
+                "sell_high": 24.2,
+                "rationale": "Based on the oversold technical context and recent price action, I'm expecting a bounce near the 10-day low support level."
+            },
+            "qwen2.5:14b-instruct-q4_K_M": {
+                "buy_low": 23.4,
+                "buy_high": 23.55,
+                "sell_low": 23.6,
+                "sell_high": 23.8,
+                "rationale": "Price is near support and oversold, with potential for a bounce."
+            },
+            "deepseek-r1:8b": {
+                "buy_low": 23.5,
+                "buy_high": 23.7,
+                "sell_low": 24.5,
+                "sell_high": 25.0,
+                "rationale": "Oversold conditions (RSI, %B) near 10-day low support a potential bounce, targeting resistance near 10-day high."
+            }
+        },
+        "consensus": {
+            "buy_low": 23.43,
+            "buy_high": 23.62,
+            "sell_low": 24.03,
+            "sell_high": 24.34
+        },
+        "signal": "ACTIVE",
+        "upside_pct": 1.74
+    },
+    "JHX": {
+        "close": 23.15,
+        "models": {
+            "llama3.1:8b-instruct-q8_0": {
+                "buy_low": 22.8,
+                "buy_high": 23.0,
+                "sell_low": 23.3,
+                "sell_high": 23.5,
+                "rationale": "Based on the recent price action and technical indicators, I'm looking for a bounce off support near $22.80 and a potential sell at resistance around $23.40, but given the bearish news and overbought "
+            },
+            "qwen2.5:14b-instruct-q4_K_M": {
+                "buy_low": 21.89,
+                "buy_high": 22.76,
+                "sell_low": 23.05,
+                "sell_high": 23.39,
+                "rationale": "Considering the recent price action and technical indicators, a prudent strategy would be to buy near support and sell near resistance."
+            },
+            "deepseek-r1:8b": {
+                "buy_low": 22.5,
+                "buy_high": 23.39,
+                "sell_low": 23.5,
+                "sell_high": 24.0,
+                "rationale": "Buy near 10-day low support, sell near 10-day high resistance with overbought RSI."
+            }
+        },
+        "consensus": {
+            "buy_low": 22.39,
+            "buy_high": 23.05,
+            "sell_low": 23.28,
+            "sell_high": 23.63
+        },
+        "signal": "SKIP",
+        "upside_pct": 1.0
+    },
+    "GIS": {
+        "close": 32.17,
+        "models": {
+            "llama3.1:8b-instruct-q8_0": {
+                "buy_low": 31.86,
+                "buy_high": 32.17,
+                "sell_low": 33.0,
+                "sell_high": 33.46,
+                "rationale": "Given the oversold technical context and recent news that may negatively impact General Mills, I'm looking for a bounce near support at $31.86-$32.17 to enter a long position, with profit targets set "
+            },
+            "qwen2.5:14b-instruct-q4_K_M": {
+                "buy_low": 31.86,
+                "buy_high": 32.57,
+                "sell_low": 33.0,
+                "sell_high": 34.15,
+                "rationale": "Price is near support and RSI indicates oversold conditions, suggesting a potential bounce."
+            },
+            "deepseek-r1:8b": {
+                "buy_low": 31.69,
+                "buy_high": 32.01,
+                "sell_low": 32.65,
+                "sell_high": 32.97,
+                "rationale": "Fallback range (model output unparseable)",
+                "fallback": true
+            }
+        },
+        "consensus": {
+            "buy_low": 31.86,
+            "buy_high": 32.37,
+            "sell_low": 33.0,
+            "sell_high": 33.81
+        },
+        "signal": "ACTIVE",
+        "upside_pct": 1.95
+    },
+    "SPIB": {
+        "close": 33.34,
+        "models": {
+            "llama3.1:8b-instruct-q8_0": {
+                "buy_low": 33.2,
+                "buy_high": 33.3,
+                "sell_low": 33.4,
+                "sell_high": 33.5,
+                "rationale": "Given the recent price action and elevated volume, I'm looking for a bounce off support near $33.20-$33.30 before potentially reaching resistance around $33.40-$33.50."
+            },
+            "qwen2.5:14b-instruct-q4_K_M": {
+                "buy_low": 33.2,
+                "buy_high": 33.34,
+                "sell_low": 33.35,
+                "sell_high": 33.56,
+                "rationale": "Current price is near support with strong interest, suggesting a potential rebound towards resistance."
+            },
+            "deepseek-r1:8b": {
+                "buy_low": 33.2,
+                "buy_high": 33.3,
+                "sell_low": 33.45,
+                "sell_high": 33.5,
+                "rationale": "Entry near 10-day support (33.17) with buffer, target near 10-day high (33.57) with elevated volume supporting potential upside."
+            }
+        },
+        "consensus": {
+            "buy_low": 33.2,
+            "buy_high": 33.31,
+            "sell_low": 33.4,
+            "sell_high": 33.52
+        },
+        "signal": "SKIP",
+        "upside_pct": 0.27
+    },
+    "D": {
+        "close": 65.49,
+        "models": {
+            "llama3.1:8b-instruct-q8_0": {
+                "buy_low": 65.45,
+                "buy_high": 66.0,
+                "sell_low": 66.5,
+                "sell_high": 67.2,
+                "rationale": "Based on the recent price action and technical indicators, I'm looking for a bounce off support near $65.45 and a potential breakout above resistance near $67.20."
+            },
+            "qwen2.5:14b-instruct-q4_K_M": {
+                "buy_low": 64.59,
+                "buy_high": 65.0,
+                "sell_low": 66.37,
+                "sell_high": 67.09,
+                "rationale": "Current price is near support with positive news, suggesting a potential rebound towards resistance."
+            },
+            "deepseek-r1:8b": {
+                "buy_low": 64.51,
+                "buy_high": 65.16,
+                "sell_low": 66.47,
+                "sell_high": 67.13,
+                "rationale": "Fallback range (model output unparseable)",
+                "fallback": true
+            }
+        },
+        "consensus": {
+            "buy_low": 65.01,
+            "buy_high": 65.49,
+            "sell_low": 66.43,
+            "sell_high": 67.14
+        },
+        "signal": "SKIP",
+        "upside_pct": 1.44
+    },
+    "IEMG": {
+        "close": 84.85,
+        "models": {
+            "llama3.1:8b-instruct-q8_0": {
+                "buy_low": 84.44,
+                "buy_high": 84.85,
+                "sell_low": 86.02,
+                "sell_high": 86.5,
+                "rationale": "Given the overbought condition and recent price action, a long entry should be considered near the current support level, while a profit take could be set near the upper end of the recent trading rang"
+            },
+            "qwen2.5:14b-instruct-q4_K_M": {
+                "buy_low": 84.09,
+                "buy_high": 84.57,
+                "sell_low": 85.13,
+                "sell_high": 86.02,
+                "rationale": "Current price is near the upper Bollinger band, indicating overbought conditions."
+            },
+            "deepseek-r1:8b": {
+                "buy_low": 83.58,
+                "buy_high": 84.43,
+                "sell_low": 86.12,
+                "sell_high": 86.97,
+                "rationale": "Fallback range (model output unparseable)",
+                "fallback": true
+            }
+        },
+        "consensus": {
+            "buy_low": 84.26,
+            "buy_high": 84.71,
+            "sell_low": 85.57,
+            "sell_high": 86.26
+        },
+        "signal": "SKIP",
+        "upside_pct": 1.02
+    },
+    "GEN": {
+        "close": 26.52,
+        "models": {
+            "llama3.1:8b-instruct-q8_0": {
+                "buy_low": 25.8,
+                "buy_high": 26.35,
+                "sell_low": 27.2,
+                "sell_high": 28.0,
+                "rationale": "Given the overbought RSI and recent price action, I'm looking for a pullback to near the 10-day low support level before entering a long position, with a profit target near the 10-day high resistance "
+            },
+            "qwen2.5:14b-instruct-q4_K_M": {
+                "buy_low": 26.09,
+                "buy_high": 26.52,
+                "sell_low": 27.15,
+                "sell_high": 27.54,
+                "rationale": "Current price is near resistance and RSI indicates overbought conditions."
+            },
+            "deepseek-r1:8b": {
+                "buy_low": 23.67,
+                "buy_high": 24.0,
+                "sell_low": 27.5,
+                "sell_high": 28.0,
+                "rationale": ""
+            }
+        },
+        "consensus": {
+            "buy_low": 25.18,
+            "buy_high": 25.61,
+            "sell_low": 27.28,
+            "sell_high": 27.84
+        },
+        "signal": "ACTIVE",
+        "upside_pct": 6.52
+    },
+    "PTEN": {
+        "close": 12.01,
+        "models": {
+            "llama3.1:8b-instruct-q8_0": {
+                "buy_low": 11.66,
+                "buy_high": 11.8,
+                "sell_low": 12.1,
+                "sell_high": 12.2,
+                "rationale": "Based on the recent price action and technical indicators, I'm looking for a bounce off support near $11.66 and a potential move up to resistance around $12.10-12.20."
+            },
+            "qwen2.5:14b-instruct-q4_K_M": {
+                "buy_low": 11.6,
+                "buy_high": 11.95,
+                "sell_low": 12.05,
+                "sell_high": 12.3,
+                "rationale": "Current price is near support and resistance levels, suggesting a balanced risk-reward ratio for short-term trades."
+            },
+            "deepseek-r1:8b": {
+                "buy_low": 11.8,
+                "buy_high": 11.95,
+                "sell_low": 12.05,
+                "sell_high": 12.3,
+                "rationale": "Buy near 10-day low support, sell near 10-day high resistance with positive momentum and news."
+            }
+        },
+        "consensus": {
+            "buy_low": 11.69,
+            "buy_high": 11.9,
+            "sell_low": 12.07,
+            "sell_high": 12.27
+        },
+        "signal": "SKIP",
+        "upside_pct": 1.43
+    },
+    "VTEB": {
+        "close": 50.31,
+        "models": {
+            "llama3.1:8b-instruct-q8_0": {
+                "buy_low": 49.8,
+                "buy_high": 50.0,
+                "sell_low": 50.4,
+                "sell_high": 50.6,
+                "rationale": "Given the recent price action and technical context, I'm looking for a bounce off support near $49.80-$50.00 before potentially reaching resistance around $50.40-$50.60."
+            },
+            "qwen2.5:14b-instruct-q4_K_M": {
+                "buy_low": 50.13,
+                "buy_high": 50.27,
+                "sell_low": 50.34,
+                "sell_high": 50.48,
+                "rationale": "Current price is near the upper Bollinger band and above the 20-day SMA, suggesting a potential pullback to support before further gains."
+            },
+            "deepseek-r1:8b": {
+                "buy_low": 50.1,
+                "buy_high": 50.2,
+                "sell_low": 50.35,
+                "sell_high": 50.4,
+                "rationale": "Buy near 10-day low support ($50.13) and 20-day SMA ($50.24), sell near 10-day high resistance ($50.33) and recent consolidation high."
+            }
+        },
+        "consensus": {
+            "buy_low": 50.01,
+            "buy_high": 50.16,
+            "sell_low": 50.36,
+            "sell_high": 50.49
+        },
+        "signal": "SKIP",
+        "upside_pct": 0.4
+    },
+    "BP": {
+        "close": 43.68,
+        "models": {
+            "llama3.1:8b-instruct-q8_0": {
+                "buy_low": 43.42,
+                "buy_high": 43.65,
+                "sell_low": 44.15,
+                "sell_high": 44.35,
+                "rationale": "BP is near its 10-day low and has a relatively high Bollinger %B, suggesting potential support; the stock also has a positive 5-day momentum, indicating a possible upward move."
+            },
+            "qwen2.5:14b-instruct-q4_K_M": {
+                "buy_low": 42.95,
+                "buy_high": 43.1,
+                "sell_low": 44.18,
+                "sell_high": 44.33,
+                "rationale": "Current price is near support and resistance levels, indicating potential for a range-bound session."
+            },
+            "deepseek-r1:8b": {
+                "buy_low": 43.02,
+                "buy_high": 43.46,
+                "sell_low": 44.34,
+                "sell_high": 44.77,
+                "rationale": "Fallback range (model output unparseable)",
+                "fallback": true
+            }
+        },
+        "consensus": {
+            "buy_low": 43.18,
+            "buy_high": 43.37,
+            "sell_low": 44.17,
+            "sell_high": 44.34
+        },
+        "signal": "ACTIVE",
+        "upside_pct": 1.84
+    },
+    "CHWY": {
+        "close": 21.04,
+        "models": {
+            "llama3.1:8b-instruct-q8_0": {
+                "buy_low": 20.5,
+                "buy_high": 21.0,
+                "sell_low": 22.3,
+                "sell_high": 23.0,
+                "rationale": "Based on the recent price action and technical indicators, I'm looking for a bounce off support near $20.50 and a potential breakout above resistance near $22.30."
+            },
+            "qwen2.5:14b-instruct-q4_K_M": {
+                "buy_low": 20.95,
+                "buy_high": 21.04,
+                "sell_low": 21.32,
+                "sell_high": 21.57,
+                "rationale": "Price is near support and resistance levels, indicating potential for a range-bound session."
+            },
+            "deepseek-r1:8b": {
+                "buy_low": 20.72,
+                "buy_high": 20.93,
+                "sell_low": 21.36,
+                "sell_high": 21.57,
+                "rationale": "Fallback range (model output unparseable)",
+                "fallback": true
+            }
+        },
+        "consensus": {
+            "buy_low": 20.73,
+            "buy_high": 21.02,
+            "sell_low": 21.8,
+            "sell_high": 22.27
+        },
+        "signal": "ACTIVE",
+        "upside_pct": 3.71
+    },
+    "HST": {
+        "close": 23.86,
+        "models": {
+            "llama3.1:8b-instruct-q8_0": {
+                "buy_low": 23.41,
+                "buy_high": 23.5,
+                "sell_low": 24.06,
+                "sell_high": 24.2,
+                "rationale": "Given the overbought technical context and recent price action, I'm looking for a pullback to near support before entering a long position, with a target sell range near resistance."
+            },
+            "qwen2.5:14b-instruct-q4_K_M": {
+                "buy_low": 23.41,
+                "buy_high": 23.65,
+                "sell_low": 23.86,
+                "sell_high": 24.06,
+                "rationale": "Given the overbought conditions and recent price action, a cautious approach is warranted."
+            },
+            "deepseek-r1:8b": {
+                "buy_low": 22.5,
+                "buy_high": 22.6,
+                "sell_low": 24.0,
+                "sell_high": 24.1,
+                "rationale": "Buy near 10-day low support ($22.54), sell near 10-day high resistance ($24.06) given overbought conditions and recent loss."
+            }
+        },
+        "consensus": {
+            "buy_low": 23.1,
+            "buy_high": 23.25,
+            "sell_low": 23.97,
+            "sell_high": 24.12
+        },
+        "signal": "ACTIVE",
+        "upside_pct": 3.1
+    },
+    "AGNC": {
+        "close": 10.17,
+        "models": {
+            "llama3.1:8b-instruct-q8_0": {
+                "buy_low": 10.08,
+                "buy_high": 10.15,
+                "sell_low": 10.25,
+                "sell_high": 10.35,
+                "rationale": "Based on the oversold technical context, near support at the 10-day low, and recent news that may positively impact AGNC's stock price, a long position can be considered with a buy range of $10.08 to "
+            },
+            "qwen2.5:14b-instruct-q4_K_M": {
+                "buy_low": 10.08,
+                "buy_high": 10.17,
+                "sell_low": 10.23,
+                "sell_high": 10.45,
+                "rationale": "Price is near support and oversold, with potential for a bounce."
+            },
+            "deepseek-r1:8b": {
+                "buy_low": 10.1,
+                "buy_high": 10.15,
+                "sell_low": 10.2,
+                "sell_high": 10.41,
+                "rationale": ""
+            }
+        },
+        "consensus": {
+            "buy_low": 10.09,
+            "buy_high": 10.16,
+            "sell_low": 10.23,
+            "sell_high": 10.4
+        },
+        "signal": "SKIP",
+        "upside_pct": 0.69
+    },
+    "SHEL": {
+        "close": 86.78,
+        "models": {
+            "llama3.1:8b-instruct-q8_0": {
+                "buy_low": 85.51,
+                "buy_high": 86.0,
+                "sell_low": 87.25,
+                "sell_high": 88.0,
+                "rationale": "Based on the recent price action and technical context, I'm looking for a bounce off the 10-day low support level near $85.51 to enter a long position, with a target of reaching the 20-day SMA resista"
+            },
+            "qwen2.5:14b-instruct-q4_K_M": {
+                "buy_low": 84.11,
+                "buy_high": 85.0,
+                "sell_low": 87.63,
+                "sell_high": 88.02,
+                "rationale": "Current price is near the upper Bollinger band and above the 10-day resistance, suggesting a potential pullback to support levels."
+            },
+            "deepseek-r1:8b": {
+                "buy_low": 85.48,
+                "buy_high": 86.35,
+                "sell_low": 88.08,
+                "sell_high": 88.95,
+                "rationale": "Fallback range (model output unparseable)",
+                "fallback": true
+            }
+        },
+        "consensus": {
+            "buy_low": 84.8,
+            "buy_high": 85.49,
+            "sell_low": 87.44,
+            "sell_high": 88.01
+        },
+        "signal": "ACTIVE",
+        "upside_pct": 2.28
+    },
+    "INDA": {
+        "close": 47.34,
+        "models": {
+            "llama3.1:8b-instruct-q8_0": {
+                "buy_low": 46.95,
+                "buy_high": 47.45,
+                "sell_low": 48.05,
+                "sell_high": 48.55,
+                "rationale": "Given the oversold condition, near support, and recent news suggesting a potential US-India trade deal, I'm expecting a bounce in INDA's price."
+            },
+            "qwen2.5:14b-instruct-q4_K_M": {
+                "buy_low": 47.0,
+                "buy_high": 47.34,
+                "sell_low": 47.5,
+                "sell_high": 48.2,
+                "rationale": "Price is near support and oversold, offering a potential long entry with close resistance at recent highs."
+            },
+            "deepseek-r1:8b": {
+                "buy_low": 47.34,
+                "buy_high": 47.5,
+                "sell_low": 48.79,
+                "sell_high": 49.0,
+                "rationale": "Oversold conditions and near support suggest a potential bounce to resistance levels."
+            }
+        },
+        "consensus": {
+            "buy_low": 47.1,
+            "buy_high": 47.43,
+            "sell_low": 48.11,
+            "sell_high": 48.58
+        },
+        "signal": "SKIP",
+        "upside_pct": 1.43
+    },
+    "EWJ": {
+        "close": 93.94,
+        "models": {
+            "llama3.1:8b-instruct-q8_0": {
+                "buy_low": 93.0,
+                "buy_high": 93.5,
+                "sell_low": 94.2,
+                "sell_high": 95.0,
+                "rationale": "Given the overbought technical context and recent news, I'm looking for a pullback to near support before entering a long position, with a target just above resistance."
+            },
+            "qwen2.5:14b-instruct-q4_K_M": {
+                "buy_low": 93.5,
+                "buy_high": 93.8,
+                "sell_low": 94.1,
+                "sell_high": 94.25,
+                "rationale": "Considering the overbought RSI and proximity to the upper Bollinger band, a cautious approach is warranted."
+            },
+            "deepseek-r1:8b": {
+                "buy_low": 92.53,
+                "buy_high": 93.47,
+                "sell_low": 95.35,
+                "sell_high": 96.29,
+                "rationale": "Fallback range (model output unparseable)",
+                "fallback": true
+            }
+        },
+        "consensus": {
+            "buy_low": 93.25,
+            "buy_high": 93.65,
+            "sell_low": 94.15,
+            "sell_high": 94.62
+        },
+        "signal": "SKIP",
+        "upside_pct": 0.53
+    },
+    "PPL": {
+        "close": 35.01,
+        "models": {
+            "llama3.1:8b-instruct-q8_0": {
+                "buy_low": 34.83,
+                "buy_high": 35.1,
+                "sell_low": 35.4,
+                "sell_high": 35.8,
+                "rationale": "Based on the oversold RSI and elevated volume, I'm expecting a bounce near the 10-day low support at $34.83-$35.10, with potential profit taking around resistance at $35.40-$35.80."
+            },
+            "qwen2.5:14b-instruct-q4_K_M": {
+                "buy_low": 34.5,
+                "buy_high": 34.9,
+                "sell_low": 35.1,
+                "sell_high": 35.8,
+                "rationale": "Current RSI indicates oversold conditions, suggesting a potential bounce near support."
+            },
+            "deepseek-r1:8b": {
+                "buy_low": 34.48,
+                "buy_high": 34.83,
+                "sell_low": 35.54,
+                "sell_high": 35.89,
+                "rationale": "Fallback range (model output unparseable)",
+                "fallback": true
+            }
+        },
+        "consensus": {
+            "buy_low": 34.66,
+            "buy_high": 35.0,
+            "sell_low": 35.25,
+            "sell_high": 35.8
+        },
+        "signal": "SKIP",
+        "upside_pct": 0.71
+    },
+    "XLY": {
+        "close": 116.72,
+        "models": {
+            "llama3.1:8b-instruct-q8_0": {
+                "buy_low": 115.21,
+                "buy_high": 116.72,
+                "sell_low": 117.58,
+                "sell_high": 118.25,
+                "rationale": "Based on the recent price action and technical indicators, I'm looking for a bounce from support near $115.21 to retest resistance around $118.25."
+            },
+            "qwen2.5:14b-instruct-q4_K_M": {
+                "buy_low": 116.0,
+                "buy_high": 116.72,
+                "sell_low": 117.58,
+                "sell_high": 119.0,
+                "rationale": "Current price is near support and below the 20-day SMA, indicating a potential buying opportunity."
+            },
+            "deepseek-r1:8b": {
+                "buy_low": 115.21,
+                "buy_high": 117.5,
+                "sell_low": 119.0,
+                "sell_high": 119.85,
+                "rationale": "Price near 10-day low (support) and below 20-day SMA, with neutral RSI and low Bollinger %B suggesting potential upside if support holds."
+            }
+        },
+        "consensus": {
+            "buy_low": 115.48,
+            "buy_high": 116.98,
+            "sell_low": 118.06,
+            "sell_high": 119.04
+        },
+        "signal": "SKIP",
+        "upside_pct": 0.92
+    },
+    "CRM": {
+        "close": 190.65,
+        "models": {
+            "llama3.1:8b-instruct-q8_0": {
+                "buy_low": 189.75,
+                "buy_high": 191.12,
+                "sell_low": 192.0,
+                "sell_high": 194.07,
+                "rationale": "Based on the recent price action and technical context, I'm expecting a slight pullback to retest support near $190.65 before potentially breaking through resistance around $194.07."
+            },
+            "qwen2.5:14b-instruct-q4_K_M": {
+                "buy_low": 189.75,
+                "buy_high": 190.65,
+                "sell_low": 192.0,
+                "sell_high": 194.07,
+                "rationale": "The price is near support and resistance levels, indicating potential for a pullback or breakout."
+            },
+            "deepseek-r1:8b": {
+                "buy_low": 187.79,
+                "buy_high": 189.7,
+                "sell_low": 193.51,
+                "sell_high": 195.42,
+                "rationale": "Fallback range (model output unparseable)",
+                "fallback": true
+            }
+        },
+        "consensus": {
+            "buy_low": 189.75,
+            "buy_high": 190.88,
+            "sell_low": 192.0,
+            "sell_high": 194.07
+        },
+        "signal": "SKIP",
+        "upside_pct": 0.59
+    },
+    "FITB": {
+        "close": 49.5,
+        "models": {
+            "llama3.1:8b-instruct-q8_0": {
+                "buy_low": 48.55,
+                "buy_high": 49.0,
+                "sell_low": 50.1,
+                "sell_high": 50.4,
+                "rationale": "Based on the recent price action and technical indicators, I'm looking for a bounce off the 20-day SMA support at $48.55 and resistance near the 10-day high at $50.40."
+            },
+            "qwen2.5:14b-instruct-q4_K_M": {
+                "buy_low": 48.5,
+                "buy_high": 49.2,
+                "sell_low": 49.6,
+                "sell_high": 50.3,
+                "rationale": "Current price action and technical indicators suggest a range for potential entry and exit points."
+            },
+            "deepseek-r1:8b": {
+                "buy_low": 49.5,
+                "buy_high": 49.6,
+                "sell_low": 50.0,
+                "sell_high": 50.1,
+                "rationale": "Support near current price and 10-day low, resistance near 10-day high with volume indicating potential breakout."
+            }
+        },
+        "consensus": {
+            "buy_low": 48.85,
+            "buy_high": 49.27,
+            "sell_low": 49.9,
+            "sell_high": 50.27
+        },
+        "signal": "SKIP",
+        "upside_pct": 1.28
+    },
+    "KGC": {
+        "close": 28.17,
+        "models": {
+            "llama3.1:8b-instruct-q8_0": {
+                "buy_low": 27.52,
+                "buy_high": 28.0,
+                "sell_low": 29.49,
+                "sell_high": 30.2,
+                "rationale": "Based on the recent price action and technical indicators, I'm looking for a bounce off support near $27.52-$28.00 before potentially reaching resistance around $29.49-$30.20."
+            },
+            "qwen2.5:14b-instruct-q4_K_M": {
+                "buy_low": 28.02,
+                "buy_high": 28.17,
+                "sell_low": 28.5,
+                "sell_high": 29.69,
+                "rationale": "Price is near support and has shown signs of a bullish trendline break."
+            },
+            "deepseek-r1:8b": {
+                "buy_low": 27.75,
+                "buy_high": 28.03,
+                "sell_low": 28.59,
+                "sell_high": 28.87,
+                "rationale": "Fallback range (model output unparseable)",
+                "fallback": true
+            }
+        },
+        "consensus": {
+            "buy_low": 27.77,
+            "buy_high": 28.09,
+            "sell_low": 28.99,
+            "sell_high": 29.94
+        },
+        "signal": "ACTIVE",
+        "upside_pct": 3.2
+    },
+    "XBI": {
+        "close": 129.85,
+        "models": {
+            "llama3.1:8b-instruct-q8_0": {
+                "buy_low": 127.16,
+                "buy_high": 128.5,
+                "sell_low": 131.97,
+                "sell_high": 132.79,
+                "rationale": "Based on the recent price action and technical indicators, I'm looking for a bounce off the 10-day low support level around $127.16 to $128.50 before potentially reaching resistance near the 20-day SM"
+            },
+            "qwen2.5:14b-instruct-q4_K_M": {
+                "buy_low": 127.0,
+                "buy_high": 129.85,
+                "sell_low": 130.0,
+                "sell_high": 134.0,
+                "rationale": "Current price is near support and RSI suggests neutral momentum."
+            },
+            "deepseek-r1:8b": {
+                "buy_low": 127.9,
+                "buy_high": 129.2,
+                "sell_low": 131.8,
+                "sell_high": 133.1,
+                "rationale": "Fallback range (model output unparseable)",
+                "fallback": true
+            }
+        },
+        "consensus": {
+            "buy_low": 127.08,
+            "buy_high": 129.19,
+            "sell_low": 130.97,
+            "sell_high": 133.41
+        },
+        "signal": "SKIP",
+        "upside_pct": 1.38
+    },
+    "RBLX": {
+        "close": 43.68,
+        "models": {
+            "llama3.1:8b-instruct-q8_0": {
+                "buy_low": 42.7,
+                "buy_high": 43.68,
+                "sell_low": 44.64,
+                "sell_high": 45.02,
+                "rationale": "Given the oversold RSI and recent price action near support, a long position can be considered with a buy range below current price, while taking profit above resistance."
+            },
+            "qwen2.5:14b-instruct-q4_K_M": {
+                "buy_low": 42.7,
+                "buy_high": 43.68,
+                "sell_low": 45.02,
+                "sell_high": 47.97,
+                "rationale": "Price is near the 10-day low and RSI indicates oversold conditions, suggesting a potential bounce."
+            },
+            "deepseek-r1:8b": {
+                "buy_low": 43.3,
+                "buy_high": 43.8,
+                "sell_low": 47.0,
+                "sell_high": 47.67,
+                "rationale": "Oversold RSI (33.9) and price near 10-day low support a bounce, targeting resistance near 10-day high."
+            }
+        },
+        "consensus": {
+            "buy_low": 42.9,
+            "buy_high": 43.72,
+            "sell_low": 45.56,
+            "sell_high": 46.91
+        },
+        "signal": "ACTIVE",
+        "upside_pct": 4.21
+    },
+    "C": {
+        "close": 129.97,
+        "models": {
+            "llama3.1:8b-instruct-q8_0": {
+                "buy_low": 128.28,
+                "buy_high": 129.97,
+                "sell_low": 130.53,
+                "sell_high": 132.44,
+                "rationale": "Given the recent price action and technical indicators, I'm looking for a bounce off support near $128.28 and a potential breakout above resistance around $131.25."
+            },
+            "qwen2.5:14b-instruct-q4_K_M": {
+                "buy_low": 128.0,
+                "buy_high": 129.5,
+                "sell_low": 130.5,
+                "sell_high": 132.0,
+                "rationale": "Price is near the upper Bollinger band, indicating overbought conditions."
+            },
+            "deepseek-r1:8b": {
+                "buy_low": 128.02,
+                "buy_high": 129.32,
+                "sell_low": 131.92,
+                "sell_high": 133.22,
+                "rationale": "Fallback range (model output unparseable)",
+                "fallback": true
+            }
+        },
+        "consensus": {
+            "buy_low": 128.14,
+            "buy_high": 129.73,
+            "sell_low": 130.51,
+            "sell_high": 132.22
+        },
+        "signal": "SKIP",
+        "upside_pct": 0.6
+    },
+    "CTSH": {
+        "close": 53.52,
+        "models": {
+            "llama3.1:8b-instruct-q8_0": {
+                "buy_low": 52.88,
+                "buy_high": 53.18,
+                "sell_low": 54.86,
+                "sell_high": 55.75,
+                "rationale": "Based on the recent price action and technical indicators, I'm looking for a bounce off the 10-day low support level near $52.88 to enter a long position, with a target of taking profit near the 10-da"
+            },
+            "qwen2.5:14b-instruct-q4_K_M": {
+                "buy_low": 52.88,
+                "buy_high": 53.14,
+                "sell_low": 54.6,
+                "sell_high": 55.75,
+                "rationale": "Price is near support and resistance levels, indicating potential for a bounce or pullback."
+            },
+            "deepseek-r1:8b": {
+                "buy_low": 53.0,
+                "buy_high": 53.5,
+                "sell_low": 54.0,
+                "sell_high": 54.5,
+                "rationale": "Buy near support close to 10-day low gain, sell near resistance close to 10-day high, influenced by AI focus and job disruption news."
+            }
+        },
+        "consensus": {
+            "buy_low": 52.92,
+            "buy_high": 53.27,
+            "sell_low": 54.48,
+            "sell_high": 55.33
+        },
+        "signal": "ACTIVE",
+        "upside_pct": 2.27
+    },
+    "SCHB": {
+        "close": 29.11,
+        "models": {
+            "llama3.1:8b-instruct-q8_0": {
+                "buy_low": 28.8,
+                "buy_high": 29.0,
+                "sell_low": 29.3,
+                "sell_high": 29.5,
+                "rationale": "Given the overbought RSI and recent price action, I'm looking for a pullback to near support before entering a long position, with a target sell range slightly above resistance."
+            },
+            "qwen2.5:14b-instruct-q4_K_M": {
+                "buy_low": 29.08,
+                "buy_high": 29.11,
+                "sell_low": 29.24,
+                "sell_high": 29.34,
+                "rationale": "Given the overbought RSI and recent price action, a cautious approach is warranted."
+            },
+            "deepseek-r1:8b": {
+                "buy_low": 28.67,
+                "buy_high": 28.96,
+                "sell_low": 29.54,
+                "sell_high": 29.83,
+                "rationale": "Fallback range (model output unparseable)",
+                "fallback": true
+            }
+        },
+        "consensus": {
+            "buy_low": 28.94,
+            "buy_high": 29.06,
+            "sell_low": 29.27,
+            "sell_high": 29.42
+        },
+        "signal": "SKIP",
+        "upside_pct": 0.72
+    },
+    "GOOG": {
+        "close": 355.78,
+        "models": {
+            "llama3.1:8b-instruct-q8_0": {
+                "buy_low": 354.52,
+                "buy_high": 357.79,
+                "sell_low": 362.49,
+                "sell_high": 365.0,
+                "rationale": "Given the oversold condition and strong interest, I'm looking for a bounce near the 10-day low support, with a potential profit target near the 5-day moving average."
+            },
+            "qwen2.5:14b-instruct-q4_K_M": {
+                "buy_low": 354.52,
+                "buy_high": 357.79,
+                "sell_low": 362.49,
+                "sell_high": 369.74,
+                "rationale": "Price near support and lower Bollinger band suggests a potential bounce."
+            },
+            "deepseek-r1:8b": {
+                "buy_low": 355.78,
+                "buy_high": 358.0,
+                "sell_low": 383.44,
+                "sell_high": 383.44,
+                "rationale": "Oversold conditions and near 10-day low support a bounce, with resistance near 10-day high."
+            }
+        },
+        "consensus": {
+            "buy_low": 354.95,
+            "buy_high": 357.86,
+            "sell_low": 369.56,
+            "sell_high": 372.82
+        },
+        "signal": "ACTIVE",
+        "upside_pct": 3.27
+    },
+    "BEKE": {
+        "close": 16.9,
+        "models": {
+            "llama3.1:8b-instruct-q8_0": {
+                "buy_low": 16.5,
+                "buy_high": 17.0,
+                "sell_low": 17.2,
+                "sell_high": 18.1,
+                "rationale": "Based on the recent price action and technical indicators, I'm looking for a bounce off support near $16.50 and a potential move towards resistance around $17.20-18.10."
+            },
+            "qwen2.5:14b-instruct-q4_K_M": {
+                "buy_low": 16.59,
+                "buy_high": 16.77,
+                "sell_low": 17.23,
+                "sell_high": 17.38,
+                "rationale": "Current price is near support and resistance levels, indicating potential for a range-bound session."
+            },
+            "deepseek-r1:8b": {
+                "buy_low": 16.1,
+                "buy_high": 17.0,
+                "sell_low": 17.5,
+                "sell_high": 18.57,
+                "rationale": "Based on support near $16.10 and resistance near $18.57, with neutral RSI and higher volume suggesting potential upward movement."
+            }
+        },
+        "consensus": {
+            "buy_low": 16.4,
+            "buy_high": 16.92,
+            "sell_low": 17.31,
+            "sell_high": 18.02
+        },
+        "signal": "SKIP",
+        "upside_pct": 2.3
+    },
+    "CPB": {
+        "close": 21.0,
+        "models": {
+            "llama3.1:8b-instruct-q8_0": {
+                "buy_low": 20.68,
+                "buy_high": 20.8,
+                "sell_low": 21.15,
+                "sell_high": 21.3,
+                "rationale": "Based on the recent price action and technical indicators, I'm looking for a bounce off support near $20.68 and a potential sell-off towards resistance around $21.30."
+            },
+            "qwen2.5:14b-instruct-q4_K_M": {
+                "buy_low": 20.68,
+                "buy_high": 20.99,
+                "sell_low": 21.09,
+                "sell_high": 21.37,
+                "rationale": "Current price is near resistance and technical indicators suggest a potential pullback."
+            },
+            "deepseek-r1:8b": {
+                "buy_low": 19.5,
+                "buy_high": 20.0,
+                "sell_low": 21.5,
+                "sell_high": 21.7,
+                "rationale": "Technical indicators show upward momentum and support near $19.56, but bearish news for the food industry may cause volatility."
+            }
+        },
+        "consensus": {
+            "buy_low": 20.28,
+            "buy_high": 20.59,
+            "sell_low": 21.25,
+            "sell_high": 21.46
+        },
+        "signal": "ACTIVE",
+        "upside_pct": 3.21
+    },
+    "AEO": {
+        "close": 16.32,
+        "models": {
+            "llama3.1:8b-instruct-q8_0": {
+                "buy_low": 15.64,
+                "buy_high": 16.0,
+                "sell_low": 16.5,
+                "sell_high": 17.1,
+                "rationale": "Based on the recent price action and technical indicators, I'm looking for a bounce off support near $15.64 and a potential sell at resistance around $17.10."
+            },
+            "qwen2.5:14b-instruct-q4_K_M": {
+                "buy_low": 15.77,
+                "buy_high": 16.02,
+                "sell_low": 16.32,
+                "sell_high": 16.84,
+                "rationale": "Current price is near support and resistance levels, suggesting a range-bound market."
+            },
+            "deepseek-r1:8b": {
+                "buy_low": 16.08,
+                "buy_high": 16.24,
+                "sell_low": 16.56,
+                "sell_high": 16.73,
+                "rationale": "Fallback range (model output unparseable)",
+                "fallback": true
+            }
+        },
+        "consensus": {
+            "buy_low": 15.71,
+            "buy_high": 16.01,
+            "sell_low": 16.41,
+            "sell_high": 16.97
+        },
+        "signal": "ACTIVE",
+        "upside_pct": 2.5
+    },
+    "CZR": {
+        "close": 29.18,
+        "models": {
+            "llama3.1:8b-instruct-q8_0": {
+                "buy_low": 28.75,
+                "buy_high": 29.0,
+                "sell_low": 29.25,
+                "sell_high": 29.5,
+                "rationale": "Given the recent price action and technical indicators, I'm looking for a bounce off support near $28.75-$29.00 before potentially selling into resistance near $29.25-$29.50."
+            },
+            "qwen2.5:14b-instruct-q4_K_M": {
+                "buy_low": 28.9,
+                "buy_high": 29.13,
+                "sell_low": 29.25,
+                "sell_high": 29.4,
+                "rationale": "Considering the overbought condition and recent price action, a cautious approach is warranted."
+            },
+            "deepseek-r1:8b": {
+                "buy_low": 28.74,
+                "buy_high": 29.03,
+                "sell_low": 29.62,
+                "sell_high": 29.91,
+                "rationale": "Fallback range (model output unparseable)",
+                "fallback": true
+            }
+        },
+        "consensus": {
+            "buy_low": 28.83,
+            "buy_high": 29.07,
+            "sell_low": 29.25,
+            "sell_high": 29.45
+        },
+        "signal": "SKIP",
+        "upside_pct": 0.62
     }
 }
