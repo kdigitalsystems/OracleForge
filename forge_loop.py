@@ -9,6 +9,7 @@ import time
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 
+import pytz
 import requests
 import yfinance as yf
 from alpaca.data.enums import DataFeed
@@ -36,6 +37,13 @@ MAX_LLM_RETRIES = 3
 LLM_RETRY_DELAY = 5   # seconds between retry attempts
 EARNINGS_LOOKAHEAD_DAYS = 2
 
+# Anchor the prediction/signal "date" to US market time, NOT the runner's local
+# clock. Jobs run on a multi-machine self-hosted pool (and the retry watchdog
+# may re-run on a different box); using naive datetime.now() would name files
+# differently per machine timezone, fragmenting history and breaking resume.
+# This matches trader.py so the morning job finds the right signals file.
+ET = pytz.timezone('America/New_York')
+
 os.makedirs('config', exist_ok=True)
 os.makedirs('state', exist_ok=True)
 os.makedirs(HISTORY_DIR, exist_ok=True)
@@ -56,8 +64,9 @@ def save_json(filepath, data):
 
 
 def find_latest_predictions_path():
+    now_et = datetime.now(ET)
     for days_back in range(1, MAX_PREDICTION_LOOKBACK_DAYS + 1):
-        date_str = (datetime.now() - timedelta(days=days_back)).strftime('%Y-%m-%d')
+        date_str = (now_et - timedelta(days=days_back)).strftime('%Y-%m-%d')
         path = os.path.join(HISTORY_DIR, f'predictions_{date_str}.json')
         if os.path.exists(path):
             return path, date_str
@@ -542,7 +551,7 @@ def main():
     print(f"Trade journal: {len(journal)} closed trades on record.")
     print(f"Score decay per day: {score_decay}")
 
-    today_date = datetime.now().strftime('%Y-%m-%d')
+    today_date = datetime.now(ET).strftime('%Y-%m-%d')  # ET, consistent across runner machines
     today_log_path = os.path.join(HISTORY_DIR, f'predictions_{today_date}.json')
     report_path = os.path.join(REPORTS_DIR, f'signals_{today_date}.json')
 
