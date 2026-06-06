@@ -1,0 +1,127 @@
+name: Retry Failed Workflows
+
+# Watchdog: periodically re-runs the failed jobs of recent workflow runs. Runs
+# on a GitHub-hosted runner on purpose, so it stays up even when the
+# self-hosted machines (server1, etc.) are down — which is exactly when the
+# OracleForge workflows tend to fail mid-run. forge_loop is resumable, so a
+# re-run continues from the last pushed batch rather than starting over.
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'   # Every 15 minutes — adjust as needed
+  workflow_dispatch:           # Allow manual trigger from the Actions tab
+    inputs:
+      lookback_hours:
+        description: 'How many hours back to check for failures'
+        required: false
+        default: '24'
+      dry_run:
+        description: 'Dry run — report failures without retrying'
+        type: boolean
+        required: false
+        default: false
+
+# Don't let overlapping schedule ticks retry the same runs twice.
+concurrency:
+  group: retry-failed-workflows
+  cancel-in-progress: false
+
+jobs:
+  retry-failures:
+    name: Check and retry failed runs
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write   # Needed to re-trigger runs
+
+    steps:
+      - name: Check for failed runs and retry
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const lookbackHours = parseInt(
+              context.payload.inputs?.lookback_hours ?? '24'
+            );
+            const dryRun = context.payload.inputs?.dry_run === 'true';
+            const maxRetries = 2; // Stop retrying a run after this many attempts
+
+            // Never retry these workflows:
+            //  - this watchdog itself (would create a self-retrigger loop)
+            //  - GitHub's Pages build (transient; rebuilt on the next push)
+            const SKIP_WORKFLOWS = new Set([
+              'Retry Failed Workflows',
+              'pages-build-deployment',
+            ]);
+
+            const since = new Date(
+              Date.now() - lookbackHours * 60 * 60 * 1000
+            ).toISOString();
+
+            console.log(`🔍 Checking for failed runs since ${since}`);
+            console.log(`   Dry run: ${dryRun}`);
+
+            // Fetch failed runs in the lookback window
+            const { data } = await github.rest.actions.listWorkflowRunsForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              status: 'failure',
+              per_page: 50,
+              created: `>=${since}`
+            });
+
+            const failed = data.workflow_runs;
+            console.log(`\n📋 Found ${failed.length} failed run(s)`);
+
+            if (failed.length === 0) {
+              console.log('✅ Nothing to retry.');
+              return;
+            }
+
+            const results = { retried: [], skipped: [], errors: [] };
+
+            for (const run of failed) {
+              const runLabel = `"${run.name}" #${run.run_number} (id: ${run.id})`;
+
+              // Don't retry workflows on the skip list (self / pages).
+              if (SKIP_WORKFLOWS.has(run.name)) {
+                console.log(`⏭️  Skipping ${runLabel} — on skip list`);
+                results.skipped.push({ name: run.name, id: run.id, reason: 'skip list' });
+                continue;
+              }
+
+              // Check how many times this run has already been retried
+              // by looking at attempt_number on the run object
+              if (run.run_attempt >= maxRetries + 1) {
+                console.log(`⏭️  Skipping ${runLabel} — already attempted ${run.run_attempt} time(s)`);
+                results.skipped.push({ name: run.name, id: run.id, reason: `${run.run_attempt} attempts already` });
+                continue;
+              }
+
+              if (dryRun) {
+                console.log(`🔎 [DRY RUN] Would retry ${runLabel}`);
+                results.skipped.push({ name: run.name, id: run.id, reason: 'dry run' });
+                continue;
+              }
+
+              try {
+                await github.rest.actions.reRunWorkflowFailedJobs({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  run_id: run.id
+                });
+                console.log(`✅ Retried ${runLabel}`);
+                results.retried.push({ name: run.name, id: run.id });
+              } catch (err) {
+                console.error(`❌ Failed to retry ${runLabel}: ${err.message}`);
+                results.errors.push({ name: run.name, id: run.id, error: err.message });
+              }
+            }
+
+            // Print summary
+            console.log('\n── Summary ──────────────────────────────');
+            console.log(`  Retried : ${results.retried.length}`);
+            console.log(`  Skipped : ${results.skipped.length}`);
+            console.log(`  Errors  : ${results.errors.length}`);
+
+            if (results.errors.length > 0) {
+              core.setFailed(`${results.errors.length} run(s) could not be retried.`);
+            }
