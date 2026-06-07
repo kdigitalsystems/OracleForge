@@ -4,11 +4,16 @@ from __future__ import annotations
 
 import json
 import os
-from datetime import date
+from datetime import datetime
 from collections import defaultdict
 
 import pandas as pd
+import pytz
 import streamlit as st
+
+# Match trader.py / forge_loop.py: "today" is the US market day, not the local clock.
+ET = pytz.timezone('America/New_York')
+OPEN_ORDERS_FILE = 'state/open_orders.json'
 
 from signals import (
     HISTORY_DIR,
@@ -50,9 +55,9 @@ def load_trade_journal() -> list[dict]:
 
 
 @st.cache_data(ttl=30)
-def load_trade_log(date_str: str) -> list[dict]:
-    path = os.path.join(REPORTS_DIR, f'trades_{date_str}.json')
-    return load_json(path, [])
+def load_open_orders() -> dict:
+    """Tracked open orders shared between the --open and --close trader jobs."""
+    return load_json(OPEN_ORDERS_FILE, {})
 
 
 @st.cache_data(ttl=30)
@@ -84,8 +89,7 @@ def main() -> None:
     report = load_report(selected_date)
     predictions = load_predictions(selected_date)
     scores = load_json(SCORES_FILE, {})
-    today_str = date.today().strftime('%Y-%m-%d')
-    trade_log = load_trade_log(today_str)
+    today_str = datetime.now(ET).strftime('%Y-%m-%d')
 
     tab_signals, tab_positions, tab_trades, tab_pnl, tab_models = st.tabs(
         ['Signals', 'Positions', 'Trades', 'P&L', 'Model scores']
@@ -178,17 +182,51 @@ def main() -> None:
             st.metric('Total portfolio value', f"${sum(positions.values()):.2f}")
 
     with tab_trades:
-        st.subheader(f'Trade log — {today_str}')
-        if not trade_log:
-            st.info('No trades logged today. Run `python trader.py` during market hours.')
+        st.subheader('Order activity')
+
+        # Tracked open orders (state shared between --open and --close jobs)
+        open_orders = load_open_orders()
+        active_orders = {
+            tk: e for tk, e in open_orders.items()
+            if isinstance(e, dict) and not e.get('closed')
+        }
+        st.markdown('**Tracked open orders** — `state/open_orders.json`')
+        if not active_orders:
+            st.info('No tracked open orders. Run `python trader.py --open` during market hours.')
         else:
-            trades_df = pd.DataFrame(trade_log)
-            st.dataframe(trades_df, use_container_width=True, hide_index=True)
-            buys = [t for t in trade_log if t.get('action') == 'BUY']
-            sells = [t for t in trade_log if t.get('action') == 'SELL']
-            cols = st.columns(2)
-            cols[0].metric('Buys today', len(buys), f"${sum(t.get('amount_usd', 0) for t in buys):.2f}")
-            cols[1].metric('Sells today', len(sells), f"${sum(t.get('amount_usd', 0) for t in sells):.2f}")
+            order_rows = []
+            for tk, e in active_orders.items():
+                order_rows.append({
+                    'ticker': tk,
+                    'qty': e.get('qty'),
+                    'buy_limit': e.get('buy_limit'),
+                    'sell_limit': e.get('sell_limit'),
+                    'stop_limit': e.get('stop_limit'),
+                    'buy': 'open' if e.get('buy_order_id') else '—',
+                    'sell': 'open' if e.get('sell_order_id') else '—',
+                    'stop': 'open' if e.get('stop_order_id') else '—',
+                    'placed': e.get('date'),
+                })
+            st.dataframe(pd.DataFrame(order_rows), use_container_width=True, hide_index=True)
+
+        # Positions closed today (from the trade journal)
+        st.markdown(f'**Closed today — {today_str}**')
+        journal = load_trade_journal()
+        todays = [t for t in journal if t.get('close_date') == today_str]
+        if not todays:
+            st.info('No positions closed today yet.')
+        else:
+            tdf = pd.DataFrame(todays)
+            st.dataframe(
+                tdf[['ticker', 'entry_price', 'exit_price', 'usd_invested',
+                     'usd_returned', 'pnl_usd', 'pnl_pct', 'outcome']],
+                use_container_width=True, hide_index=True,
+            )
+            wins = sum(1 for t in todays if t.get('outcome') == 'win')
+            cols = st.columns(3)
+            cols[0].metric('Closed today', len(todays))
+            cols[1].metric('Wins', wins)
+            cols[2].metric("Today's P&L", f"${sum(t.get('pnl_usd', 0) for t in todays):+.4f}")
 
     with tab_pnl:
         st.subheader('P&L — trade journal')
