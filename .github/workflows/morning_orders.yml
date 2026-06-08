@@ -45,11 +45,13 @@ jobs:
           python3 -c "
           import json, os, sys
           from datetime import datetime, timedelta
+          from zoneinfo import ZoneInfo
           # Nightly runs at 23:00 UTC the previous calendar day; check that date first,
           # then today as a fallback (e.g. if nightly ran early or same-day re-run).
+          now_et = datetime.now(ZoneInfo('America/New_York'))
           candidates = [
-              (datetime.now() - timedelta(days=1)).strftime('%Y-%m-%d'),
-              datetime.now().strftime('%Y-%m-%d'),
+              (now_et - timedelta(days=1)).strftime('%Y-%m-%d'),
+              now_et.strftime('%Y-%m-%d'),
           ]
           path = None
           for date in candidates:

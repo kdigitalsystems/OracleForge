@@ -8,7 +8,12 @@ from datetime import datetime, timedelta, timezone
 from alpaca.data.historical import StockHistoricalDataClient
 from alpaca.trading.client import TradingClient
 from alpaca.trading.enums import OrderSide, QueryOrderStatus, TimeInForce
-from alpaca.trading.requests import GetOrdersRequest, LimitOrderRequest, MarketOrderRequest
+from alpaca.trading.requests import (
+    GetOrdersRequest,
+    LimitOrderRequest,
+    MarketOrderRequest,
+    StopLimitOrderRequest,
+)
 
 KEYS_FILE = os.path.expanduser('~/.ssh/alpaca_paper_keys')
 
@@ -83,6 +88,32 @@ def place_limit_sell(client: TradingClient, ticker: str, qty: float, limit_price
         qty=round(qty, 6),
         side=OrderSide.SELL,
         time_in_force=TimeInForce.DAY,
+        limit_price=round(limit_price, 2),
+    )
+    return client.submit_order(req)
+
+
+def place_stop_limit_sell(
+    client: TradingClient,
+    ticker: str,
+    qty: float,
+    stop_price: float,
+    limit_price: float | None = None,
+):
+    """Place a DAY fractional stop-limit sell order.
+
+    A plain sell limit below the current market is immediately marketable for a
+    long position. Stop-limit keeps the protective exit dormant until Alpaca's
+    stop trigger is reached.
+    """
+    if limit_price is None:
+        limit_price = stop_price
+    req = StopLimitOrderRequest(
+        symbol=ticker,
+        qty=round(qty, 6),
+        side=OrderSide.SELL,
+        time_in_force=TimeInForce.DAY,
+        stop_price=round(stop_price, 2),
         limit_price=round(limit_price, 2),
     )
     return client.submit_order(req)

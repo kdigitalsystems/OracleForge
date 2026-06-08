@@ -112,7 +112,13 @@ def get_predicting_models(ticker: str, pred_date: str) -> list[str]:
     path = os.path.join(HISTORY_DIR, f'predictions_{pred_date}.json')
     predictions = load_json(path, {})
     models = predictions.get(ticker, {}).get('models', {})
-    return [m for m, r in models.items() if isinstance(r, dict) and r.get('sell_low', 0) > 0]
+    # Exclude fallback (synthetic) predictions: they're dropped from the
+    # consensus, so they didn't drive the trade and must not be credited or
+    # penalised when the position closes (keeps the score feedback honest).
+    return [
+        m for m, r in models.items()
+        if isinstance(r, dict) and r.get('sell_low', 0) > 0 and not r.get('fallback')
+    ]
 
 
 def record_buy(meta: dict, ticker: str, price: float, usd_amount: float,
@@ -120,9 +126,13 @@ def record_buy(meta: dict, ticker: str, price: float, usd_amount: float,
     if ticker in meta:
         existing = meta[ticker]
         total = existing['usd_invested'] + usd_amount
-        existing['entry_price'] = (
-            existing['entry_price'] * existing['usd_invested'] + price * usd_amount
-        ) / total
+        # Share-weighted average cost basis: total dollars / total shares.
+        # (A USD-weighted average of the two *prices* is not the cost basis.)
+        old_entry = existing.get('entry_price') or 0.0
+        old_shares = existing['usd_invested'] / old_entry if old_entry else 0.0
+        new_shares = usd_amount / price if price else 0.0
+        total_shares = old_shares + new_shares
+        existing['entry_price'] = round(total / total_shares, 4) if total_shares else price
         existing['usd_invested'] = round(total, 4)
     else:
         meta[ticker] = {
@@ -137,11 +147,15 @@ def record_buy(meta: dict, ticker: str, price: float, usd_amount: float,
 
 
 def record_sell(meta: dict, journal: list, ticker: str,
-                exit_price: float, usd_returned: float, close_date: str) -> dict | None:
+                exit_price: float, usd_returned: float, close_date: str,
+                close_fraction: float = 1.0) -> dict | None:
     if ticker not in meta:
         return None
-    entry = meta.pop(ticker)
-    usd_invested = entry['usd_invested']
+    entry = meta[ticker]
+    close_fraction = min(1.0, max(0.0, float(close_fraction)))
+    if close_fraction <= 0:
+        return None
+    usd_invested = round(entry['usd_invested'] * close_fraction, 4)
     usd_returned = round(usd_returned, 4)
     pnl_usd = round(usd_returned - usd_invested, 4)
     pnl_pct = round((pnl_usd / usd_invested) * 100, 2) if usd_invested else 0.0
@@ -161,9 +175,26 @@ def record_sell(meta: dict, journal: list, ticker: str,
         'consensus_sell_low': entry['consensus_sell_low'],
     }
     journal.append(trade)
+    if close_fraction >= 0.999999:
+        meta.pop(ticker, None)
+    else:
+        entry['usd_invested'] = round(entry['usd_invested'] - usd_invested, 4)
     save_json(TRADE_JOURNAL_FILE, journal)
     save_json(POSITIONS_META_FILE, meta)
     return trade
+
+
+def _filled_qty(order, fallback: float = 0.0) -> float:
+    try:
+        return float(order.filled_qty or fallback or 0.0)
+    except (TypeError, ValueError):
+        return float(fallback or 0.0)
+
+
+def _close_fraction(fill_qty: float, total_qty: float) -> float:
+    if total_qty <= 0:
+        return 1.0
+    return min(1.0, max(0.0, fill_qty / total_qty))
 
 
 def log(msg: str) -> None:
@@ -185,9 +216,12 @@ def run_open(dry_run: bool = False) -> None:
 
     active_rows, signals_date = load_todays_signals()
     if not active_rows:
-        print(f"No ACTIVE setups found (searched last {SIGNALS_MAX_LOOKBACK_DAYS} days). Nothing to order.")
-        return
-    print(f"  Using signals from {signals_date} ({len(active_rows)} ACTIVE).")
+        print(
+            f"No ACTIVE setups found (searched last {SIGNALS_MAX_LOOKBACK_DAYS} days). "
+            "Will still protect existing positions."
+        )
+    else:
+        print(f"  Using signals from {signals_date} ({len(active_rows)} ACTIVE).")
 
     # Best upside first — ensures top setups are funded if buying power runs out
     active_rows.sort(key=lambda r: float(r.get('upside_pct', 0)), reverse=True)
@@ -297,7 +331,7 @@ def run_open(dry_run: bool = False) -> None:
             if need_sell:
                 log(f"DRY SELL {ticker}: DAY limit {qty} shares @ ${float(sell_limit):.2f}")
             if need_stop and stop_limit_price:
-                log(f"DRY STOP {ticker}: DAY limit {qty} shares @ ${float(stop_limit_price):.2f}")
+                log(f"DRY STOP {ticker}: DAY stop-limit {qty} shares stop @ ${float(stop_limit_price):.2f}")
             continue
 
         if ticker not in open_orders:
@@ -315,10 +349,10 @@ def run_open(dry_run: bool = False) -> None:
 
         if need_stop and stop_limit_price:
             try:
-                order = alpaca_client.place_limit_sell(client, ticker, qty, stop_limit_price)
+                order = alpaca_client.place_stop_limit_sell(client, ticker, qty, stop_limit_price)
                 open_orders[ticker]['stop_order_id'] = str(order.id)
                 open_orders[ticker]['stop_limit'] = stop_limit_price
-                log(f"STOP {ticker}: DAY limit {qty} shares @ ${float(stop_limit_price):.2f} → order {order.id}")
+                log(f"STOP {ticker}: DAY stop-limit {qty} shares stop @ ${float(stop_limit_price):.2f} → order {order.id}")
                 save_json(OPEN_ORDERS_FILE, open_orders)  # persist immediately
                 time.sleep(ORDER_SUBMIT_DELAY)
             except Exception as e:
@@ -385,9 +419,9 @@ def run_close(dry_run: bool = False) -> None:
                 else:
                     status = str(order.status).lower().replace('orderstatus.', '')
 
-                    if status in FILLED_STATUSES:
+                    if status in FILLED_STATUSES or (status in DEAD_STATUSES and _filled_qty(order) > 0):
                         fill_price = float(order.filled_avg_price or entry['buy_limit'])
-                        fill_qty = float(order.filled_qty or entry['qty'])
+                        fill_qty = _filled_qty(order, entry['qty'])
                         usd_filled = round(fill_price * fill_qty, 4)
 
                         # Use the signals/predictions date (not the placement day)
@@ -428,16 +462,16 @@ def run_close(dry_run: bool = False) -> None:
                         except Exception as e:
                             log(f"[!] Could not place profit-target sell for {ticker}: {e}")
 
-                        # Place stop-loss DAY limit sell
+                        # Place protective DAY stop-limit sell
                         stop_limit = round(entry['buy_limit'] * stop_loss_pct, 2)
                         entry['stop_limit'] = stop_limit
                         try:
-                            stop_order = alpaca_client.place_limit_sell(
+                            stop_order = alpaca_client.place_stop_limit_sell(
                                 client, ticker, total_qty, stop_limit
                             )
                             entry['stop_order_id'] = str(stop_order.id)
                             log(
-                                f"STOP {ticker}: DAY limit {total_qty} shares @ "
+                                f"STOP {ticker}: DAY stop-limit {total_qty} shares stop @ "
                                 f"${stop_limit:.2f} → order {stop_order.id}"
                             )
                             save_json(OPEN_ORDERS_FILE, open_orders)
@@ -464,9 +498,11 @@ def run_close(dry_run: bool = False) -> None:
                 else:
                     status = str(order.status).lower().replace('orderstatus.', '')
 
-                    if status in FILLED_STATUSES:
+                    if status in FILLED_STATUSES or (status in DEAD_STATUSES and _filled_qty(order) > 0):
                         fill_price = float(order.filled_avg_price or entry['sell_limit'])
-                        fill_qty = float(order.filled_qty or entry.get('qty', 0))
+                        fill_qty = _filled_qty(order, entry.get('qty', 0))
+                        total_qty = float(entry.get('qty') or fill_qty or 0)
+                        close_fraction = _close_fraction(fill_qty, total_qty)
                         usd_returned = round(fill_price * fill_qty, 4)
 
                         # Cancel companion stop-loss order
@@ -475,17 +511,24 @@ def run_close(dry_run: bool = False) -> None:
                             log(f"  Cancelled stop-loss order {entry['stop_order_id']} for {ticker}")
 
                         trade = record_sell(
-                            positions_meta, journal, ticker, fill_price, usd_returned, today
+                            positions_meta, journal, ticker, fill_price, usd_returned, today,
+                            close_fraction=close_fraction,
                         )
                         if trade:
                             log(
                                 f"SELL FILLED {ticker}: {fill_qty} shares @ ${fill_price:.2f} "
                                 f"→ P&L ${trade['pnl_usd']:+.4f} ({trade['pnl_pct']:+.2f}%)"
                             )
-                        entry['closed'] = True
+                        if close_fraction >= 0.999999:
+                            entry['closed'] = True
+                            to_delete.append(ticker)
+                        else:
+                            entry['qty'] = round(max(total_qty - fill_qty, 0.0), 6)
+                            entry['sell_order_id'] = None
+                            entry['stop_order_id'] = None
+                            log(f"  Partial exit for {ticker}: {entry['qty']} shares remain")
                         save_json(OPEN_ORDERS_FILE, open_orders)
                         settled.add(ticker)
-                        to_delete.append(ticker)
 
                     elif status in DEAD_STATUSES:
                         # DAY sell expired without filling — clear so --open re-places tomorrow
@@ -506,13 +549,15 @@ def run_close(dry_run: bool = False) -> None:
                 else:
                     status = str(order.status).lower().replace('orderstatus.', '')
 
-                    if status in FILLED_STATUSES:
+                    if status in FILLED_STATUSES or (status in DEAD_STATUSES and _filled_qty(order) > 0):
                         fill_price = float(
                             order.filled_avg_price
                             or entry.get('stop_limit')
                             or entry.get('sell_limit', 0)
                         )
-                        fill_qty = float(order.filled_qty or entry.get('qty', 0))
+                        fill_qty = _filled_qty(order, entry.get('qty', 0))
+                        total_qty = float(entry.get('qty') or fill_qty or 0)
+                        close_fraction = _close_fraction(fill_qty, total_qty)
                         usd_returned = round(fill_price * fill_qty, 4)
 
                         # Cancel companion profit-target sell
@@ -521,17 +566,24 @@ def run_close(dry_run: bool = False) -> None:
                             log(f"  Cancelled profit-target order {entry['sell_order_id']} for {ticker}")
 
                         trade = record_sell(
-                            positions_meta, journal, ticker, fill_price, usd_returned, today
+                            positions_meta, journal, ticker, fill_price, usd_returned, today,
+                            close_fraction=close_fraction,
                         )
                         if trade:
                             log(
                                 f"STOP HIT {ticker}: {fill_qty} shares @ ${fill_price:.2f} "
                                 f"→ P&L ${trade['pnl_usd']:+.4f} ({trade['pnl_pct']:+.2f}%)"
                             )
-                        entry['closed'] = True
+                        if close_fraction >= 0.999999:
+                            entry['closed'] = True
+                            to_delete.append(ticker)
+                        else:
+                            entry['qty'] = round(max(total_qty - fill_qty, 0.0), 6)
+                            entry['sell_order_id'] = None
+                            entry['stop_order_id'] = None
+                            log(f"  Partial stop exit for {ticker}: {entry['qty']} shares remain")
                         save_json(OPEN_ORDERS_FILE, open_orders)
                         settled.add(ticker)
-                        to_delete.append(ticker)
 
                     elif status in DEAD_STATUSES:
                         entry['stop_order_id'] = None

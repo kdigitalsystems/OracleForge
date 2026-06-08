@@ -4,10 +4,12 @@ import json
 import os
 import sys
 from datetime import datetime
+from zoneinfo import ZoneInfo
 
 CONFIG_TICKERS = 'config/tickers.json'
 HISTORY_DIR = 'history/'
 REPORTS_DIR = 'reports/'
+ET = ZoneInfo('America/New_York')
 
 
 def fail(message: str) -> None:
@@ -25,7 +27,7 @@ def main() -> None:
     if not isinstance(tickers, list) or len(tickers) == 0:
         fail(f"{CONFIG_TICKERS} is empty — forge_loop would not produce data")
 
-    today = datetime.now().strftime('%Y-%m-%d')
+    today = datetime.now(ET).strftime('%Y-%m-%d')
     predictions_path = os.path.join(HISTORY_DIR, f'predictions_{today}.json')
     signals_path = os.path.join(REPORTS_DIR, f'signals_{today}.json')
 

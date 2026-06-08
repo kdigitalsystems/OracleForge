@@ -2,8 +2,10 @@ name: OracleForge Nightly Engine
 
 on:
   schedule:
-    # Weekdays 23:00 UTC — after US market close
-    - cron: '0 23 * * 1-5'
+    # Sunday-Thursday 23:00 UTC — prepares the next US trading morning.
+    # Sunday covers Monday open; Friday is intentionally skipped because the
+    # Sunday run refreshes weekend news before Monday orders.
+    - cron: '0 23 * * 0-4'
 
   workflow_dispatch:
 
@@ -34,7 +36,7 @@ jobs:
           pip install -r requirements.txt
 
       - name: Run Unit Tests
-        run: python3 -m unittest test_signals test_backtest test_forge test_trader -v
+        run: python3 -m unittest test_signals test_backtest test_forge test_trader test_alpaca_client -v
 
       - name: Start Ollama
         run: |

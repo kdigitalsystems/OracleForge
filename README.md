@@ -65,13 +65,13 @@ For each ACTIVE ticker:
 
 For each existing position without a sell order:
   place DAY limit sell @ consensus sell_low
-  place DAY stop-loss limit sell @ buy_high × 0.95
+  place DAY stop-limit sell with stop @ buy_high × 0.95
 ```
 
 **Evening (`trader.py --close`, 4:05 PM ET):**
 ```
 For each tracked buy order:
-  if FILLED  → record entry price; place DAY sell @ sell_low + stop-loss @ buy_high × 0.95
+  if FILLED  → record entry price; place DAY sell @ sell_low + stop-limit @ buy_high × 0.95
   if EXPIRED → remove from order state
 
 For each tracked sell order:
@@ -330,10 +330,10 @@ Tracks open position entry data for P&L calculation:
 ## Tests
 
 ```bash
-python3 -m unittest test_signals test_backtest test_forge test_trader -v
+python3 -m unittest test_signals test_backtest test_forge test_trader test_alpaca_client -v
 ```
 
-**103 tests** covering:
+**115 tests** covering:
 
 | Module | Areas |
 |---|---|
