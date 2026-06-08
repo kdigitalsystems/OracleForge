@@ -1,0 +1,310 @@
+{
+    "generated_at": "2026-06-02T21:49:07",
+    "prediction_dates": [
+        "2026-05-03",
+        "2026-05-20",
+        "2026-05-21",
+        "2026-05-31",
+        "2026-06-02"
+    ],
+    "days_in_history": 5,
+    "stop_loss_pct": 0.95,
+    "execution": "limit_stop",
+    "skipped_pairs": 151,
+    "by_model": {
+        "deepseek-r1:8b": {
+            "trades": 153,
+            "triggered": 97,
+            "wins": 17,
+            "stops": 3,
+            "misses": 77,
+            "return_pct_sum": 39.53000000000002,
+            "gross_profit": 70.35999999999999,
+            "gross_loss": 30.830000000000005,
+            "win_rate": 0.1753,
+            "avg_return_pct": 0.4075,
+            "avg_win_pct": 1.0347,
+            "avg_loss_pct": 1.1011,
+            "profit_factor": 2.282,
+            "max_consecutive_losses": 5,
+            "significance": {
+                "n": 97,
+                "mean": 0.4075,
+                "std": 1.5006,
+                "t_stat": 2.675,
+                "ci95_low": 0.1089,
+                "ci95_high": 0.7062,
+                "significant": true,
+                "sample_adequate": true
+            }
+        },
+        "gemma4": {
+            "trades": 498,
+            "triggered": 219,
+            "wins": 86,
+            "stops": 18,
+            "misses": 115,
+            "return_pct_sum": -30.18,
+            "gross_profit": 103.25000000000003,
+            "gross_loss": 133.43,
+            "win_rate": 0.3927,
+            "avg_return_pct": -0.1378,
+            "avg_win_pct": 0.7121,
+            "avg_loss_pct": 1.8532,
+            "profit_factor": 0.774,
+            "max_consecutive_losses": 4,
+            "significance": {
+                "n": 219,
+                "mean": -0.1378,
+                "std": 1.6595,
+                "t_stat": -1.229,
+                "ci95_low": -0.3576,
+                "ci95_high": 0.082,
+                "significant": false,
+                "sample_adequate": true
+            }
+        },
+        "llama3.1:8b-instruct-q8_0": {
+            "trades": 651,
+            "triggered": 275,
+            "wins": 58,
+            "stops": 18,
+            "misses": 199,
+            "return_pct_sum": 108.85999999999997,
+            "gross_profit": 245.07000000000002,
+            "gross_loss": 136.20999999999998,
+            "win_rate": 0.2109,
+            "avg_return_pct": 0.3959,
+            "avg_win_pct": 1.2698,
+            "avg_loss_pct": 1.6816,
+            "profit_factor": 1.799,
+            "max_consecutive_losses": 4,
+            "significance": {
+                "n": 275,
+                "mean": 0.3959,
+                "std": 1.905,
+                "t_stat": 3.446,
+                "ci95_low": 0.1707,
+                "ci95_high": 0.621,
+                "significant": true,
+                "sample_adequate": true
+            }
+        },
+        "mistral-nemo": {
+            "trades": 498,
+            "triggered": 241,
+            "wins": 39,
+            "stops": 20,
+            "misses": 182,
+            "return_pct_sum": 44.87999999999998,
+            "gross_profit": 189.24,
+            "gross_loss": 144.35999999999996,
+            "win_rate": 0.1618,
+            "avg_return_pct": 0.1862,
+            "avg_win_pct": 1.1977,
+            "avg_loss_pct": 1.7605,
+            "profit_factor": 1.311,
+            "max_consecutive_losses": 4,
+            "significance": {
+                "n": 241,
+                "mean": 0.1862,
+                "std": 1.9237,
+                "t_stat": 1.503,
+                "ci95_low": -0.0567,
+                "ci95_high": 0.4291,
+                "significant": false,
+                "sample_adequate": true
+            }
+        },
+        "qwen2.5:14b-instruct-q4_K_M": {
+            "trades": 153,
+            "triggered": 105,
+            "wins": 24,
+            "stops": 3,
+            "misses": 78,
+            "return_pct_sum": 50.389999999999986,
+            "gross_profit": 82.29,
+            "gross_loss": 31.90000000000001,
+            "win_rate": 0.2286,
+            "avg_return_pct": 0.4799,
+            "avg_win_pct": 1.112,
+            "avg_loss_pct": 1.0633,
+            "profit_factor": 2.58,
+            "max_consecutive_losses": 5,
+            "significance": {
+                "n": 105,
+                "mean": 0.4799,
+                "std": 1.4456,
+                "t_stat": 3.402,
+                "ci95_low": 0.2034,
+                "ci95_high": 0.7564,
+                "significant": true,
+                "sample_adequate": true
+            }
+        }
+    },
+    "by_signal": {
+        "ACTIVE": {
+            "trades": 415,
+            "triggered": 198,
+            "wins": 20,
+            "stops": 15,
+            "misses": 163,
+            "return_pct_sum": 73.38,
+            "gross_profit": 177.51999999999992,
+            "gross_loss": 104.14,
+            "win_rate": 0.101,
+            "avg_return_pct": 0.3706,
+            "avg_win_pct": 1.268,
+            "avg_loss_pct": 1.827,
+            "profit_factor": 1.705,
+            "max_consecutive_losses": 4,
+            "significance": {
+                "n": 198,
+                "mean": 0.3706,
+                "std": 1.904,
+                "t_stat": 2.739,
+                "ci95_low": 0.1054,
+                "ci95_high": 0.6358,
+                "significant": true,
+                "sample_adequate": true
+            }
+        },
+        "CONSENSUS": {
+            "trades": 645,
+            "triggered": 301,
+            "wins": 50,
+            "stops": 19,
+            "misses": 232,
+            "return_pct_sum": 111.53999999999994,
+            "gross_profit": 251.54,
+            "gross_loss": 140.0,
+            "win_rate": 0.1661,
+            "avg_return_pct": 0.3706,
+            "avg_win_pct": 1.1865,
+            "avg_loss_pct": 1.6092,
+            "profit_factor": 1.797,
+            "max_consecutive_losses": 4,
+            "significance": {
+                "n": 301,
+                "mean": 0.3706,
+                "std": 1.7611,
+                "t_stat": 3.651,
+                "ci95_low": 0.1716,
+                "ci95_high": 0.5695,
+                "significant": true,
+                "sample_adequate": true
+            }
+        },
+        "SKIP": {
+            "trades": 230,
+            "triggered": 103,
+            "wins": 30,
+            "stops": 4,
+            "misses": 69,
+            "return_pct_sum": 38.16,
+            "gross_profit": 74.02000000000001,
+            "gross_loss": 35.85999999999998,
+            "win_rate": 0.2913,
+            "avg_return_pct": 0.3705,
+            "avg_win_pct": 1.0281,
+            "avg_loss_pct": 1.1953,
+            "profit_factor": 2.064,
+            "max_consecutive_losses": 5,
+            "significance": {
+                "n": 103,
+                "mean": 0.3705,
+                "std": 1.4561,
+                "t_stat": 2.582,
+                "ci95_low": 0.0893,
+                "ci95_high": 0.6517,
+                "significant": true,
+                "sample_adequate": true
+            }
+        }
+    },
+    "benchmark": {
+        "active_strategy": {
+            "n": 415,
+            "mean": 0.1768,
+            "std": 1.3264,
+            "t_stat": 2.716,
+            "ci95_low": 0.0492,
+            "ci95_high": 0.3044,
+            "significant": true,
+            "sample_adequate": true
+        },
+        "active_buy_hold": {
+            "n": 415,
+            "mean": 0.5252,
+            "std": 3.0006,
+            "t_stat": 3.566,
+            "ci95_low": 0.2365,
+            "ci95_high": 0.8139,
+            "significant": true,
+            "sample_adequate": true
+        },
+        "active_edge_vs_buy_hold": {
+            "n": 415,
+            "mean": -0.3484,
+            "std": 2.9449,
+            "t_stat": -2.41,
+            "ci95_low": -0.6317,
+            "ci95_high": -0.0651,
+            "significant": true,
+            "sample_adequate": true
+        },
+        "universe_buy_hold": {
+            "n": 651,
+            "mean": 0.6809,
+            "std": 3.0163,
+            "t_stat": 5.759,
+            "ci95_low": 0.4491,
+            "ci95_high": 0.9126,
+            "significant": true,
+            "sample_adequate": true
+        }
+    },
+    "selection": {
+        "ACTIVE": {
+            "n": 415,
+            "mean": 0.5252,
+            "std": 3.0006,
+            "t_stat": 3.566,
+            "ci95_low": 0.2365,
+            "ci95_high": 0.8139,
+            "significant": true,
+            "sample_adequate": true
+        },
+        "SKIP": {
+            "n": 236,
+            "mean": 0.9545,
+            "std": 3.0309,
+            "t_stat": 4.838,
+            "ci95_low": 0.5678,
+            "ci95_high": 1.3412,
+            "significant": true,
+            "sample_adequate": true
+        }
+    },
+    "daily": [
+        {
+            "date": "2026-05-20",
+            "tickers_evaluated": 199,
+            "consensus_avg_return_pct": -0.0095,
+            "cumulative_return_pct": -0.0095
+        },
+        {
+            "date": "2026-05-21",
+            "tickers_evaluated": 299,
+            "consensus_avg_return_pct": 0.1096,
+            "cumulative_return_pct": 0.1001
+        },
+        {
+            "date": "2026-05-31",
+            "tickers_evaluated": 153,
+            "consensus_avg_return_pct": 0.5488,
+            "cumulative_return_pct": 0.6489
+        }
+    ]
+}
