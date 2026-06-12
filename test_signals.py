@@ -128,6 +128,23 @@ class ConsensusTests(unittest.TestCase):
         result = weighted_consensus_ranges(preds, scores, max_cv=None)
         self.assertIsNotNone(result, "max_cv=None should disable the CV gate entirely")
 
+    def test_consensus_cv_is_exposed(self):
+        # The disagreement (CV) must be surfaced on the result for the dashboard.
+        result = weighted_consensus_ranges({'a': RANGE_A, 'b': RANGE_B}, {'a': 5.0, 'b': 5.0})
+        self.assertIn('consensus_cv', result)
+        self.assertIsInstance(result['consensus_cv'], float)
+        self.assertGreaterEqual(result['consensus_cv'], 0.0)
+
+    def test_consensus_cv_larger_when_models_disagree_more(self):
+        close = {'a': RANGE_A, 'b': RANGE_B}            # nearly identical -> small CV
+        far = {
+            'a': {'buy_low': 90.0, 'buy_high': 92.0, 'sell_low': 100.0, 'sell_high': 105.0},
+            'b': {'buy_low': 108.0, 'buy_high': 110.0, 'sell_low': 120.0, 'sell_high': 125.0},
+        }
+        cv_close = weighted_consensus_ranges(close, {'a': 5.0, 'b': 5.0})['consensus_cv']
+        cv_far = weighted_consensus_ranges(far, {'a': 5.0, 'b': 5.0})['consensus_cv']
+        self.assertGreater(cv_far, cv_close)
+
 
 class ClassifyTests(unittest.TestCase):
     def test_active_signal(self):

@@ -154,11 +154,18 @@ def build_signals_section(report: dict, date_str: str) -> str:
 
     # ACTIVE table
     if active_rows:
-        hdrs = ['Ticker', 'Close', 'Buy Low', 'Buy High', 'Sell Low', 'Sell High', 'Upside %']
+        hdrs = ['Ticker', 'Close', 'Buy Low', 'Buy High', 'Sell Low', 'Sell High', 'Upside %', 'Disagreement']
         tbl_rows = []
         for r in active_rows:
             upside = r.get('upside_pct')
             upside_str = f'<span class="font-semibold text-green-600">{_fmt_pct(upside)}</span>' if upside else '—'
+            cv = r.get('consensus_cv')
+            # Coefficient of variation as a %; higher = models disagree more.
+            if cv is None:
+                cv_str = '—'
+            else:
+                cv_color = 'text-red-600' if cv > 0.05 else 'text-gray-500'
+                cv_str = f'<span class="{cv_color}">{cv * 100:.1f}%</span>'
             tbl_rows.append([
                 f'<span class="font-medium">{_esc(r.get("ticker"))}</span>',
                 _esc(r.get('close')),
@@ -167,6 +174,7 @@ def build_signals_section(report: dict, date_str: str) -> str:
                 _esc(r.get('sell_low')),
                 _esc(r.get('sell_high')),
                 upside_str,
+                cv_str,
             ])
         active_section = f'<h3 class="font-semibold text-gray-700 mb-2">ACTIVE setups ({len(active_rows)})</h3>'
         active_section += _table(hdrs, tbl_rows)

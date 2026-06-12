@@ -116,8 +116,11 @@ def weighted_consensus_ranges(
 
     consensus = {f: round(weighted[f] / total_weight, 2) for f in RANGE_FIELDS}
 
-    # Model disagreement gate: reject if coefficient of variation exceeds threshold
-    if max_cv is not None and valid_count >= 2:
+    # Coefficient of variation = weighted model disagreement on the key levels.
+    # Compute it always (so it can be surfaced on the dashboard) and, when
+    # max_cv is set, reject consensus where the models disagree too much.
+    field_cvs = []
+    if valid_count >= 2:
         for field in ('buy_high', 'sell_low'):
             mean_val = consensus[field]
             if mean_val <= 0:
@@ -127,9 +130,12 @@ def weighted_consensus_ranges(
                 w * (v[field] - mean_val) ** 2
                 for v, w in zip(valid_values, valid_weights)
             ) / total_weight
-            cv = (variance ** 0.5) / mean_val
-            if cv > max_cv:
-                return None
+            field_cvs.append((variance ** 0.5) / mean_val)
+
+    consensus_cv = round(max(field_cvs), 4) if field_cvs else 0.0
+    if max_cv is not None and consensus_cv > max_cv:
+        return None
+    consensus['consensus_cv'] = consensus_cv
 
     return consensus
 
@@ -228,6 +234,7 @@ def build_signals_report(
             'sell_low': consensus.get('sell_low'),
             'sell_high': consensus.get('sell_high'),
             'upside_pct': entry.get('upside_pct'),
+            'consensus_cv': consensus.get('consensus_cv'),
             'signal': entry.get('signal'),
         }
         signal = entry.get('signal')
