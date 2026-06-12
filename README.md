@@ -31,7 +31,7 @@ Each night, local Ollama models independently analyse every ticker on the watchl
 1. **Fetch market data** — latest daily OHLC bars pulled from Alpaca for all tickers in one batch.
 2. **Evaluate prior predictions** — compare yesterday's predicted buy/sell ranges against today's realized prices:
    - OHLC check: did price touch the buy range? Did it then reach the sell range (win), or breach `buy_high × 0.95` (stop)? → ±0.01 score delta per model.
-   - Trade journal check: for any positions closed yesterday, models that predicted the winning setup get +0.02; losers get −0.02.
+   - Trade journal check: for any positions closed yesterday, contributing models are adjusted by actual realized P&L (`pnl_pct × trade_score_scale`, capped by `trade_score_cap`). By default, a +1% trade gives +0.02, while a −5% stopped trade gives −0.10.
    - **Fallback predictions are excluded** from both consensus and scoring — they are tagged `fallback: true` and skipped.
 3. **AI inference** — each model receives the closing price, recent news headlines, its own historical win rate, and the last 5 actual trade results for that ticker. It responds with:
    ```json
@@ -97,7 +97,7 @@ Alpaca handles execution during the day. No process stays alive between the two 
 ### Feedback loop
 
 Every closed trade feeds back into the next night's run:
-- Model scores update based on actual P&L outcomes (weighted higher than theoretical OHLC checks), with 0.99× daily decay to emphasise recent accuracy.
+- Model scores update based on actual P&L percentage, not just win/loss labels. Real fills are weighted higher than theoretical OHLC checks, capped to avoid overreacting to one outlier, and decayed by 0.99× daily to emphasise recent accuracy.
 - Each model's LLM prompt includes its own win rate and recent P&L, so it receives direct feedback on its performance.
 - Over time, the consensus naturally shifts toward models that make accurate predictions.
 
@@ -223,7 +223,7 @@ aggregated by the sign of each trade's realized return.
 |---|---|---|
 | `config/tickers.json` | Active watchlist (built by `update_tickers.py`) | — |
 | `config/universe.json` | Ticker filter thresholds | `min_price`, `min_avg_daily_volume`, `max_daily_volatility_pct`, `max_tickers` |
-| `config/trading.json` | Position limits and risk settings | `max_per_trade_usd` (2.0), `max_position_usd` (8.0), `stop_loss_pct` (0.95), `score_decay_per_day` (0.99) |
+| `config/trading.json` | Position limits and risk settings | `max_per_trade_usd` (2.0), `max_position_usd` (8.0), `stop_loss_pct` (0.95), `score_decay_per_day` (0.99), `trade_score_scale` (0.02), `trade_score_cap` (0.10) |
 | `config/signals.json` | Signal classification thresholds | `min_upside_pct` (1.5), `max_spread_pct` (3.0), `min_agreeing_models` (2), `max_consensus_cv` (0.10) |
 | `config/models.json` | Model list (Ollama model IDs) | Never overwritten by automation |
 | `state/analyst_scores.json` | Model scores — add/remove models here | 0.0–10.0 per model, initialised at 5.0 |
@@ -235,7 +235,9 @@ aggregated by the sign of each trade's realized return.
     "max_per_trade_usd": 2.0,
     "max_position_usd": 8.0,
     "stop_loss_pct": 0.95,
-    "score_decay_per_day": 0.99
+    "score_decay_per_day": 0.99,
+    "trade_score_scale": 0.02,
+    "trade_score_cap": 0.10
 }
 ```
 

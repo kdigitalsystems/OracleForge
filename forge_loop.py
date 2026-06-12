@@ -32,6 +32,14 @@ SCORES_FILE = 'state/analyst_scores.json'
 HISTORY_DIR = 'history/'
 REPORTS_DIR = 'reports/'
 TRADE_JOURNAL_FILE = 'history/trade_journal.json'
+DEFAULT_TRADING_CONFIG = {
+    'max_per_trade_usd': 2.0,
+    'max_position_usd': 8.0,
+    'stop_loss_pct': 0.95,
+    'score_decay_per_day': 0.99,
+    'trade_score_scale': 0.02,
+    'trade_score_cap': 0.10,
+}
 MAX_PREDICTION_LOOKBACK_DAYS = 10
 MAX_LLM_RETRIES = 3
 LLM_RETRY_DELAY = 5   # seconds between retry attempts
@@ -211,17 +219,48 @@ def evaluate_range_prediction(high_price, low_price, pred, stop_threshold: float
     return 0.0  # price entered range but trade still open — no penalty
 
 
-def score_deltas_from_journal(journal: list, prior_date: str, scores: dict) -> dict:
+def _trade_score_delta(trade: dict, scale: float = 0.02, cap: float = 0.10) -> float:
+    """Convert realized trade P&L into a bounded model-score delta.
+
+    A 1% winning trade moves a contributing model by +0.02 by default; a
+    stopped -5% trade moves it by -0.10. The cap keeps one outlier from
+    permanently dominating the ensemble.
+    """
+    try:
+        pnl_pct = float(trade.get('pnl_pct', 0.0))
+    except (TypeError, ValueError):
+        pnl_pct = 0.0
+
+    outcome = trade.get('outcome')
+    if outcome == 'loss' and pnl_pct > 0:
+        pnl_pct = -pnl_pct
+    elif outcome == 'win' and pnl_pct < 0:
+        pnl_pct = abs(pnl_pct)
+
+    delta = pnl_pct * scale
+    return round(min(cap, max(-cap, delta)), 4)
+
+
+def score_deltas_from_journal(
+    journal: list,
+    prior_date: str,
+    scores: dict,
+    scale: float = 0.02,
+    cap: float = 0.10,
+) -> dict:
     """
     Build score deltas from actual closed trades on prior_date.
-    Models that predicted a winning trade get +0.02; losers get -0.02.
-    Weighted higher than theoretical OHLC evaluation (+-0.01) to reflect real outcomes.
+    Models that predicted a trade are adjusted by realized P&L, capped so
+    actual fills carry more weight than theoretical OHLC checks without letting
+    a single outlier swamp the ensemble.
     """
     deltas: dict[str, list] = defaultdict(list)
     for trade in journal:
         if trade.get('close_date') != prior_date:
             continue
-        delta = 0.02 if trade.get('outcome') == 'win' else -0.02
+        delta = _trade_score_delta(trade, scale=scale, cap=cap)
+        if delta == 0.0:
+            continue
         for model in trade.get('predicting_models', []):
             if model in scores:
                 deltas[model].append(delta)
@@ -535,9 +574,11 @@ def main():
     scores = {m: scores[m] for m in models}
 
     # Read trading config for score decay and stop threshold
-    trading_cfg = load_json('config/trading.json', {})
+    trading_cfg = {**DEFAULT_TRADING_CONFIG, **load_json('config/trading.json', {})}
     score_decay = float(trading_cfg.get('score_decay_per_day', 1.0))
     stop_loss_pct = float(trading_cfg.get('stop_loss_pct', 0.95))
+    trade_score_scale = float(trading_cfg.get('trade_score_scale', 0.02))
+    trade_score_cap = float(trading_cfg.get('trade_score_cap', 0.10))
 
     if not tickers:
         print("ERROR: No tickers found. Run update_tickers.py or pass --tickers NVDA,AAPL.")
@@ -550,6 +591,7 @@ def main():
     print(f"Models: {', '.join(models)}")
     print(f"Trade journal: {len(journal)} closed trades on record.")
     print(f"Score decay per day: {score_decay}")
+    print(f"Trade score feedback: pnl_pct * {trade_score_scale} capped at +/-{trade_score_cap}")
 
     today_date = datetime.now(ET).strftime('%Y-%m-%d')  # ET, consistent across runner machines
     today_log_path = os.path.join(HISTORY_DIR, f'predictions_{today_date}.json')
@@ -610,7 +652,13 @@ def main():
                     stop_threshold=stop_loss_pct,
                 ))
         if prior_date:
-            journal_deltas = score_deltas_from_journal(journal, prior_date, scores)
+            journal_deltas = score_deltas_from_journal(
+                journal,
+                prior_date,
+                scores,
+                scale=trade_score_scale,
+                cap=trade_score_cap,
+            )
             if journal_deltas:
                 closed = sum(len(v) for v in journal_deltas.values())
                 print(f"  Applying score updates from {closed} actual closed trade(s) on {prior_date}.")

@@ -10,6 +10,7 @@ sys.modules.setdefault('alpaca_client', MagicMock())
 
 from forge_loop import (
     _fallback_range,
+    _trade_score_delta,
     apply_score_deltas,
     compute_technicals,
     evaluate_range_prediction,
@@ -169,8 +170,8 @@ class ScoreDeltasFromJournalTests(unittest.TestCase):
 
     SCORES = {'model_a': 5.0, 'model_b': 5.0}
 
-    def _trade(self, outcome, date, models):
-        return {'close_date': date, 'outcome': outcome, 'predicting_models': models, 'pnl_pct': 1.0}
+    def _trade(self, outcome, date, models, pnl_pct=1.0):
+        return {'close_date': date, 'outcome': outcome, 'predicting_models': models, 'pnl_pct': pnl_pct}
 
     def test_win_adds_positive_delta(self):
         journal = [self._trade('win', '2026-05-20', ['model_a'])]
@@ -183,6 +184,23 @@ class ScoreDeltasFromJournalTests(unittest.TestCase):
         deltas = score_deltas_from_journal(journal, '2026-05-20', self.SCORES)
         self.assertEqual(deltas['model_b'], [-0.02])
 
+    def test_realized_pnl_scales_delta(self):
+        journal = [self._trade('win', '2026-05-20', ['model_a'], pnl_pct=2.5)]
+        deltas = score_deltas_from_journal(journal, '2026-05-20', self.SCORES)
+        self.assertEqual(deltas['model_a'], [0.05])
+
+    def test_large_loss_is_capped(self):
+        journal = [self._trade('loss', '2026-05-20', ['model_a'], pnl_pct=-8.0)]
+        deltas = score_deltas_from_journal(journal, '2026-05-20', self.SCORES)
+        self.assertEqual(deltas['model_a'], [-0.10])
+
+    def test_custom_scale_and_cap(self):
+        journal = [self._trade('win', '2026-05-20', ['model_a'], pnl_pct=5.0)]
+        deltas = score_deltas_from_journal(
+            journal, '2026-05-20', self.SCORES, scale=0.01, cap=0.03
+        )
+        self.assertEqual(deltas['model_a'], [0.03])
+
     def test_wrong_date_not_counted(self):
         journal = [self._trade('win', '2026-05-19', ['model_a'])]
         deltas = score_deltas_from_journal(journal, '2026-05-20', self.SCORES)
@@ -192,6 +210,21 @@ class ScoreDeltasFromJournalTests(unittest.TestCase):
         journal = [self._trade('win', '2026-05-20', ['unknown_model'])]
         deltas = score_deltas_from_journal(journal, '2026-05-20', self.SCORES)
         self.assertNotIn('unknown_model', deltas)
+
+
+class TradeScoreDeltaTests(unittest.TestCase):
+
+    def test_trade_score_delta_uses_realized_pnl(self):
+        trade = {'outcome': 'win', 'pnl_pct': 1.75}
+        self.assertEqual(_trade_score_delta(trade), 0.035)
+
+    def test_trade_score_delta_normalizes_inconsistent_loss_sign(self):
+        trade = {'outcome': 'loss', 'pnl_pct': 2.0}
+        self.assertEqual(_trade_score_delta(trade), -0.04)
+
+    def test_trade_score_delta_is_bounded(self):
+        trade = {'outcome': 'win', 'pnl_pct': 20.0}
+        self.assertEqual(_trade_score_delta(trade), 0.10)
 
 
 # ---------------------------------------------------------------------------
