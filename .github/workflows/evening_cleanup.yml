@@ -43,6 +43,9 @@ jobs:
       - name: Settle fills and update journal
         run: python3 trader.py --close
 
+      - name: Generate trade attribution
+        run: python3 backtest.py --attribution
+
       - name: Regenerate GitHub Pages dashboard
         run: python3 scripts/generate_html_report.py
 

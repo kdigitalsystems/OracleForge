@@ -21,6 +21,8 @@ REPORTS_DIR = 'reports'
 HISTORY_DIR = 'history'
 SCORES_FILE = 'state/analyst_scores.json'
 BACKTEST_FILE = 'reports/backtest_summary.json'
+WALK_FORWARD_FILE = 'reports/walk_forward_summary.json'
+ATTRIBUTION_FILE = 'reports/trade_attribution.json'
 OUT_FILE = 'docs/index.html'
 
 # GitHub repo — used by the in-page Rebuild button to trigger workflow_dispatch
@@ -390,6 +392,58 @@ def build_backtest_section(report: dict) -> str:
     return _card('Backtest Summary', content, subtitle=subtitle)
 
 
+def build_walk_forward_section(report: dict) -> str:
+    if not report:
+        return ''
+    summary = report.get('summary', {})
+    rec = report.get('latest_recommendation') or {}
+    params = rec.get('selected_params') or {}
+    metrics = f'''
+<div class="grid grid-cols-3 gap-3 mb-5">
+  {_metric("Validation Windows", str(summary.get("validation_windows", 0)))}
+  {_metric("Avg Edge", _fmt_pct(summary.get("avg_validation_edge_pct")))}
+  {_metric("Positive Windows", str(summary.get("positive_edge_windows", 0)))}
+</div>'''
+    rows = [[_esc(k), _esc(v)] for k, v in params.items()]
+    content = metrics
+    if rows:
+        content += '<h3 class="font-semibold text-gray-700 mb-2">Latest recommendation</h3>'
+        content += _table(['Parameter', 'Value'], rows)
+    return _card(
+        'Walk-Forward Study',
+        content,
+        subtitle='Evidence-only rolling train/test optimizer; live config is not auto-mutated.',
+    )
+
+
+def build_attribution_section(report: dict) -> str:
+    if not report:
+        return ''
+    overall = report.get('overall', {})
+    eq = report.get('execution_quality', {})
+    metrics = f'''
+<div class="grid grid-cols-4 gap-3 mb-5">
+  {_metric("Trades", str(report.get("trades", 0)))}
+  {_metric("Win Rate", f'{overall.get("win_rate", 0) * 100:.1f}%')}
+  {_metric("Avg P&L", _fmt_pct(overall.get("avg_pnl_pct")))}
+  {_metric("Entry Improvement", _fmt_pct(eq.get("avg_price_improvement_pct")))}
+</div>'''
+    rows = []
+    for model, stats in list((report.get('by_model') or {}).items())[:8]:
+        rows.append([
+            _esc(model),
+            str(stats.get('trades', 0)),
+            f'{stats.get("win_rate", 0) * 100:.1f}%',
+            _fmt_pct(stats.get('avg_pnl_pct')),
+            _fmt_pct(stats.get('total_pnl_pct')),
+        ])
+    content = metrics
+    if rows:
+        content += '<h3 class="font-semibold text-gray-700 mb-2">Model attribution</h3>'
+        content += _table(['Model', 'Trades', 'Win %', 'Avg P&L', 'Total P&L'], rows)
+    return _card('Trade Attribution', content)
+
+
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
@@ -401,6 +455,8 @@ def generate() -> None:
     journal = load_json('history/trade_journal.json', [])
     scores = load_json(SCORES_FILE, {})
     backtest = load_json(BACKTEST_FILE, None)
+    walk_forward = load_json(WALK_FORWARD_FILE, None)
+    attribution = load_json(ATTRIBUTION_FILE, None)
 
     if not report and not journal and not scores:
         print('WARNING: No data found. Generating empty placeholder page.')
@@ -415,7 +471,11 @@ def generate() -> None:
     )
     scores_html = build_scores_section(scores)
     pnl_html = build_pnl_section(journal)
-    backtest_html = build_backtest_section(backtest)
+    backtest_html = (
+        build_backtest_section(backtest)
+        + build_walk_forward_section(walk_forward)
+        + build_attribution_section(attribution)
+    )
 
     html = f'''<!DOCTYPE html>
 <html lang="en">

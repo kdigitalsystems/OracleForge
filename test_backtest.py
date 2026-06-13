@@ -4,10 +4,13 @@ import unittest
 from backtest import (
     MIN_ADEQUATE_SAMPLE,
     _finalize_bucket,
+    _grid_candidates,
     _new_bucket,
     _stats,
     _update_bucket,
     simulate_range_outcome,
+    summarize_trade_attribution,
+    walk_forward_optimize,
 )
 
 
@@ -257,6 +260,72 @@ class ExecutionModeTests(unittest.TestCase):
         # Default path must still behave as the original limit_stop logic.
         out = simulate_range_outcome({'open': 101, 'high': 108, 'low': 99, 'close': 106}, RANGE_WIN)
         self.assertEqual(out['outcome'], 'win')
+
+
+class WalkForwardTests(unittest.TestCase):
+
+    def test_grid_candidates_expands_product(self):
+        grid = {'a': [1, 2], 'b': ['x', 'y']}
+        self.assertEqual(len(_grid_candidates(grid)), 4)
+
+    def test_walk_forward_selects_best_training_candidate(self):
+        dates = ['2026-01-01', '2026-01-02', '2026-01-03', '2026-01-04']
+        grid = {'min_upside_pct': [1.0, 2.0], 'execution': ['limit_stop']}
+
+        def runner(run_dates, candidate, scores=None):
+            edge = 1.0 if candidate['min_upside_pct'] == 2.0 else -1.0
+            return {
+                'benchmark': {
+                    'active_edge_vs_buy_hold': {'mean': edge, 'n': len(run_dates)},
+                    'active_strategy': {'mean': edge / 2, 'n': len(run_dates)},
+                }
+            }
+
+        report = walk_forward_optimize(
+            dates,
+            train_window=2,
+            test_window=1,
+            grid=grid,
+            runner=runner,
+        )
+        self.assertEqual(report['summary']['validation_windows'], 2)
+        self.assertEqual(report['windows'][0]['selected_params']['min_upside_pct'], 2.0)
+        self.assertEqual(report['latest_recommendation']['selected_params']['min_upside_pct'], 2.0)
+
+
+class AttributionTests(unittest.TestCase):
+
+    def test_summarize_trade_attribution_groups_models_and_execution_quality(self):
+        journal = [
+            {
+                'ticker': 'NVDA',
+                'outcome': 'win',
+                'pnl_pct': 2.0,
+                'entry_price': 99.0,
+                'exit_price': 106.0,
+                'consensus_buy_high': 100.0,
+                'consensus_sell_low': 105.0,
+                'predicting_models': ['a', 'b'],
+            },
+            {
+                'ticker': 'AAPL',
+                'outcome': 'loss',
+                'pnl_pct': -1.0,
+                'entry_price': 50.0,
+                'exit_price': 49.5,
+                'consensus_buy_high': 50.0,
+                'consensus_sell_low': 52.0,
+                'predicting_models': ['b'],
+            },
+        ]
+        report = summarize_trade_attribution(journal)
+        self.assertEqual(report['trades'], 2)
+        self.assertEqual(report['overall']['wins'], 1)
+        self.assertEqual(report['by_model']['b']['trades'], 2)
+        self.assertEqual(report['by_model']['a']['avg_pnl_pct'], 2.0)
+        self.assertGreater(report['execution_quality']['avg_price_improvement_pct'], 0)
+        self.assertEqual(report['execution_quality']['profit_target_count'], 1)
+        self.assertEqual(report['execution_quality']['stop_loss_count'], 1)
 
 
 class SignificanceWiringTests(unittest.TestCase):

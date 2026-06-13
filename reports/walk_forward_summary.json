@@ -1,0 +1,129 @@
+{
+    "generated_at": "2026-06-12T19:41:02",
+    "train_window": 3,
+    "test_window": 1,
+    "candidate_count": 54,
+    "windows": [
+        {
+            "train_dates": [
+                "2026-06-04",
+                "2026-06-08",
+                "2026-06-09"
+            ],
+            "test_dates": [
+                "2026-06-10"
+            ],
+            "selected_params": {
+                "min_upside_pct": 2.0,
+                "max_consensus_cv": 0.05,
+                "stop_loss_pct": 0.95,
+                "execution": "limit_stop"
+            },
+            "train_edge": {
+                "n": 157,
+                "mean": 0.7834,
+                "std": 3.2603,
+                "t_stat": 3.011,
+                "ci95_low": 0.2734,
+                "ci95_high": 1.2934,
+                "significant": true,
+                "sample_adequate": true
+            },
+            "test_edge": {
+                "n": 59,
+                "mean": -1.323,
+                "std": 3.6848,
+                "t_stat": -2.758,
+                "ci95_low": -2.2633,
+                "ci95_high": -0.3828,
+                "significant": true,
+                "sample_adequate": true
+            },
+            "test_strategy": {
+                "n": 59,
+                "mean": 1.0044,
+                "std": 2.1161,
+                "t_stat": 3.646,
+                "ci95_low": 0.4644,
+                "ci95_high": 1.5444,
+                "significant": true,
+                "sample_adequate": true
+            }
+        },
+        {
+            "train_dates": [
+                "2026-06-08",
+                "2026-06-09",
+                "2026-06-10"
+            ],
+            "test_dates": [
+                "2026-06-11"
+            ],
+            "selected_params": {
+                "min_upside_pct": 1.0,
+                "max_consensus_cv": 0.1,
+                "stop_loss_pct": 0.95,
+                "execution": "limit_stop"
+            },
+            "train_edge": {
+                "n": 316,
+                "mean": -0.0245,
+                "std": 2.868,
+                "t_stat": -0.152,
+                "ci95_low": -0.3407,
+                "ci95_high": 0.2917,
+                "significant": false,
+                "sample_adequate": true
+            },
+            "test_edge": {
+                "n": 104,
+                "mean": -0.1369,
+                "std": 1.774,
+                "t_stat": -0.787,
+                "ci95_low": -0.4778,
+                "ci95_high": 0.2041,
+                "significant": false,
+                "sample_adequate": true
+            },
+            "test_strategy": {
+                "n": 104,
+                "mean": 0.6227,
+                "std": 1.0922,
+                "t_stat": 5.814,
+                "ci95_low": 0.4128,
+                "ci95_high": 0.8326,
+                "significant": true,
+                "sample_adequate": true
+            }
+        }
+    ],
+    "summary": {
+        "validation_windows": 2,
+        "avg_validation_edge_pct": -0.7299,
+        "avg_validation_strategy_pct": 0.8135,
+        "positive_edge_windows": 0
+    },
+    "latest_recommendation": {
+        "train_dates": [
+            "2026-06-09",
+            "2026-06-10",
+            "2026-06-11"
+        ],
+        "selected_params": {
+            "min_upside_pct": 1.0,
+            "max_consensus_cv": 0.1,
+            "stop_loss_pct": 0.95,
+            "execution": "limit_stop"
+        },
+        "train_edge": {
+            "n": 316,
+            "mean": 0.0199,
+            "std": 2.6857,
+            "t_stat": 0.132,
+            "ci95_low": -0.2762,
+            "ci95_high": 0.316,
+            "significant": false,
+            "sample_adequate": true
+        }
+    }
+}

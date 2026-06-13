@@ -131,6 +131,13 @@ jobs:
       - name: Validate outputs
         run: python3 scripts/validate_outputs.py
 
+      - name: Refresh recent walk-forward study
+        run: |
+          # Evidence-only optimization report. yfinance can occasionally be
+          # slow/noisy, so keep this bounded and non-blocking for the trading run.
+          timeout 240 python3 backtest.py --walk-forward --max-dates 5 --train-window 3 --test-window 1 \
+            || echo "Walk-forward refresh skipped or timed out; keeping prior report."
+
       - name: Generate GitHub Pages report
         run: python3 scripts/generate_html_report.py
 

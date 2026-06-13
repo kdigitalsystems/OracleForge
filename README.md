@@ -134,9 +134,9 @@ Keys are never stored in GitHub Secrets.
 
 | Workflow | Schedule | What it does |
 |---|---|---|
-| [Nightly Forge](.github/workflows/nightly_forge.yml) | 23:00 UTC weekdays | Runs unit tests → `update_tickers.py` → `forge_loop.py` → validates outputs → regenerates dashboard → commits state |
+| [Nightly Forge](.github/workflows/nightly_forge.yml) | 23:00 UTC weekdays | Runs unit tests → `update_tickers.py` → `forge_loop.py` → validates outputs → refreshes recent walk-forward study → regenerates dashboard → commits state |
 | [Morning Orders](.github/workflows/morning_orders.yml) | 13:30 UTC weekdays (9:30 AM ET) | Places DAY limit buy orders for ACTIVE tickers; re-places DAY sell + stop-loss orders for held positions |
-| [Evening Cleanup](.github/workflows/evening_cleanup.yml) | 20:05 UTC weekdays (4:05 PM ET) | Detects fills, records P&L, cancels companion orders, clears expired orders, regenerates dashboard |
+| [Evening Cleanup](.github/workflows/evening_cleanup.yml) | 20:05 UTC weekdays (4:05 PM ET) | Detects fills, records P&L, cancels companion orders, clears expired orders, refreshes trade attribution, regenerates dashboard |
 | [Rebuild Dashboard](.github/workflows/regenerate_report.yml) | Manual (via Rebuild button) | Regenerates `docs/index.html` from existing data files and commits |
 
 ### Runner registration
@@ -168,7 +168,10 @@ The self-hosted runner must be registered to this repository. To register:
 | `python3 trader.py --close --dry-run` | Preview settlement without writing state |
 | `python3 backtest.py` | Score historical predictions vs realized OHLC |
 | `python3 backtest.py --from-date 2026-05-01 --to-date 2026-05-15` | Backtest a bounded date window |
+| `python3 backtest.py --max-dates 5` | Backtest only the most recent 5 prediction dates |
 | `python3 backtest.py --compare-executions` | A/B the ACTIVE edge under limit_stop / limit_hold / market_hold execution models |
+| `python3 backtest.py --walk-forward` | Train parameters on rolling prior windows, validate on unseen future windows |
+| `python3 backtest.py --attribution` | Summarise actual closed-trade attribution by model, ticker, and execution quality |
 | `python3 scripts/generate_html_report.py` | Regenerate `docs/index.html` from local data |
 
 ---
@@ -208,6 +211,26 @@ aggregated by the sign of each trade's realized return.
 - **`reports/backtest_summary.json`** — full report (daily equity curve, significance,
   benchmark), which the dashboard's **Backtest** tab renders. A timestamped snapshot is also
   archived to `reports/backtest_history/` so metric evolution is trackable over time.
+- **`reports/walk_forward_summary.json`** — rolling train/test parameter study. The optimizer
+  selects the best parameter set on prior prediction dates, then measures it on later unseen
+  dates. This is evidence-only: it recommends settings but never rewrites live config.
+- **`reports/trade_attribution.json`** — actual closed-trade breakdown by model and ticker,
+  plus execution-quality diagnostics such as average entry improvement versus `buy_high` and
+  target capture versus the consensus sell range.
+
+```bash
+# Pick parameters on rolling 4-date windows, validate on the next date
+python3 backtest.py --walk-forward
+
+# Use wider windows once there is more history
+python3 backtest.py --walk-forward --train-window 10 --test-window 2
+
+# Fast recent-history check when yfinance is slow
+python3 backtest.py --walk-forward --max-dates 5 --train-window 3 --test-window 1
+
+# Attribute actual closed trades
+python3 backtest.py --attribution
+```
 
 **Requirements:**
 - At least one completed nightly run (so `history/predictions_*.json` exists). With no history,
