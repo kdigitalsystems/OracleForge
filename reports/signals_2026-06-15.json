@@ -1,6 +1,6 @@
 {
     "date": "2026-06-15",
-    "generated_at": "2026-06-15T18:08:05",
+    "generated_at": "2026-06-16T00:23:47",
     "config": {
         "min_upside_pct": 1.5,
         "min_range_width_pct": 0.5,
@@ -10,9 +10,9 @@
         "max_consensus_cv": 0.1
     },
     "summary": {
-        "total": 155,
-        "active": 68,
-        "skip": 76,
+        "total": 161,
+        "active": 72,
+        "skip": 78,
         "stale": 11
     },
     "active": [
@@ -58,6 +58,17 @@
             "sell_high": 17.23,
             "upside_pct": 4.23,
             "consensus_cv": 0.0169,
+            "signal": "ACTIVE"
+        },
+        {
+            "ticker": "PATH",
+            "close": 10.82,
+            "buy_low": 10.57,
+            "buy_high": 10.75,
+            "sell_low": 11.14,
+            "sell_high": 11.32,
+            "upside_pct": 3.63,
+            "consensus_cv": 0.0054,
             "signal": "ACTIVE"
         },
         {
@@ -201,6 +212,28 @@
             "sell_high": 29.33,
             "upside_pct": 3.06,
             "consensus_cv": 0.0173,
+            "signal": "ACTIVE"
+        },
+        {
+            "ticker": "CORZ",
+            "close": 28.24,
+            "buy_low": 27.6,
+            "buy_high": 28.07,
+            "sell_low": 28.93,
+            "sell_high": 29.61,
+            "upside_pct": 3.06,
+            "consensus_cv": 0.0194,
+            "signal": "ACTIVE"
+        },
+        {
+            "ticker": "TTD",
+            "close": 19.28,
+            "buy_low": 18.7,
+            "buy_high": 19.14,
+            "sell_low": 19.72,
+            "sell_high": 20.11,
+            "upside_pct": 3.03,
+            "consensus_cv": 0.019,
             "signal": "ACTIVE"
         },
         {
@@ -743,6 +776,17 @@
             "signal": "ACTIVE"
         },
         {
+            "ticker": "MDLZ",
+            "close": 61.51,
+            "buy_low": 61.24,
+            "buy_high": 61.55,
+            "sell_low": 62.5,
+            "sell_high": 63.58,
+            "upside_pct": 1.54,
+            "consensus_cv": 0.0079,
+            "signal": "ACTIVE"
+        },
+        {
             "ticker": "IBN",
             "close": 27.8,
             "buy_low": 27.33,
@@ -1064,6 +1108,17 @@
             "signal": "SKIP"
         },
         {
+            "ticker": "VWO",
+            "close": 60.84,
+            "buy_low": 59.88,
+            "buy_high": 60.53,
+            "sell_low": 61.17,
+            "sell_high": 61.67,
+            "upside_pct": 1.06,
+            "consensus_cv": 0.0053,
+            "signal": "SKIP"
+        },
+        {
             "ticker": "D",
             "close": 67.89,
             "buy_low": 66.89,
@@ -1215,6 +1270,17 @@
             "sell_high": 575.93,
             "upside_pct": 0.88,
             "consensus_cv": 0.0013,
+            "signal": "SKIP"
+        },
+        {
+            "ticker": "BN",
+            "close": 45.7,
+            "buy_low": 45.3,
+            "buy_high": 45.6,
+            "sell_low": 46.0,
+            "sell_high": 46.4,
+            "upside_pct": 0.88,
+            "consensus_cv": 0.0043,
             "signal": "SKIP"
         },
         {
