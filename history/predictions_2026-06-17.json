@@ -5820,5 +5820,41 @@
         },
         "signal": "ACTIVE",
         "upside_pct": 2.26
+    },
+    "EXC": {
+        "close": 45.56,
+        "models": {
+            "llama3.1:8b-instruct-q8_0": {
+                "buy_low": 45.2,
+                "buy_high": 45.5,
+                "sell_low": 46.0,
+                "sell_high": 46.6,
+                "rationale": "Given the recent price action and elevated volume, I'm looking for a bounce off support near $45.20 to enter a long position, with a target of taking profit near resistance at $46.60."
+            },
+            "qwen2.5:14b-instruct-q4_K_M": {
+                "buy_low": 45.2,
+                "buy_high": 45.32,
+                "sell_low": 46.18,
+                "sell_high": 46.59,
+                "rationale": "Given the recent price action and technical indicators, entering a long position near support and taking profit near resistance is prudent."
+            },
+            "deepseek-r1:8b": {
+                "buy_low": 44.88,
+                "buy_high": 45.34,
+                "sell_low": 46.25,
+                "sell_high": 46.7,
+                "rationale": "Fallback range (model output unparseable)",
+                "fallback": true
+            }
+        },
+        "consensus": {
+            "buy_low": 45.2,
+            "buy_high": 45.41,
+            "sell_low": 46.09,
+            "sell_high": 46.59,
+            "consensus_cv": 0.002
+        },
+        "signal": "ACTIVE",
+        "upside_pct": 1.5
     }
 }
