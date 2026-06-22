@@ -1,55 +1,9 @@
 {
-    "generated_at": "2026-06-19T01:11:28",
+    "generated_at": "2026-06-21T20:06:39",
     "train_window": 3,
     "test_window": 1,
     "candidate_count": 54,
     "windows": [
-        {
-            "train_dates": [
-                "2026-06-10",
-                "2026-06-11",
-                "2026-06-15"
-            ],
-            "test_dates": [
-                "2026-06-17"
-            ],
-            "selected_params": {
-                "min_upside_pct": 1.0,
-                "max_consensus_cv": 0.05,
-                "stop_loss_pct": 0.95,
-                "execution": "limit_stop"
-            },
-            "train_edge": {
-                "n": 315,
-                "mean": -0.5305,
-                "std": 2.7526,
-                "t_stat": -3.421,
-                "ci95_low": -0.8345,
-                "ci95_high": -0.2266,
-                "significant": true,
-                "sample_adequate": true
-            },
-            "test_edge": {
-                "n": 109,
-                "mean": 0.6653,
-                "std": 2.2742,
-                "t_stat": 3.054,
-                "ci95_low": 0.2383,
-                "ci95_high": 1.0922,
-                "significant": true,
-                "sample_adequate": true
-            },
-            "test_strategy": {
-                "n": 109,
-                "mean": -1.2156,
-                "std": 2.314,
-                "t_stat": -5.485,
-                "ci95_low": -1.65,
-                "ci95_high": -0.7812,
-                "significant": true,
-                "sample_adequate": true
-            }
-        },
         {
             "train_dates": [
                 "2026-06-11",
@@ -67,12 +21,58 @@
             },
             "train_edge": {
                 "n": 222,
-                "mean": 0.2261,
-                "std": 2.8725,
+                "mean": 0.2262,
+                "std": 2.8729,
                 "t_stat": 1.173,
                 "ci95_low": -0.1518,
-                "ci95_high": 0.6039,
+                "ci95_high": 0.6041,
                 "significant": false,
+                "sample_adequate": true
+            },
+            "test_edge": {
+                "n": 0,
+                "mean": 0.0,
+                "std": 0.0,
+                "t_stat": null,
+                "ci95_low": null,
+                "ci95_high": null,
+                "significant": false,
+                "sample_adequate": false
+            },
+            "test_strategy": {
+                "n": 0,
+                "mean": 0.0,
+                "std": 0.0,
+                "t_stat": null,
+                "ci95_low": null,
+                "ci95_high": null,
+                "significant": false,
+                "sample_adequate": false
+            }
+        },
+        {
+            "train_dates": [
+                "2026-06-15",
+                "2026-06-17",
+                "2026-06-18"
+            ],
+            "test_dates": [
+                "2026-06-21"
+            ],
+            "selected_params": {
+                "min_upside_pct": 1.5,
+                "max_consensus_cv": 0.05,
+                "stop_loss_pct": 0.98,
+                "execution": "limit_stop"
+            },
+            "train_edge": {
+                "n": 149,
+                "mean": 0.5897,
+                "std": 3.1373,
+                "t_stat": 2.295,
+                "ci95_low": 0.086,
+                "ci95_high": 1.0935,
+                "significant": true,
                 "sample_adequate": true
             },
             "test_edge": {
@@ -99,15 +99,15 @@
     ],
     "summary": {
         "validation_windows": 2,
-        "avg_validation_edge_pct": 0.3327,
-        "avg_validation_strategy_pct": -0.6078,
-        "positive_edge_windows": 1
+        "avg_validation_edge_pct": 0.0,
+        "avg_validation_strategy_pct": 0.0,
+        "positive_edge_windows": 0
     },
     "latest_recommendation": {
         "train_dates": [
-            "2026-06-15",
             "2026-06-17",
-            "2026-06-18"
+            "2026-06-18",
+            "2026-06-21"
         ],
         "selected_params": {
             "min_upside_pct": 1.5,
@@ -116,12 +116,12 @@
             "execution": "limit_stop"
         },
         "train_edge": {
-            "n": 149,
-            "mean": 0.5891,
-            "std": 3.137,
-            "t_stat": 2.292,
-            "ci95_low": 0.0854,
-            "ci95_high": 1.0928,
+            "n": 77,
+            "mean": 1.4064,
+            "std": 2.5135,
+            "t_stat": 4.91,
+            "ci95_low": 0.845,
+            "ci95_high": 1.9678,
             "significant": true,
             "sample_adequate": true
         }
