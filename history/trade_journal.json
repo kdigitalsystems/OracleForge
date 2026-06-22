@@ -2224,5 +2224,98 @@
         ],
         "consensus_buy_high": 15.55,
         "consensus_sell_low": 15.99
+    },
+    {
+        "close_date": "2026-06-22",
+        "ticker": "NVO",
+        "entry_date": "2026-05-21",
+        "entry_price": 44.138,
+        "exit_price": 45.87,
+        "usd_invested": 5.8851,
+        "usd_returned": 2.0386,
+        "pnl_usd": -3.8465,
+        "pnl_pct": -65.36,
+        "outcome": "loss",
+        "predicting_models": [
+            "llama3.1:8b-instruct-q8_0",
+            "gemma4",
+            "mistral-nemo"
+        ],
+        "consensus_buy_high": 45.0,
+        "consensus_sell_low": 45.87
+    },
+    {
+        "close_date": "2026-06-22",
+        "ticker": "MARA",
+        "entry_date": "2026-06-03",
+        "entry_price": 14.078,
+        "exit_price": 14.8,
+        "usd_invested": 1.9997,
+        "usd_returned": 2.1023,
+        "pnl_usd": 0.1026,
+        "pnl_pct": 5.13,
+        "outcome": "win",
+        "predicting_models": [
+            "llama3.1:8b-instruct-q8_0",
+            "qwen2.5:14b-instruct-q4_K_M",
+            "deepseek-r1:8b"
+        ],
+        "consensus_buy_high": 14.08,
+        "consensus_sell_low": 14.8
+    },
+    {
+        "close_date": "2026-06-22",
+        "ticker": "EEM",
+        "entry_date": "2026-06-03",
+        "entry_price": 69.838,
+        "exit_price": 71.282,
+        "usd_invested": 1.9928,
+        "usd_returned": 2.034,
+        "pnl_usd": 0.0412,
+        "pnl_pct": 2.07,
+        "outcome": "win",
+        "predicting_models": [
+            "llama3.1:8b-instruct-q8_0",
+            "qwen2.5:14b-instruct-q4_K_M",
+            "deepseek-r1:8b"
+        ],
+        "consensus_buy_high": 70.09,
+        "consensus_sell_low": 71.25
+    },
+    {
+        "close_date": "2026-06-22",
+        "ticker": "KMI",
+        "entry_date": "2026-06-15",
+        "entry_price": 31.47,
+        "exit_price": 32.0,
+        "usd_invested": 2.0,
+        "usd_returned": 2.0337,
+        "pnl_usd": 0.0337,
+        "pnl_pct": 1.69,
+        "outcome": "win",
+        "predicting_models": [
+            "llama3.1:8b-instruct-q8_0",
+            "qwen2.5:14b-instruct-q4_K_M"
+        ],
+        "consensus_buy_high": 31.47,
+        "consensus_sell_low": 32.0
+    },
+    {
+        "close_date": "2026-06-22",
+        "ticker": "TSLA",
+        "entry_date": "2026-06-17",
+        "entry_price": 402.6,
+        "exit_price": 409.48,
+        "usd_invested": 2.0001,
+        "usd_returned": 2.0343,
+        "pnl_usd": 0.0342,
+        "pnl_pct": 1.71,
+        "outcome": "win",
+        "predicting_models": [
+            "llama3.1:8b-instruct-q8_0",
+            "qwen2.5:14b-instruct-q4_K_M"
+        ],
+        "consensus_buy_high": 402.6,
+        "consensus_sell_low": 409.48
     }
 ]
