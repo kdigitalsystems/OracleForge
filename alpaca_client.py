@@ -2,6 +2,7 @@
 """Thin wrapper around alpaca-py for OracleForge paper trading."""
 from __future__ import annotations
 
+import math
 import os
 from datetime import datetime, timedelta, timezone
 
@@ -16,6 +17,18 @@ from alpaca.trading.requests import (
 )
 
 KEYS_FILE = os.path.expanduser('~/.ssh/alpaca_paper_keys')
+
+
+def _sell_qty(qty: float) -> float:
+    """Truncate (floor) a sell quantity to 6 dp.
+
+    Alpaca reports position quantities with up to 9 decimals. Rounding such a
+    qty to 6 dp can round it *up* past the actual held amount, which Alpaca
+    rejects with "insufficient qty available for order". Flooring guarantees we
+    never request more shares than we hold (a sub-microshare dust remainder is
+    harmless).
+    """
+    return math.floor(float(qty) * 1_000_000) / 1_000_000
 
 
 def load_keys() -> tuple[str, str, str]:
@@ -85,7 +98,7 @@ def place_limit_sell(client: TradingClient, ticker: str, qty: float, limit_price
     """
     req = LimitOrderRequest(
         symbol=ticker,
-        qty=round(qty, 6),
+        qty=_sell_qty(qty),
         side=OrderSide.SELL,
         time_in_force=TimeInForce.DAY,
         limit_price=round(limit_price, 2),
@@ -110,7 +123,7 @@ def place_stop_limit_sell(
         limit_price = stop_price
     req = StopLimitOrderRequest(
         symbol=ticker,
-        qty=round(qty, 6),
+        qty=_sell_qty(qty),
         side=OrderSide.SELL,
         time_in_force=TimeInForce.DAY,
         stop_price=round(stop_price, 2),
