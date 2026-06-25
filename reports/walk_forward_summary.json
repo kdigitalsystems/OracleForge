@@ -1,55 +1,9 @@
 {
-    "generated_at": "2026-06-23T18:48:29",
+    "generated_at": "2026-06-24T20:02:51",
     "train_window": 3,
     "test_window": 1,
     "candidate_count": 54,
     "windows": [
-        {
-            "train_dates": [
-                "2026-06-15",
-                "2026-06-17",
-                "2026-06-18"
-            ],
-            "test_dates": [
-                "2026-06-21"
-            ],
-            "selected_params": {
-                "min_upside_pct": 2.0,
-                "max_consensus_cv": 0.05,
-                "stop_loss_pct": 0.95,
-                "execution": "limit_stop"
-            },
-            "train_edge": {
-                "n": 166,
-                "mean": 0.6478,
-                "std": 2.9629,
-                "t_stat": 2.817,
-                "ci95_low": 0.1971,
-                "ci95_high": 1.0986,
-                "significant": true,
-                "sample_adequate": true
-            },
-            "test_edge": {
-                "n": 0,
-                "mean": 0.0,
-                "std": 0.0,
-                "t_stat": null,
-                "ci95_low": null,
-                "ci95_high": null,
-                "significant": false,
-                "sample_adequate": false
-            },
-            "test_strategy": {
-                "n": 0,
-                "mean": 0.0,
-                "std": 0.0,
-                "t_stat": null,
-                "ci95_low": null,
-                "ci95_high": null,
-                "significant": false,
-                "sample_adequate": false
-            }
-        },
         {
             "train_dates": [
                 "2026-06-17",
@@ -95,6 +49,52 @@
                 "significant": false,
                 "sample_adequate": false
             }
+        },
+        {
+            "train_dates": [
+                "2026-06-18",
+                "2026-06-21",
+                "2026-06-23"
+            ],
+            "test_dates": [
+                "2026-06-24"
+            ],
+            "selected_params": {
+                "min_upside_pct": 2.0,
+                "max_consensus_cv": 0.05,
+                "stop_loss_pct": 0.95,
+                "execution": "limit_stop"
+            },
+            "train_edge": {
+                "n": 66,
+                "mean": 1.4952,
+                "std": 2.4585,
+                "t_stat": 4.941,
+                "ci95_low": 0.9021,
+                "ci95_high": 2.0884,
+                "significant": true,
+                "sample_adequate": true
+            },
+            "test_edge": {
+                "n": 0,
+                "mean": 0.0,
+                "std": 0.0,
+                "t_stat": null,
+                "ci95_low": null,
+                "ci95_high": null,
+                "significant": false,
+                "sample_adequate": false
+            },
+            "test_strategy": {
+                "n": 0,
+                "mean": 0.0,
+                "std": 0.0,
+                "t_stat": null,
+                "ci95_low": null,
+                "ci95_high": null,
+                "significant": false,
+                "sample_adequate": false
+            }
         }
     ],
     "summary": {
@@ -105,25 +105,25 @@
     },
     "latest_recommendation": {
         "train_dates": [
-            "2026-06-18",
             "2026-06-21",
-            "2026-06-23"
+            "2026-06-23",
+            "2026-06-24"
         ],
         "selected_params": {
-            "min_upside_pct": 2.0,
+            "min_upside_pct": 1.0,
             "max_consensus_cv": 0.05,
             "stop_loss_pct": 0.95,
             "execution": "limit_stop"
         },
         "train_edge": {
-            "n": 66,
-            "mean": 1.4952,
-            "std": 2.4585,
-            "t_stat": 4.941,
-            "ci95_low": 0.9021,
-            "ci95_high": 2.0884,
-            "significant": true,
-            "sample_adequate": true
+            "n": 0,
+            "mean": 0.0,
+            "std": 0.0,
+            "t_stat": null,
+            "ci95_low": null,
+            "ci95_high": null,
+            "significant": false,
+            "sample_adequate": false
         }
     }
 }
