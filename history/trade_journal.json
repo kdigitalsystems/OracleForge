@@ -2734,5 +2734,97 @@
         ],
         "consensus_buy_high": 83.05,
         "consensus_sell_low": 84.34
+    },
+    {
+        "close_date": "2026-06-25",
+        "ticker": "INVH",
+        "entry_date": "2026-05-21",
+        "entry_price": 29.0,
+        "exit_price": 29.92,
+        "usd_invested": 6.0,
+        "usd_returned": 2.0635,
+        "pnl_usd": -3.9365,
+        "pnl_pct": -65.61,
+        "outcome": "loss",
+        "predicting_models": [
+            "llama3.1:8b-instruct-q8_0",
+            "gemma4",
+            "mistral-nemo"
+        ],
+        "consensus_buy_high": 29.0,
+        "consensus_sell_low": 29.92
+    },
+    {
+        "close_date": "2026-06-25",
+        "ticker": "KDP",
+        "entry_date": "2026-06-10",
+        "entry_price": 31.248,
+        "exit_price": 32.172,
+        "usd_invested": 1.9999,
+        "usd_returned": 2.059,
+        "pnl_usd": 0.0591,
+        "pnl_pct": 2.96,
+        "outcome": "win",
+        "predicting_models": [
+            "llama3.1:8b-instruct-q8_0",
+            "qwen2.5:14b-instruct-q4_K_M",
+            "deepseek-r1:8b"
+        ],
+        "consensus_buy_high": 31.25,
+        "consensus_sell_low": 31.93
+    },
+    {
+        "close_date": "2026-06-25",
+        "ticker": "M",
+        "entry_date": "2026-06-15",
+        "entry_price": 25.04,
+        "exit_price": 25.672,
+        "usd_invested": 2.0,
+        "usd_returned": 2.0505,
+        "pnl_usd": 0.0505,
+        "pnl_pct": 2.53,
+        "outcome": "win",
+        "predicting_models": [
+            "llama3.1:8b-instruct-q8_0",
+            "qwen2.5:14b-instruct-q4_K_M"
+        ],
+        "consensus_buy_high": 25.04,
+        "consensus_sell_low": 25.67
+    },
+    {
+        "close_date": "2026-06-25",
+        "ticker": "TSCO",
+        "entry_date": "2026-06-17",
+        "entry_price": 30.15,
+        "exit_price": 30.82,
+        "usd_invested": 2.0,
+        "usd_returned": 2.0444,
+        "pnl_usd": 0.0444,
+        "pnl_pct": 2.22,
+        "outcome": "win",
+        "predicting_models": [
+            "llama3.1:8b-instruct-q8_0",
+            "qwen2.5:14b-instruct-q4_K_M"
+        ],
+        "consensus_buy_high": 30.15,
+        "consensus_sell_low": 30.82
+    },
+    {
+        "close_date": "2026-06-25",
+        "ticker": "CSX",
+        "entry_date": "2026-06-18",
+        "entry_price": 45.732,
+        "exit_price": 47.342,
+        "usd_invested": 1.9975,
+        "usd_returned": 2.0678,
+        "pnl_usd": 0.0703,
+        "pnl_pct": 3.52,
+        "outcome": "win",
+        "predicting_models": [
+            "llama3.1:8b-instruct-q8_0",
+            "qwen2.5:14b-instruct-q4_K_M"
+        ],
+        "consensus_buy_high": 45.79,
+        "consensus_sell_low": 47.05
     }
 ]
