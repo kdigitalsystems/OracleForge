@@ -2826,5 +2826,98 @@
         ],
         "consensus_buy_high": 45.79,
         "consensus_sell_low": 47.05
+    },
+    {
+        "close_date": "2026-06-26",
+        "ticker": "CAG",
+        "entry_date": "2026-05-21",
+        "entry_price": 13.238,
+        "exit_price": 14.03,
+        "usd_invested": 5.8104,
+        "usd_returned": 2.0527,
+        "pnl_usd": -3.7577,
+        "pnl_pct": -64.67,
+        "outcome": "loss",
+        "predicting_models": [
+            "llama3.1:8b-instruct-q8_0",
+            "gemma4",
+            "mistral-nemo"
+        ],
+        "consensus_buy_high": 13.67,
+        "consensus_sell_low": 14.03
+    },
+    {
+        "close_date": "2026-06-26",
+        "ticker": "ELAN",
+        "entry_date": "2026-06-09",
+        "entry_price": 23.326,
+        "exit_price": 24.882,
+        "usd_invested": 1.935,
+        "usd_returned": 2.064,
+        "pnl_usd": 0.129,
+        "pnl_pct": 6.67,
+        "outcome": "win",
+        "predicting_models": [
+            "llama3.1:8b-instruct-q8_0",
+            "qwen2.5:14b-instruct-q4_K_M",
+            "deepseek-r1:8b"
+        ],
+        "consensus_buy_high": 24.11,
+        "consensus_sell_low": 24.86
+    },
+    {
+        "close_date": "2026-06-26",
+        "ticker": "CNH",
+        "entry_date": "2026-06-09",
+        "entry_price": 10.518,
+        "exit_price": 11.032,
+        "usd_invested": 1.9697,
+        "usd_returned": 2.0659,
+        "pnl_usd": 0.0962,
+        "pnl_pct": 4.88,
+        "outcome": "win",
+        "predicting_models": [
+            "llama3.1:8b-instruct-q8_0",
+            "qwen2.5:14b-instruct-q4_K_M",
+            "deepseek-r1:8b"
+        ],
+        "consensus_buy_high": 10.68,
+        "consensus_sell_low": 10.99
+    },
+    {
+        "close_date": "2026-06-26",
+        "ticker": "CMG",
+        "entry_date": "2026-06-17",
+        "entry_price": 32.22,
+        "exit_price": 33.352,
+        "usd_invested": 2.0,
+        "usd_returned": 2.0703,
+        "pnl_usd": 0.0703,
+        "pnl_pct": 3.52,
+        "outcome": "win",
+        "predicting_models": [
+            "llama3.1:8b-instruct-q8_0",
+            "qwen2.5:14b-instruct-q4_K_M"
+        ],
+        "consensus_buy_high": 32.22,
+        "consensus_sell_low": 33.15
+    },
+    {
+        "close_date": "2026-06-26",
+        "ticker": "BMY",
+        "entry_date": "2026-06-17",
+        "entry_price": 55.808,
+        "exit_price": 57.382,
+        "usd_invested": 1.9999,
+        "usd_returned": 2.0563,
+        "pnl_usd": 0.0564,
+        "pnl_pct": 2.82,
+        "outcome": "win",
+        "predicting_models": [
+            "llama3.1:8b-instruct-q8_0",
+            "qwen2.5:14b-instruct-q4_K_M"
+        ],
+        "consensus_buy_high": 55.81,
+        "consensus_sell_low": 56.76
     }
 ]
