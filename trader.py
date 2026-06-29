@@ -209,7 +209,6 @@ def run_open(dry_run: bool = False) -> None:
     cfg = load_trading_config()
     max_per_trade = float(cfg['max_per_trade_usd'])
     max_position = float(cfg['max_position_usd'])
-    stop_loss_pct = float(cfg.get('stop_loss_pct', 0.95))
 
     client = None if dry_run else alpaca_client.get_trading_client()
     today = today_str()
@@ -304,7 +303,11 @@ def run_open(dry_run: bool = False) -> None:
         except Exception as e:
             log(f"[!] Buy order failed for {ticker}: {e}")
 
-    # --- Place sell + stop-loss orders for positions that don't have them ---
+    # --- Place a profit-target sell for held positions that lack one. ---
+    # The stop-loss is NOT a resting order: Alpaca permits only one resting sell
+    # per fractional position, and the profit-target reserves all the shares, so
+    # a companion stop-limit can never be placed. The stop is instead enforced
+    # at --close (see run_close), which market-sells positions below the stop.
     for ticker, meta_entry in positions_meta.items():
         entry = open_orders.get(ticker, {})
 
@@ -313,50 +316,23 @@ def run_open(dry_run: bool = False) -> None:
             continue
 
         sell_limit = entry.get('sell_limit') or meta_entry.get('consensus_sell_low')
-        buy_limit_price = float(entry.get('buy_limit') or meta_entry.get('consensus_buy_high') or 0)
-        stop_limit_price = entry.get('stop_limit') or (
-            round(buy_limit_price * stop_loss_pct, 2) if buy_limit_price > 0 else None
-        )
-
-        if not sell_limit:
-            continue
-
-        need_sell = not entry.get('sell_order_id')
-        need_stop = not entry.get('stop_order_id') and bool(stop_limit_price)
-
-        if not need_sell and not need_stop:
-            continue
+        if not sell_limit or entry.get('sell_order_id'):
+            continue  # no target price, or a resting sell already exists
 
         if dry_run:
-            if need_sell:
-                log(f"DRY SELL {ticker}: DAY limit {qty} shares @ ${float(sell_limit):.2f}")
-            if need_stop and stop_limit_price:
-                log(f"DRY STOP {ticker}: DAY stop-limit {qty} shares stop @ ${float(stop_limit_price):.2f}")
+            log(f"DRY SELL {ticker}: DAY limit {qty} shares @ ${float(sell_limit):.2f}")
             continue
 
         if ticker not in open_orders:
             open_orders[ticker] = {}
-
-        if need_sell:
-            try:
-                order = alpaca_client.place_limit_sell(client, ticker, qty, sell_limit)
-                open_orders[ticker]['sell_order_id'] = str(order.id)
-                log(f"SELL {ticker}: DAY limit {qty} shares @ ${float(sell_limit):.2f} → order {order.id}")
-                save_json(OPEN_ORDERS_FILE, open_orders)  # persist immediately
-                time.sleep(ORDER_SUBMIT_DELAY)
-            except Exception as e:
-                log(f"[!] Sell order failed for {ticker}: {e}")
-
-        if need_stop and stop_limit_price:
-            try:
-                order = alpaca_client.place_stop_limit_sell(client, ticker, qty, stop_limit_price)
-                open_orders[ticker]['stop_order_id'] = str(order.id)
-                open_orders[ticker]['stop_limit'] = stop_limit_price
-                log(f"STOP {ticker}: DAY stop-limit {qty} shares stop @ ${float(stop_limit_price):.2f} → order {order.id}")
-                save_json(OPEN_ORDERS_FILE, open_orders)  # persist immediately
-                time.sleep(ORDER_SUBMIT_DELAY)
-            except Exception as e:
-                log(f"[!] Stop order failed for {ticker}: {e}")
+        try:
+            order = alpaca_client.place_limit_sell(client, ticker, qty, sell_limit)
+            open_orders[ticker]['sell_order_id'] = str(order.id)
+            log(f"SELL {ticker}: DAY limit {qty} shares @ ${float(sell_limit):.2f} → order {order.id}")
+            save_json(OPEN_ORDERS_FILE, open_orders)  # persist immediately
+            time.sleep(ORDER_SUBMIT_DELAY)
+        except Exception as e:
+            log(f"[!] Sell order failed for {ticker}: {e}")
 
     print(f"\nDone. {placed} buy order(s) placed.")
 
@@ -447,7 +423,12 @@ def run_close(dry_run: bool = False) -> None:
                             total_qty = fill_qty
                         entry['qty'] = total_qty
 
-                        # Place profit-target DAY limit sell
+                        # Place the profit-target DAY limit sell. The stop-loss
+                        # is NOT a resting order (Alpaca allows only one resting
+                        # sell per fractional position) — it's enforced by the
+                        # end-of-day stop check below. Record the stop level for
+                        # reference/display.
+                        entry['stop_limit'] = round(entry['buy_limit'] * stop_loss_pct, 2)
                         try:
                             sell_order = alpaca_client.place_limit_sell(
                                 client, ticker, total_qty, entry['sell_limit']
@@ -461,23 +442,6 @@ def run_close(dry_run: bool = False) -> None:
                             time.sleep(ORDER_SUBMIT_DELAY)
                         except Exception as e:
                             log(f"[!] Could not place profit-target sell for {ticker}: {e}")
-
-                        # Place protective DAY stop-limit sell
-                        stop_limit = round(entry['buy_limit'] * stop_loss_pct, 2)
-                        entry['stop_limit'] = stop_limit
-                        try:
-                            stop_order = alpaca_client.place_stop_limit_sell(
-                                client, ticker, total_qty, stop_limit
-                            )
-                            entry['stop_order_id'] = str(stop_order.id)
-                            log(
-                                f"STOP {ticker}: DAY stop-limit {total_qty} shares stop @ "
-                                f"${stop_limit:.2f} → order {stop_order.id}"
-                            )
-                            save_json(OPEN_ORDERS_FILE, open_orders)
-                            time.sleep(ORDER_SUBMIT_DELAY)
-                        except Exception as e:
-                            log(f"[!] Could not place stop-loss for {ticker}: {e}")
 
                     elif status in DEAD_STATUSES:
                         log(f"BUY EXPIRED {ticker}: order {buy_oid} status={status}, removing")
@@ -591,13 +555,65 @@ def run_close(dry_run: bool = False) -> None:
                     else:
                         log(f"{ticker}: stop order still pending (status={status})")
 
+    # --- End-of-day stop check ---------------------------------------------
+    # Alpaca allows only one resting sell per fractional position (the
+    # profit-target reserves all shares), so the stop can't be a resting order.
+    # Enforce it here: any still-held position trading at/below
+    # entry_price * stop_loss_pct is market-sold to cap the loss.
+    stopped = 0
+    if not dry_run and positions_meta:
+        try:
+            details = alpaca_client.get_position_details(client)
+        except Exception as e:
+            details = {}
+            print(f"  [!] Could not fetch positions for stop check: {e}")
+
+        for ticker in list(positions_meta.keys()):
+            if ticker in settled:
+                continue  # already exited this run
+            meta = positions_meta[ticker]
+            pos = details.get(ticker)
+            if not pos or pos['qty'] <= 0:
+                continue
+            entry_price = float(meta.get('entry_price') or 0)
+            if entry_price <= 0:
+                continue
+            stop_level = round(entry_price * stop_loss_pct, 4)
+            price = pos['current_price']
+            if price > stop_level:
+                continue
+
+            # Free the shares (cancel any resting profit-target sell), then
+            # market-sell the whole position.
+            oo = open_orders.get(ticker, {})
+            if oo.get('sell_order_id'):
+                alpaca_client.cancel_order(client, oo['sell_order_id'])
+                oo['sell_order_id'] = None
+            try:
+                alpaca_client.sell_all(client, ticker)
+                usd_returned = round(price * pos['qty'], 4)
+                trade = record_sell(positions_meta, journal, ticker, price, usd_returned, today)
+                if trade:
+                    log(
+                        f"EOD STOP {ticker}: ${price:.2f} <= stop ${stop_level:.2f} → "
+                        f"market-sold, P&L ${trade['pnl_usd']:+.4f} ({trade['pnl_pct']:+.2f}%)"
+                    )
+                if oo:
+                    oo['closed'] = True
+                to_delete.append(ticker)
+                stopped += 1
+                time.sleep(ORDER_SUBMIT_DELAY)
+            except Exception as e:
+                log(f"[!] EOD stop sell failed for {ticker}: {e}")
+
     for ticker in set(to_delete):
         open_orders.pop(ticker, None)
 
     if not dry_run:
         save_json(OPEN_ORDERS_FILE, open_orders)
 
-    print(f"\nDone. {len(set(to_delete))} position(s) closed.")
+    closed = len(set(to_delete))
+    print(f"\nDone. {closed} position(s) closed ({stopped} via end-of-day stop).")
 
 
 # ---------------------------------------------------------------------------

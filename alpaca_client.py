@@ -75,6 +75,24 @@ def get_position_qty(client: TradingClient, ticker: str) -> float:
         return 0.0
 
 
+def get_position_details(client: TradingClient) -> dict[str, dict]:
+    """Return {symbol: {'qty', 'current_price', 'avg_entry_price'}} for open positions.
+
+    Used by the end-of-day stop check, which needs each position's live price.
+    """
+    out: dict[str, dict] = {}
+    for p in client.get_all_positions():
+        try:
+            out[p.symbol] = {
+                'qty': float(p.qty),
+                'current_price': float(p.current_price),
+                'avg_entry_price': float(p.avg_entry_price),
+            }
+        except (TypeError, ValueError):
+            continue
+    return out
+
+
 def place_limit_buy(client: TradingClient, ticker: str, qty: float,
                     limit_price: float, time_in_force: str = 'day'):
     """Place a fractional limit buy order. Returns the order object."""

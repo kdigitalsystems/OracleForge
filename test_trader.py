@@ -269,8 +269,9 @@ class RunOpenTests(unittest.TestCase):
 
         trader.run_open(dry_run=False)
 
+        # Profit-target sell placed; stop is NOT a resting order (enforced at --close).
         trader.alpaca_client.place_limit_sell.assert_called_once_with(client, 'NVDA', 0.02, 110.0)
-        trader.alpaca_client.place_stop_limit_sell.assert_called_once_with(client, 'NVDA', 0.02, 95.0)
+        trader.alpaca_client.place_stop_limit_sell.assert_not_called()
 
     @patch('trader.time.sleep')
     @patch('trader.now_et', return_value='2026-01-02T09:30:00-05:00')
@@ -312,8 +313,10 @@ class RunOpenTests(unittest.TestCase):
 
         trader.run_open(dry_run=False)
 
+        # Existing position still gets its profit-target sell even with no new
+        # signals; the stop is enforced at --close, not as a resting order.
         trader.alpaca_client.place_limit_sell.assert_called_once_with(client, 'NVDA', 0.02, 110.0)
-        trader.alpaca_client.place_stop_limit_sell.assert_called_once_with(client, 'NVDA', 0.02, 95.0)
+        trader.alpaca_client.place_stop_limit_sell.assert_not_called()
 
 
 # ---------------------------------------------------------------------------
@@ -341,6 +344,74 @@ class GetPredictingModelsTests(unittest.TestCase):
     @patch('trader.load_json', return_value={})
     def test_missing_ticker_returns_empty(self, _mock_load_json):
         self.assertEqual(trader.get_predicting_models('ZZZZ', '2026-01-01'), [])
+
+
+# ---------------------------------------------------------------------------
+# run_close end-of-day stop check
+# ---------------------------------------------------------------------------
+
+class RunCloseStopTests(unittest.TestCase):
+
+    def setUp(self):
+        trader.alpaca_client.reset_mock()
+
+    def _held_state(self):
+        # open_orders with a held NVDA that has no resting orders to settle,
+        # plus positions_meta for it. Returned as load_json side_effect inputs.
+        meta = {'NVDA': {'entry_price': 100.0, 'usd_invested': 2.0, 'entry_date': '2026-01-01',
+                         'predicting_models': ['m'], 'consensus_buy_high': 100.0,
+                         'consensus_sell_low': 110.0}}
+        journal = []
+        side_effect = [
+            {'max_per_trade_usd': 2.0, 'max_position_usd': 8.0, 'stop_loss_pct': 0.95},  # config
+            {'NVDA': {'buy_order_id': None, 'sell_order_id': None, 'stop_order_id': None}},  # open_orders
+            meta,        # positions_meta
+            journal,     # journal
+        ]
+        return meta, journal, side_effect
+
+    @patch('trader.time.sleep')
+    @patch('trader.now_et', return_value='2026-01-02T16:05:00-05:00')
+    @patch('trader.today_str', return_value='2026-01-02')
+    @patch('trader.save_json')
+    @patch('trader.load_json')
+    def test_eod_stop_sells_position_below_stop(self, mock_load_json, _save, _today, _now, _sleep):
+        meta, journal, mock_load_json.side_effect = self._held_state()
+        client = MagicMock()
+        trader.alpaca_client.get_trading_client.return_value = client
+        trader.alpaca_client.get_all_recent_orders.return_value = []
+        # 94 < 100 * 0.95 = 95 -> stop triggers
+        trader.alpaca_client.get_position_details.return_value = {
+            'NVDA': {'qty': 0.02, 'current_price': 94.0, 'avg_entry_price': 100.0}
+        }
+
+        trader.run_close(dry_run=False)
+
+        trader.alpaca_client.sell_all.assert_called_once_with(client, 'NVDA')
+        self.assertEqual(len(journal), 1)
+        self.assertEqual(journal[0]['outcome'], 'loss')
+        self.assertNotIn('NVDA', meta)  # position closed out
+
+    @patch('trader.time.sleep')
+    @patch('trader.now_et', return_value='2026-01-02T16:05:00-05:00')
+    @patch('trader.today_str', return_value='2026-01-02')
+    @patch('trader.save_json')
+    @patch('trader.load_json')
+    def test_eod_stop_holds_position_above_stop(self, mock_load_json, _save, _today, _now, _sleep):
+        meta, journal, mock_load_json.side_effect = self._held_state()
+        client = MagicMock()
+        trader.alpaca_client.get_trading_client.return_value = client
+        trader.alpaca_client.get_all_recent_orders.return_value = []
+        # 98 > 95 -> no stop
+        trader.alpaca_client.get_position_details.return_value = {
+            'NVDA': {'qty': 0.02, 'current_price': 98.0, 'avg_entry_price': 100.0}
+        }
+
+        trader.run_close(dry_run=False)
+
+        trader.alpaca_client.sell_all.assert_not_called()
+        self.assertEqual(journal, [])
+        self.assertIn('NVDA', meta)
 
 
 if __name__ == '__main__':
