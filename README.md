@@ -63,36 +63,38 @@ For each ACTIVE ticker:
     qty = min($2, $8 - existing_position) / buy_high
     place DAY limit buy @ buy_high
 
-For each existing position without a sell order:
-  place DAY limit sell @ consensus sell_low
-  place DAY stop-limit sell with stop @ buy_high × 0.95
+For each existing position without a resting sell:
+  place DAY limit sell @ consensus sell_low   (single resting profit-target order)
 ```
 
 **Evening (`trader.py --close`, 4:05 PM ET):**
 ```
 For each tracked buy order:
-  if FILLED  → record entry price; place DAY sell @ sell_low + stop-limit @ buy_high × 0.95
+  if FILLED  → record entry price; place DAY profit-target sell @ sell_low
   if EXPIRED → remove from order state
 
 For each tracked sell order:
-  if FILLED  → cancel companion stop-loss; record P&L; mark closed
+  if FILLED  → record P&L (full or partial); mark closed
   if EXPIRED → clear sell_order_id so --open re-places it next morning
 
-For each tracked stop-loss order:
-  if FILLED  → cancel companion sell; record P&L as loss; mark closed
-  if EXPIRED → clear stop_order_id so --open re-places it next morning
+End-of-day stop check (all still-held positions):
+  if current price ≤ entry_price × stop_loss_pct → market-sell, record the loss
 ```
 
 Alpaca handles execution during the day. No process stays alive between the two jobs.
 
-> **Why DAY, not GTC?** Alpaca does not support GTC orders for fractional share quantities.
-> DAY sell and stop orders are re-placed every morning until the position is exited.
+> **Why one resting order + an EOD stop?** Alpaca supports neither GTC nor
+> bracket/OCO orders for *fractional* shares, and only **one resting sell** can
+> reserve a position's shares at a time. So the profit-target limit is the
+> single resting order, and the stop-loss is enforced at `--close`: any
+> position trading at/below its stop level is market-sold (a DAY limit profit
+> target is re-placed each morning until the position exits).
 
 **Position limits** (configurable in `config/trading.json`):
 - Max $2 per order
 - Max $8 total position per ticker
 - Fractional shares via Alpaca limit orders (qty-based)
-- Stop-loss at `buy_high × stop_loss_pct` (default 0.95 = 5% below entry)
+- Stop-loss at `entry_price × stop_loss_pct` (default 0.95 = 5% below cost), enforced as an end-of-day market sell
 
 ### Feedback loop
 
@@ -135,8 +137,8 @@ Keys are never stored in GitHub Secrets.
 | Workflow | Schedule | What it does |
 |---|---|---|
 | [Nightly Forge](.github/workflows/nightly_forge.yml) | 23:00 UTC weekdays | Runs unit tests → `update_tickers.py` → `forge_loop.py` → validates outputs → refreshes recent walk-forward study → regenerates dashboard → commits state |
-| [Morning Orders](.github/workflows/morning_orders.yml) | 13:30 UTC weekdays (9:30 AM ET) | Places DAY limit buy orders for ACTIVE tickers; re-places DAY sell + stop-loss orders for held positions |
-| [Evening Cleanup](.github/workflows/evening_cleanup.yml) | 20:05 UTC weekdays (4:05 PM ET) | Detects fills, records P&L, cancels companion orders, clears expired orders, refreshes trade attribution, regenerates dashboard |
+| [Morning Orders](.github/workflows/morning_orders.yml) | 13:30 UTC weekdays (9:30 AM ET) | Places DAY limit buy orders for ACTIVE tickers; re-places the DAY profit-target sell for held positions |
+| [Evening Cleanup](.github/workflows/evening_cleanup.yml) | 20:05 UTC weekdays (4:05 PM ET) | Detects fills, records P&L, runs the end-of-day stop check, clears expired orders, refreshes trade attribution, regenerates dashboard |
 | [Rebuild Dashboard](.github/workflows/regenerate_report.yml) | Manual (via Rebuild button) | Regenerates `docs/index.html` from existing data files and commits |
 
 ### Runner registration
@@ -289,18 +291,19 @@ Bridges the morning `--open` job and the evening `--close` job. Schema per ticke
   "NVDA": {
     "buy_order_id": "abc123",
     "sell_order_id": "def456",
-    "stop_order_id": "ghi789",
+    "stop_order_id": null,
     "buy_limit": 890.50,
     "sell_limit": 910.00,
     "stop_limit": 846.00,
     "qty": 0.00225,
     "date": "2025-05-20",
+    "pred_date": "2025-05-19",
     "closed": false
   }
 }
 ```
 
-- `sell_order_id` and `stop_order_id` are companion DAY orders; whichever fills first cancels the other.
+- `sell_order_id` is the single resting profit-target order. The stop-loss is **not** a resting order (`stop_order_id` stays `null`); `stop_limit` records the stop *level* for reference, and the stop is enforced by the end-of-day check in `--close`.
 - `closed: true` is written immediately after `record_sell` to prevent double-recording on crash/retry.
 
 ### state/open_positions_meta.json
