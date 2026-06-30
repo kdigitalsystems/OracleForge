@@ -1,33 +1,33 @@
 {
-    "generated_at": "2026-06-25T20:11:02",
+    "generated_at": "2026-06-30T00:54:05",
     "train_window": 3,
     "test_window": 1,
     "candidate_count": 54,
     "windows": [
         {
             "train_dates": [
-                "2026-06-18",
                 "2026-06-21",
-                "2026-06-23"
-            ],
-            "test_dates": [
+                "2026-06-23",
                 "2026-06-24"
             ],
+            "test_dates": [
+                "2026-06-25"
+            ],
             "selected_params": {
-                "min_upside_pct": 2.0,
+                "min_upside_pct": 1.0,
                 "max_consensus_cv": 0.05,
                 "stop_loss_pct": 0.95,
                 "execution": "limit_stop"
             },
             "train_edge": {
-                "n": 66,
-                "mean": 1.4962,
-                "std": 2.459,
-                "t_stat": 4.943,
-                "ci95_low": 0.9029,
-                "ci95_high": 2.0894,
-                "significant": true,
-                "sample_adequate": true
+                "n": 0,
+                "mean": 0.0,
+                "std": 0.0,
+                "t_stat": null,
+                "ci95_low": null,
+                "ci95_high": null,
+                "significant": false,
+                "sample_adequate": false
             },
             "test_edge": {
                 "n": 0,
@@ -52,12 +52,12 @@
         },
         {
             "train_dates": [
-                "2026-06-21",
                 "2026-06-23",
-                "2026-06-24"
+                "2026-06-24",
+                "2026-06-25"
             ],
             "test_dates": [
-                "2026-06-25"
+                "2026-06-29"
             ],
             "selected_params": {
                 "min_upside_pct": 1.0,
@@ -105,9 +105,9 @@
     },
     "latest_recommendation": {
         "train_dates": [
-            "2026-06-23",
             "2026-06-24",
-            "2026-06-25"
+            "2026-06-25",
+            "2026-06-29"
         ],
         "selected_params": {
             "min_upside_pct": 1.0,
