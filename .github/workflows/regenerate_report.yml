@@ -5,7 +5,8 @@ on:
 
 jobs:
   rebuild:
-    runs-on: self-hosted
+    # Pin to a provisioned machine for consistency with the other jobs.
+    runs-on: [self-hosted, gpu]
     timeout-minutes: 5
 
     permissions:

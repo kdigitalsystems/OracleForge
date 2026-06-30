@@ -9,7 +9,9 @@ on:
 
 jobs:
   open:
-    runs-on: self-hosted
+    # 'gpu' label = fully provisioned machine (also has ~/.ssh/alpaca_paper_keys);
+    # keeps the job off unprovisioned runners like servert130.
+    runs-on: [self-hosted, gpu]
     timeout-minutes: 10
 
     permissions:

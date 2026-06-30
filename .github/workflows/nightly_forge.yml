@@ -11,7 +11,11 @@ on:
 
 jobs:
   execute_loop:
-    runs-on: self-hosted
+    # Require the 'gpu' label so the job only lands on a fully provisioned
+    # machine (Ollama + models + ~/.ssh/alpaca_paper_keys). Unprovisioned
+    # runners (e.g. servert130) lack the label and are skipped, so jobs queue
+    # for a good machine instead of failing at Start Ollama / Verify Alpaca.
+    runs-on: [self-hosted, gpu]
     timeout-minutes: 720
 
     permissions:
