@@ -355,15 +355,16 @@ class RunCloseStopTests(unittest.TestCase):
     def setUp(self):
         trader.alpaca_client.reset_mock()
 
-    def _held_state(self):
+    def _held_state(self, entry_date='2026-01-01', max_hold_days=15):
         # open_orders with a held NVDA that has no resting orders to settle,
         # plus positions_meta for it. Returned as load_json side_effect inputs.
-        meta = {'NVDA': {'entry_price': 100.0, 'usd_invested': 2.0, 'entry_date': '2026-01-01',
+        meta = {'NVDA': {'entry_price': 100.0, 'usd_invested': 2.0, 'entry_date': entry_date,
                          'predicting_models': ['m'], 'consensus_buy_high': 100.0,
                          'consensus_sell_low': 110.0}}
         journal = []
         side_effect = [
-            {'max_per_trade_usd': 2.0, 'max_position_usd': 8.0, 'stop_loss_pct': 0.95},  # config
+            {'max_per_trade_usd': 2.0, 'max_position_usd': 8.0, 'stop_loss_pct': 0.95,
+             'max_hold_days': max_hold_days},  # config
             {'NVDA': {'buy_order_id': None, 'sell_order_id': None, 'stop_order_id': None}},  # open_orders
             meta,        # positions_meta
             journal,     # journal
@@ -405,6 +406,49 @@ class RunCloseStopTests(unittest.TestCase):
         # 98 > 95 -> no stop
         trader.alpaca_client.get_position_details.return_value = {
             'NVDA': {'qty': 0.02, 'current_price': 98.0, 'avg_entry_price': 100.0}
+        }
+
+        trader.run_close(dry_run=False)
+
+        trader.alpaca_client.sell_all.assert_not_called()
+        self.assertEqual(journal, [])
+        self.assertIn('NVDA', meta)
+
+    @patch('trader.time.sleep')
+    @patch('trader.now_et', return_value='2026-01-20T16:05:00-05:00')
+    @patch('trader.today_str', return_value='2026-01-20')
+    @patch('trader.save_json')
+    @patch('trader.load_json')
+    def test_max_hold_days_force_closes_stale_position(self, mock_load_json, _save, _today, _now, _sleep):
+        # Entered 2026-01-01, closing 2026-01-20 -> held 19 days >= default max of 15.
+        meta, journal, mock_load_json.side_effect = self._held_state(entry_date='2026-01-01')
+        client = MagicMock()
+        trader.alpaca_client.get_trading_client.return_value = client
+        trader.alpaca_client.get_all_recent_orders.return_value = []
+        # Price is between stop (95) and target (110) -- no stop, no fill, just stale.
+        trader.alpaca_client.get_position_details.return_value = {
+            'NVDA': {'qty': 0.02, 'current_price': 102.0, 'avg_entry_price': 100.0}
+        }
+
+        trader.run_close(dry_run=False)
+
+        trader.alpaca_client.sell_all.assert_called_once_with(client, 'NVDA')
+        self.assertEqual(len(journal), 1)
+        self.assertNotIn('NVDA', meta)
+
+    @patch('trader.time.sleep')
+    @patch('trader.now_et', return_value='2026-01-10T16:05:00-05:00')
+    @patch('trader.today_str', return_value='2026-01-10')
+    @patch('trader.save_json')
+    @patch('trader.load_json')
+    def test_holds_position_under_max_hold_days(self, mock_load_json, _save, _today, _now, _sleep):
+        # Entered 2026-01-01, closing 2026-01-10 -> held 9 days < default max of 15.
+        meta, journal, mock_load_json.side_effect = self._held_state(entry_date='2026-01-01')
+        client = MagicMock()
+        trader.alpaca_client.get_trading_client.return_value = client
+        trader.alpaca_client.get_all_recent_orders.return_value = []
+        trader.alpaca_client.get_position_details.return_value = {
+            'NVDA': {'qty': 0.02, 'current_price': 102.0, 'avg_entry_price': 100.0}
         }
 
         trader.run_close(dry_run=False)

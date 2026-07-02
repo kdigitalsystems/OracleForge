@@ -79,6 +79,7 @@ For each tracked sell order:
 
 End-of-day stop check (all still-held positions):
   if current price ≤ entry_price × stop_loss_pct → market-sell, record the loss
+  elif held ≥ max_hold_days without hitting target or stop → market-sell (stale position)
 ```
 
 Alpaca handles execution during the day. No process stays alive between the two jobs.
@@ -95,6 +96,7 @@ Alpaca handles execution during the day. No process stays alive between the two 
 - Max $8 total position per ticker
 - Fractional shares via Alpaca limit orders (qty-based)
 - Stop-loss at `entry_price × stop_loss_pct` (default 0.95 = 5% below cost), enforced as an end-of-day market sell
+- Max hold time of `max_hold_days` (default 15 trading-calendar days); positions that hit neither the profit target nor the stop are force-closed at market to free up capital for fresh setups
 
 ### Feedback loop
 
@@ -248,7 +250,7 @@ python3 backtest.py --attribution
 |---|---|---|
 | `config/tickers.json` | Active watchlist (built by `update_tickers.py`) | — |
 | `config/universe.json` | Ticker filter thresholds | `min_price`, `min_avg_daily_volume`, `max_daily_volatility_pct`, `max_tickers` |
-| `config/trading.json` | Position limits and risk settings | `max_per_trade_usd` (2.0), `max_position_usd` (8.0), `stop_loss_pct` (0.95), `score_decay_per_day` (0.99), `trade_score_scale` (0.02), `trade_score_cap` (0.10) |
+| `config/trading.json` | Position limits and risk settings | `max_per_trade_usd` (2.0), `max_position_usd` (8.0), `stop_loss_pct` (0.95), `max_hold_days` (15), `score_decay_per_day` (0.99), `trade_score_scale` (0.02), `trade_score_cap` (0.10) |
 | `config/signals.json` | Signal classification thresholds | `min_upside_pct` (1.5), `max_spread_pct` (3.0), `min_agreeing_models` (2), `max_consensus_cv` (0.10) |
 | `config/models.json` | Model list (Ollama model IDs) | Never overwritten by automation |
 | `state/analyst_scores.json` | Model scores — add/remove models here | 0.0–10.0 per model, initialised at 5.0 |
@@ -260,6 +262,7 @@ python3 backtest.py --attribution
     "max_per_trade_usd": 2.0,
     "max_position_usd": 8.0,
     "stop_loss_pct": 0.95,
+    "max_hold_days": 15,
     "score_decay_per_day": 0.99,
     "trade_score_scale": 0.02,
     "trade_score_cap": 0.10

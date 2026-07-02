@@ -48,6 +48,7 @@ DEFAULT_TRADING_CONFIG = {
     'max_per_trade_usd': 2.0,
     'max_position_usd': 8.0,
     'stop_loss_pct': 0.95,
+    'max_hold_days': 15,
 }
 
 FILLED_STATUSES = {'filled', 'partially_filled'}
@@ -344,6 +345,7 @@ def run_open(dry_run: bool = False) -> None:
 def run_close(dry_run: bool = False) -> None:
     cfg = load_trading_config()
     stop_loss_pct = float(cfg.get('stop_loss_pct', 0.95))
+    max_hold_days = int(cfg.get('max_hold_days', 15))
 
     client = None if dry_run else alpaca_client.get_trading_client()
     today = today_str()
@@ -555,18 +557,26 @@ def run_close(dry_run: bool = False) -> None:
                     else:
                         log(f"{ticker}: stop order still pending (status={status})")
 
-    # --- End-of-day stop check ---------------------------------------------
+    # --- End-of-day stop check + max-hold-time exit -------------------------
     # Alpaca allows only one resting sell per fractional position (the
     # profit-target reserves all shares), so the stop can't be a resting order.
     # Enforce it here: any still-held position trading at/below
     # entry_price * stop_loss_pct is market-sold to cap the loss.
+    #
+    # Separately, a position that hits neither the profit target nor the stop
+    # for max_hold_days is dead capital — it isn't confirming or denying the
+    # original signal, just tying up buying power. Force-close it too so the
+    # capital can be redeployed into a fresh setup.
     stopped = 0
+    timed_out = 0
     if not dry_run and positions_meta:
         try:
             details = alpaca_client.get_position_details(client)
         except Exception as e:
             details = {}
             print(f"  [!] Could not fetch positions for stop check: {e}")
+
+        today_date = datetime.strptime(today, '%Y-%m-%d').date()
 
         for ticker in list(positions_meta.keys()):
             if ticker in settled:
@@ -575,12 +585,25 @@ def run_close(dry_run: bool = False) -> None:
             pos = details.get(ticker)
             if not pos or pos['qty'] <= 0:
                 continue
-            entry_price = float(meta.get('entry_price') or 0)
-            if entry_price <= 0:
-                continue
-            stop_level = round(entry_price * stop_loss_pct, 4)
             price = pos['current_price']
-            if price > stop_level:
+
+            reason = None
+            is_stop = False
+            entry_price = float(meta.get('entry_price') or 0)
+            if entry_price > 0:
+                stop_level = round(entry_price * stop_loss_pct, 4)
+                if price <= stop_level:
+                    reason = f"${price:.2f} <= stop ${stop_level:.2f}"
+                    is_stop = True
+
+            if reason is None:
+                entry_date_str = meta.get('entry_date')
+                if entry_date_str:
+                    held_days = (today_date - datetime.strptime(entry_date_str, '%Y-%m-%d').date()).days
+                    if held_days >= max_hold_days:
+                        reason = f"held {held_days}d >= max {max_hold_days}d"
+
+            if reason is None:
                 continue
 
             # Free the shares (cancel any resting profit-target sell), then
@@ -594,17 +617,21 @@ def run_close(dry_run: bool = False) -> None:
                 usd_returned = round(price * pos['qty'], 4)
                 trade = record_sell(positions_meta, journal, ticker, price, usd_returned, today)
                 if trade:
+                    label = 'EOD STOP' if is_stop else 'MAX HOLD'
                     log(
-                        f"EOD STOP {ticker}: ${price:.2f} <= stop ${stop_level:.2f} → "
+                        f"{label} {ticker}: {reason} → "
                         f"market-sold, P&L ${trade['pnl_usd']:+.4f} ({trade['pnl_pct']:+.2f}%)"
                     )
                 if oo:
                     oo['closed'] = True
                 to_delete.append(ticker)
-                stopped += 1
+                if is_stop:
+                    stopped += 1
+                else:
+                    timed_out += 1
                 time.sleep(ORDER_SUBMIT_DELAY)
             except Exception as e:
-                log(f"[!] EOD stop sell failed for {ticker}: {e}")
+                log(f"[!] Force-sell failed for {ticker}: {e}")
 
     for ticker in set(to_delete):
         open_orders.pop(ticker, None)
@@ -613,7 +640,10 @@ def run_close(dry_run: bool = False) -> None:
         save_json(OPEN_ORDERS_FILE, open_orders)
 
     closed = len(set(to_delete))
-    print(f"\nDone. {closed} position(s) closed ({stopped} via end-of-day stop).")
+    print(
+        f"\nDone. {closed} position(s) closed "
+        f"({stopped} via end-of-day stop, {timed_out} via max-hold timeout)."
+    )
 
 
 # ---------------------------------------------------------------------------
