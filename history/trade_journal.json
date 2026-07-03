@@ -4413,5 +4413,96 @@
         ],
         "consensus_buy_high": 55.22,
         "consensus_sell_low": 56.05
+    },
+    {
+        "close_date": "2026-07-03",
+        "ticker": "PYPL",
+        "entry_date": "2026-05-21",
+        "entry_price": 44.07800000000001,
+        "exit_price": 45.47,
+        "usd_invested": 0.0,
+        "usd_returned": 0.0,
+        "pnl_usd": 0.0,
+        "pnl_pct": 0.0,
+        "outcome": "loss",
+        "predicting_models": [
+            "llama3.1:8b-instruct-q8_0",
+            "gemma4",
+            "mistral-nemo"
+        ],
+        "consensus_buy_high": 44.1,
+        "consensus_sell_low": 45.17
+    },
+    {
+        "close_date": "2026-07-03",
+        "ticker": "CRBG",
+        "entry_date": "2026-06-18",
+        "entry_price": 29.088,
+        "exit_price": 29.76,
+        "usd_invested": 1.9999,
+        "usd_returned": 2.0461,
+        "pnl_usd": 0.0462,
+        "pnl_pct": 2.31,
+        "outcome": "win",
+        "predicting_models": [
+            "llama3.1:8b-instruct-q8_0",
+            "qwen2.5:14b-instruct-q4_K_M"
+        ],
+        "consensus_buy_high": 29.09,
+        "consensus_sell_low": 29.82
+    },
+    {
+        "close_date": "2026-07-03",
+        "ticker": "GOOGL",
+        "entry_date": "2026-06-18",
+        "entry_price": 358.074,
+        "exit_price": 359.91,
+        "usd_invested": 1.968,
+        "usd_returned": 1.9781,
+        "pnl_usd": 0.0101,
+        "pnl_pct": 0.51,
+        "outcome": "win",
+        "predicting_models": [
+            "llama3.1:8b-instruct-q8_0",
+            "qwen2.5:14b-instruct-q4_K_M"
+        ],
+        "consensus_buy_high": 363.92,
+        "consensus_sell_low": 372.59
+    },
+    {
+        "close_date": "2026-07-03",
+        "ticker": "GOOG",
+        "entry_date": "2026-06-18",
+        "entry_price": 357.3,
+        "exit_price": 356.18,
+        "usd_invested": 1.9634,
+        "usd_returned": 1.9572,
+        "pnl_usd": -0.0062,
+        "pnl_pct": -0.32,
+        "outcome": "loss",
+        "predicting_models": [
+            "llama3.1:8b-instruct-q8_0",
+            "qwen2.5:14b-instruct-q4_K_M"
+        ],
+        "consensus_buy_high": 363.97,
+        "consensus_sell_low": 371.19
+    },
+    {
+        "close_date": "2026-07-03",
+        "ticker": "BN",
+        "entry_date": "2026-06-18",
+        "entry_price": 44.318,
+        "exit_price": 43.43,
+        "usd_invested": 1.9999,
+        "usd_returned": 1.9598,
+        "pnl_usd": -0.0401,
+        "pnl_pct": -2.01,
+        "outcome": "loss",
+        "predicting_models": [
+            "llama3.1:8b-instruct-q8_0",
+            "qwen2.5:14b-instruct-q4_K_M"
+        ],
+        "consensus_buy_high": 44.32,
+        "consensus_sell_low": 45.05
     }
 ]
