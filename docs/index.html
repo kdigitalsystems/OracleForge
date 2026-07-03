@@ -56,7 +56,7 @@
       <div class="flex items-center gap-3 shrink-0">
         <div class="text-right hidden sm:block">
           <div class="text-xs font-medium text-gray-700">Last built</div>
-          <div class="text-xs text-gray-400" id="build-time-rel" title="Jul 02, 2026  21:19 UTC">Jul 02, 2026  21:19 UTC</div>
+          <div class="text-xs text-gray-400" id="build-time-rel" title="Jul 03, 2026  01:21 UTC">Jul 03, 2026  01:21 UTC</div>
         </div>
         <button id="rebuild-btn" onclick="onRebuildClick()"
           class="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg transition-colors">
@@ -86,8 +86,8 @@
 
     <div id="pane-signals">
 <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 mb-6">
-  <h2 class="text-lg font-semibold text-gray-900">Signals — 2026-07-01</h2>
-  <p class="text-sm text-gray-500 mt-0.5">Generated at 2026-07-02T01:26:01</p>
+  <h2 class="text-lg font-semibold text-gray-900">Signals — 2026-07-02</h2>
+  <p class="text-sm text-gray-500 mt-0.5">Generated at 2026-07-03T01:19:22</p>
   <div class="mt-4">
 <div class="grid grid-cols-4 gap-3 mb-5">
   
@@ -262,23 +262,23 @@ new Chart(document.getElementById("pnlChart"), {
   <p class="text-sm text-gray-500 mt-0.5">Scores range 0–10. Updated nightly by OHLC feedback loop.</p>
   <div class="mt-4">
 <div class="flex items-center gap-3 mb-2">
-  <span class="text-sm text-gray-700 w-56 truncate" title="qwen2.5:14b-instruct-q4_K_M">qwen2.5:14b-instruct-q4_K_M</span>
+  <span class="text-sm text-gray-700 w-56 truncate" title="deepseek-r1:8b">deepseek-r1:8b</span>
   <div class="flex-1 bg-gray-100 rounded-full h-4">
-    <div class="bg-yellow-400 h-4 rounded-full transition-all" style="width:44.9%"></div>
+    <div class="bg-yellow-400 h-4 rounded-full transition-all" style="width:44.8%"></div>
   </div>
   <span class="text-sm font-semibold text-gray-800 w-10 text-right">4.5</span>
 </div>
 <div class="flex items-center gap-3 mb-2">
-  <span class="text-sm text-gray-700 w-56 truncate" title="deepseek-r1:8b">deepseek-r1:8b</span>
+  <span class="text-sm text-gray-700 w-56 truncate" title="qwen2.5:14b-instruct-q4_K_M">qwen2.5:14b-instruct-q4_K_M</span>
   <div class="flex-1 bg-gray-100 rounded-full h-4">
-    <div class="bg-yellow-400 h-4 rounded-full transition-all" style="width:44.5%"></div>
+    <div class="bg-yellow-400 h-4 rounded-full transition-all" style="width:44.6%"></div>
   </div>
-  <span class="text-sm font-semibold text-gray-800 w-10 text-right">4.4</span>
+  <span class="text-sm font-semibold text-gray-800 w-10 text-right">4.5</span>
 </div>
 <div class="flex items-center gap-3 mb-2">
   <span class="text-sm text-gray-700 w-56 truncate" title="llama3.1:8b-instruct-q8_0">llama3.1:8b-instruct-q8_0</span>
   <div class="flex-1 bg-gray-100 rounded-full h-4">
-    <div class="bg-yellow-400 h-4 rounded-full transition-all" style="width:42.1%"></div>
+    <div class="bg-yellow-400 h-4 rounded-full transition-all" style="width:41.8%"></div>
   </div>
   <span class="text-sm font-semibold text-gray-800 w-10 text-right">4.2</span>
 </div></div>
@@ -303,7 +303,7 @@ new Chart(document.getElementById("pnlChart"), {
 
     // ── Relative build time ────────────────────────────────────────────────
     (function() {
-      const built = new Date('2026-07-02T21:19:34Z');
+      const built = new Date('2026-07-03T01:21:22Z');
       function relTime() {
         const diff = Math.floor((Date.now() - built) / 1000);
         if (diff < 60)  return diff + 's ago';
