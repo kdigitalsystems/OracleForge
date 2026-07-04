@@ -4,15 +4,18 @@ Build the overnight watchlist from Alpaca's full US equity universe.
 
 Filtering pipeline:
   1. All active, tradable, fractionable US equities from Alpaca (~2-4k symbols)
-  2. Pre-filter: latest price >= min_price AND avg daily volume >= min_avg_daily_volume
-  3. Volatility filter: 20-day daily return std dev <= max_daily_volatility_pct
-  4. Sort by avg daily volume (most liquid first), take top max_tickers
+  2. Drop leveraged/inverse/VIX-futures funds by name (structural decay, not
+     suited to a multi-day swing hold with symmetric risk/reward assumptions)
+  3. Pre-filter: latest price >= min_price AND avg daily volume >= min_avg_daily_volume
+  4. Volatility filter: 20-day daily return std dev <= max_daily_volatility_pct
+  5. Sort by avg daily volume (most liquid first), take top max_tickers
 """
 from __future__ import annotations
 
 import argparse
 import json
 import os
+import re
 import statistics
 import sys
 import time
@@ -40,6 +43,36 @@ DEFAULT_CONFIG = {
 BATCH_SIZE = 200
 BATCH_SLEEP = 0.3
 
+# Leveraged/inverse funds and VIX-futures products decay structurally over
+# time (daily rebalancing drag, contango) and don't behave like normal
+# equities on a multi-day swing hold -- they're excluded by fund name rather
+# than ticker so new products launched later are still caught.
+LEVERAGED_NAME_PATTERN = re.compile(
+    r'\bvix\b|\bultra(short|pro)?\b|\bleveraged\b|\binverse\b|\bdaily target\b'
+    r'|\b\d(\.\d)?x\b',
+    re.IGNORECASE,
+)
+LEVERAGED_ISSUER_PATTERN = re.compile(
+    r'\bproshares\b|\bdirexion\b|\bgraniteshares\b|\bvolatility shares\b'
+    r'|\bt-rex\b|\btradr\b|\brex shares\b|\bmicrosectors\b|\bdefiance daily\b',
+    re.IGNORECASE,
+)
+
+
+def is_leveraged_or_inverse(name: str) -> bool:
+    """Heuristic: fund name mentions leverage/inverse/VIX, or a known
+    leveraged-fund issuer combined with a directional keyword (e.g.
+    "ProShares Short S&P500")."""
+    if not name:
+        return False
+    if LEVERAGED_NAME_PATTERN.search(name):
+        return True
+    if LEVERAGED_ISSUER_PATTERN.search(name) and re.search(
+        r'\bshort\b|\bbull\b|\bbear\b|\blong\b', name, re.IGNORECASE
+    ):
+        return True
+    return False
+
 
 def load_universe_config() -> dict:
     if os.path.exists(UNIVERSE_CONFIG_FILE):
@@ -57,8 +90,11 @@ def get_tradable_symbols(trading_client) -> list[str]:
             status=AssetStatus.ACTIVE,
         )
     )
-    symbols = [a.symbol for a in assets if a.tradable and a.fractionable]
-    print(f'  {len(symbols):,} active tradable fractionable US equity assets found')
+    tradable = [a for a in assets if a.tradable and a.fractionable]
+    symbols = [a.symbol for a in tradable if not is_leveraged_or_inverse(getattr(a, 'name', ''))]
+    excluded = len(tradable) - len(symbols)
+    print(f'  {len(tradable):,} active tradable fractionable US equity assets found '
+          f'({excluded:,} excluded as leveraged/inverse/VIX-futures)')
     return symbols
 
 

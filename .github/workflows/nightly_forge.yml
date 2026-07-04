@@ -40,7 +40,7 @@ jobs:
           pip install -r requirements.txt
 
       - name: Run Unit Tests
-        run: python3 -m unittest test_signals test_backtest test_forge test_trader test_alpaca_client -v
+        run: python3 -m unittest test_signals test_backtest test_forge test_trader test_alpaca_client test_update_tickers -v
 
       - name: Start Ollama
         run: |

@@ -52,7 +52,7 @@ Each night, local Ollama models independently analyse every ticker on the watchl
 7. **Score decay** — model scores decay by 0.99× per day before each update, so recent performance carries more weight than distant history.
 8. **Persist** — saves enriched predictions to `history/predictions_YYYY-MM-DD.json`, signals report to `reports/signals_YYYY-MM-DD.json`, updated model scores to `state/analyst_scores.json`.
 
-> **Staged & resumable:** a full run is long (one LLM call per model per ticker; ~5h for ~150 tickers × 3 models — that total is inherent to serial local-LLM inference and staging chunks it, it doesn't parallelize it). `forge_loop.py` checkpoints predictions/signals to disk every `--batch-size` tickers (default 25; resume granularity) and, with `--push`, commits + pushes every `--push-every` tickers (a "stage"). The CI nightly uses `--batch-size 10 --push-every 100`: it saves every 10 tickers but pushes after ~100, so it processes ~100 tickers, pushes, processes the next ~100, and so on — few commits, yet a crash only re-runs the unfinished tickers. The model-score update is computed once per day (first batch); resumed invocations skip it.
+> **Staged & resumable:** a full run is long (one LLM call per model per ticker; hours for ~150 tickers × N models in `config/models.json` — that total is inherent to serial local-LLM inference and staging chunks it, it doesn't parallelize it). `forge_loop.py` checkpoints predictions/signals to disk every `--batch-size` tickers (default 25; resume granularity) and, with `--push`, commits + pushes every `--push-every` tickers (a "stage"). The CI nightly uses `--batch-size 10 --push-every 100`: it saves every 10 tickers but pushes after ~100, so it processes ~100 tickers, pushes, processes the next ~100, and so on — few commits, yet a crash only re-runs the unfinished tickers. The model-score update is computed once per day (first batch); resumed invocations skip it.
 
 ### Daytime (trader.py — two short jobs, no polling)
 
@@ -112,12 +112,12 @@ Every closed trade feeds back into the next night's run:
 ```bash
 pip install -r requirements.txt
 
-# Pull Ollama models
-ollama pull llama3.1:8b-instruct-q8_0
+# Pull Ollama models (config/models.json is the source of truth)
 ollama pull qwen2.5:14b-instruct-q4_K_M
 ollama pull deepseek-r1:8b
 
-# Build ticker watchlist (top 200 liquid, low-volatility US equities)
+# Build ticker watchlist (top 200 liquid, low-volatility US equities,
+# excluding leveraged/inverse/VIX-futures funds)
 python3 update_tickers.py
 
 # Run overnight analysis (or test with a small list)
