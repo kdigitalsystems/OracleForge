@@ -1,10 +1,11 @@
 name: Retry Failed Workflows
 
-# Watchdog: periodically re-runs the failed jobs of recent workflow runs. Runs
-# on a GitHub-hosted runner on purpose, so it stays up even when the
-# self-hosted machines (server1, etc.) are down — which is exactly when the
-# OracleForge workflows tend to fail mid-run. forge_loop is resumable, so a
-# re-run continues from the last pushed batch rather than starting over.
+# Watchdog: periodically re-runs the failed jobs of recent workflow runs.
+# Runs on self-hosted (gpu) like the other workflows. Note: if the
+# gpu-labeled machine itself is down, this watchdog is down too and won't
+# retry anything until it's back — there is no longer a runner outside the
+# self-hosted pool to catch that case. forge_loop is resumable, so a re-run
+# continues from the last pushed batch rather than starting over.
 
 on:
   schedule:
@@ -29,7 +30,7 @@ concurrency:
 jobs:
   retry-failures:
     name: Check and retry failed runs
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, gpu]
     permissions:
       contents: read
       actions: write   # Needed to re-trigger runs
