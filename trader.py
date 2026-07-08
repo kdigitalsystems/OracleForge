@@ -402,6 +402,18 @@ def run_close(dry_run: bool = False) -> None:
                         fill_qty = _filled_qty(order, entry['qty'])
                         usd_filled = round(fill_price * fill_qty, 4)
 
+                        # Clear and persist buy_order_id BEFORE recording the
+                        # fill: record_buy is not idempotent (it accumulates
+                        # into usd_invested), so if a crash/retry (e.g. from
+                        # retry_failed.yml re-running this job) lands between
+                        # the two steps, the durable state must already show
+                        # "handled" -- otherwise the retry re-reads the same
+                        # buy_order_id, sees it still filled, and double-counts
+                        # the same real fill into the tracked cost basis while
+                        # Alpaca's real share count doesn't change to match.
+                        entry['buy_order_id'] = None
+                        save_json(OPEN_ORDERS_FILE, open_orders)
+
                         # Use the signals/predictions date (not the placement day)
                         # so predicting_models resolves against the right file.
                         pred_date = entry.get('pred_date') or entry.get('date', today)
@@ -411,11 +423,6 @@ def run_close(dry_run: bool = False) -> None:
                             entry['buy_limit'], entry['sell_limit'],
                         )
                         log(f"BUY FILLED {ticker}: {fill_qty} shares @ ${fill_price:.2f} (${usd_filled:.2f})")
-
-                        # Clear buy_order_id before placing sell/stop — prevents
-                        # double-recording if the process crashes and retries.
-                        entry['buy_order_id'] = None
-                        save_json(OPEN_ORDERS_FILE, open_orders)
 
                         # P0 fix: use TOTAL held qty, not just this fill's qty.
                         # A position may have been pyramided over multiple days.
@@ -614,7 +621,22 @@ def run_close(dry_run: bool = False) -> None:
                 oo['sell_order_id'] = None
             try:
                 alpaca_client.sell_all(client, ticker)
-                usd_returned = round(price * pos['qty'], 4)
+
+                # Alpaca's real held qty can drift from what our state file
+                # believes was bought (e.g. a duplicate buy from a workflow
+                # retry that filled before the crash that triggered the
+                # retry). Cap the recorded return to the tracked cost basis
+                # so a desynced qty can't fabricate a P&L swing -- flag it
+                # instead of inventing profit (or an inflated loss) from it.
+                implied_qty = (meta.get('usd_invested', 0) / entry_price) if entry_price > 0 else pos['qty']
+                qty_for_pnl = min(pos['qty'], implied_qty) if implied_qty > 0 else pos['qty']
+                if abs(qty_for_pnl - pos['qty']) > 1e-6:
+                    log(
+                        f"  [!] {ticker}: real qty {pos['qty']:.6f} != tracked qty "
+                        f"{implied_qty:.6f} -- position desynced from Alpaca; "
+                        f"P&L recorded for the tracked portion only"
+                    )
+                usd_returned = round(price * qty_for_pnl, 4)
                 trade = record_sell(positions_meta, journal, ticker, price, usd_returned, today)
                 if trade:
                     label = 'EOD STOP' if is_stop else 'MAX HOLD'

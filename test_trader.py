@@ -415,6 +415,56 @@ class RunCloseStopTests(unittest.TestCase):
         self.assertIn('NVDA', meta)
 
     @patch('trader.time.sleep')
+    @patch('trader.now_et', return_value='2026-01-02T16:05:00-05:00')
+    @patch('trader.today_str', return_value='2026-01-02')
+    @patch('trader.save_json')
+    @patch('trader.load_json')
+    def test_eod_stop_caps_return_when_real_qty_exceeds_tracked(self, mock_load_json, _save, _today, _now, _sleep):
+        # Tracked: 0.02 shares (usd_invested 2.0 / entry_price 100.0). Alpaca
+        # actually holds 0.06 (e.g. a duplicate buy from a workflow retry) --
+        # the extra 0.04 must not be counted as profit.
+        meta, journal, mock_load_json.side_effect = self._held_state()
+        client = MagicMock()
+        trader.alpaca_client.get_trading_client.return_value = client
+        trader.alpaca_client.get_all_recent_orders.return_value = []
+        trader.alpaca_client.get_position_details.return_value = {
+            'NVDA': {'qty': 0.06, 'current_price': 94.0, 'avg_entry_price': 100.0}
+        }
+
+        trader.run_close(dry_run=False)
+
+        trader.alpaca_client.sell_all.assert_called_once_with(client, 'NVDA')
+        self.assertEqual(len(journal), 1)
+        # Capped to the tracked 0.02 shares, not the real 0.06.
+        self.assertEqual(journal[0]['usd_returned'], round(94.0 * 0.02, 4))
+        self.assertAlmostEqual(journal[0]['pnl_usd'], round(94.0 * 0.02, 4) - 2.0, places=4)
+        self.assertNotIn('NVDA', meta)
+
+    @patch('trader.time.sleep')
+    @patch('trader.now_et', return_value='2026-01-02T16:05:00-05:00')
+    @patch('trader.today_str', return_value='2026-01-02')
+    @patch('trader.save_json')
+    @patch('trader.load_json')
+    def test_eod_stop_caps_return_when_real_qty_below_tracked(self, mock_load_json, _save, _today, _now, _sleep):
+        # Tracked: 0.02 shares. Alpaca actually only holds 0.0066667 (a third)
+        # -- the tracked cost basis is treated as fully at risk since the
+        # missing shares can't be recovered, rather than being papered over.
+        meta, journal, mock_load_json.side_effect = self._held_state()
+        client = MagicMock()
+        trader.alpaca_client.get_trading_client.return_value = client
+        trader.alpaca_client.get_all_recent_orders.return_value = []
+        trader.alpaca_client.get_position_details.return_value = {
+            'NVDA': {'qty': 0.0066667, 'current_price': 94.0, 'avg_entry_price': 100.0}
+        }
+
+        trader.run_close(dry_run=False)
+
+        trader.alpaca_client.sell_all.assert_called_once_with(client, 'NVDA')
+        self.assertEqual(len(journal), 1)
+        self.assertEqual(journal[0]['usd_returned'], round(94.0 * 0.0066667, 4))
+        self.assertNotIn('NVDA', meta)
+
+    @patch('trader.time.sleep')
     @patch('trader.now_et', return_value='2026-01-20T16:05:00-05:00')
     @patch('trader.today_str', return_value='2026-01-20')
     @patch('trader.save_json')
