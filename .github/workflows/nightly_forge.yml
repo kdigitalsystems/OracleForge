@@ -95,6 +95,56 @@ jobs:
           echo "Installed models:"
           curl -s http://localhost:11434/api/tags
 
+      - name: Ensure required Ollama models are pulled
+        run: |
+          # The Ollama service being up doesn't mean the models config/models.json
+          # asks for are actually present under those exact tags -- this runner
+          # pool is shared across other repos, and a model set drifting out from
+          # under us here fails *silently*: forge_loop's LLM calls 404, exhaust
+          # their retries, and fall back to a synthetic placeholder range that's
+          # excluded from consensus. Every ticker gets skipped, but the job still
+          # exits 0 -- there's nothing here that raises, so CI stays green while
+          # the forge produces zero real signals. (This exact silent failure ran
+          # for three weeks before anyone noticed.) Actively pull -- not just
+          # check -- each required model so a drifted/pruned model can't
+          # reproduce it, then hard-fail if any are still missing afterward.
+          OLLAMA=$(command -v ollama 2>/dev/null \
+            || ls /usr/local/bin/ollama /usr/bin/ollama /bin/ollama \
+                  "$HOME/.local/bin/ollama" /snap/bin/ollama 2>/dev/null | head -1)
+          if [ -z "$OLLAMA" ]; then
+            echo "ERROR: ollama binary not found on PATH or common install locations."
+            exit 1
+          fi
+
+          models=$(python3 -c "import json; print('\n'.join(json.load(open('config/models.json'))))")
+          echo "Required models:"
+          echo "$models"
+
+          missing=()
+          while IFS= read -r m; do
+            [ -z "$m" ] && continue
+            echo "Pulling $m ..."
+            "$OLLAMA" pull "$m" || echo "  [!] pull failed for $m"
+          done <<< "$models"
+
+          installed=$(curl -s http://localhost:11434/api/tags)
+          while IFS= read -r m; do
+            [ -z "$m" ] && continue
+            if ! echo "$installed" | python3 -c "
+          import json, sys
+          tags = {t['name'] for t in json.load(sys.stdin).get('models', [])}
+          sys.exit(0 if '$m' in tags else 1)
+          "; then
+              missing+=("$m")
+            fi
+          done <<< "$models"
+
+          if [ "${#missing[@]}" -gt 0 ]; then
+            echo "ERROR: model(s) still missing after pull: ${missing[*]}"
+            exit 1
+          fi
+          echo "All required models confirmed present."
+
       - name: Build ticker universe from Alpaca
         run: python3 update_tickers.py
 

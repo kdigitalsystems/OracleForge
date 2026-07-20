@@ -576,6 +576,7 @@ def run_close(dry_run: bool = False) -> None:
     # capital can be redeployed into a fresh setup.
     stopped = 0
     timed_out = 0
+    orphaned = 0
     if not dry_run and positions_meta:
         try:
             details = alpaca_client.get_position_details(client)
@@ -591,6 +592,29 @@ def run_close(dry_run: bool = False) -> None:
             meta = positions_meta[ticker]
             pos = details.get(ticker)
             if not pos or pos['qty'] <= 0:
+                # Alpaca shows no real shares for a position we still track as
+                # held. Left alone this blocks forever, since every exit path
+                # here requires a real position to act on -- if it's been this
+                # way past max_hold_days, it's a ghost entry (shares already
+                # left the account via some out-of-band path without our state
+                # file being updated), not a transient API hiccup. Flag it for
+                # manual reconciliation instead of tracking it as held forever.
+                entry_date_str = meta.get('entry_date')
+                if entry_date_str:
+                    held_days = (today_date - datetime.strptime(entry_date_str, '%Y-%m-%d').date()).days
+                    if held_days >= max_hold_days:
+                        log(
+                            f"  [!] {ticker}: tracked as held (${meta.get('usd_invested', 0):.2f} "
+                            f"invested, {held_days}d) but Alpaca shows no real position -- "
+                            f"removing from tracking. Investigate manually; no P&L recorded "
+                            f"since the true outcome of this capital is unknown."
+                        )
+                        positions_meta.pop(ticker, None)
+                        oo = open_orders.get(ticker)
+                        if oo:
+                            oo['closed'] = True
+                        to_delete.append(ticker)
+                        orphaned += 1
                 continue
             price = pos['current_price']
 
@@ -664,7 +688,8 @@ def run_close(dry_run: bool = False) -> None:
     closed = len(set(to_delete))
     print(
         f"\nDone. {closed} position(s) closed "
-        f"({stopped} via end-of-day stop, {timed_out} via max-hold timeout)."
+        f"({stopped} via end-of-day stop, {timed_out} via max-hold timeout, "
+        f"{orphaned} orphaned/untracked from Alpaca)."
     )
 
 

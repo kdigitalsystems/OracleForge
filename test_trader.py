@@ -507,6 +507,52 @@ class RunCloseStopTests(unittest.TestCase):
         self.assertEqual(journal, [])
         self.assertIn('NVDA', meta)
 
+    @patch('trader.time.sleep')
+    @patch('trader.now_et', return_value='2026-01-20T16:05:00-05:00')
+    @patch('trader.today_str', return_value='2026-01-20')
+    @patch('trader.save_json')
+    @patch('trader.load_json')
+    def test_orphaned_position_removed_when_alpaca_shows_no_real_shares(
+        self, mock_load_json, _save, _today, _now, _sleep
+    ):
+        # Entered 2026-01-01, closing 2026-01-20 -> held 19 days >= default max
+        # of 15, and Alpaca reports no real position at all for NVDA.
+        meta, journal, mock_load_json.side_effect = self._held_state(entry_date='2026-01-01')
+        client = MagicMock()
+        trader.alpaca_client.get_trading_client.return_value = client
+        trader.alpaca_client.get_all_recent_orders.return_value = []
+        trader.alpaca_client.get_position_details.return_value = {}
+
+        trader.run_close(dry_run=False)
+
+        # No real shares to sell -- must not attempt a market sell or fabricate
+        # a P&L entry, but the ghost tracking entry must be cleared so it
+        # doesn't block forever.
+        trader.alpaca_client.sell_all.assert_not_called()
+        self.assertEqual(journal, [])
+        self.assertNotIn('NVDA', meta)
+
+    @patch('trader.time.sleep')
+    @patch('trader.now_et', return_value='2026-01-10T16:05:00-05:00')
+    @patch('trader.today_str', return_value='2026-01-10')
+    @patch('trader.save_json')
+    @patch('trader.load_json')
+    def test_missing_position_kept_when_under_max_hold_days(self, mock_load_json, _save, _today, _now, _sleep):
+        # Entered 2026-01-01, closing 2026-01-10 -> held 9 days < default max
+        # of 15. Alpaca showing no position yet could just be a transient API
+        # gap this early -- don't remove tracking prematurely.
+        meta, journal, mock_load_json.side_effect = self._held_state(entry_date='2026-01-01')
+        client = MagicMock()
+        trader.alpaca_client.get_trading_client.return_value = client
+        trader.alpaca_client.get_all_recent_orders.return_value = []
+        trader.alpaca_client.get_position_details.return_value = {}
+
+        trader.run_close(dry_run=False)
+
+        trader.alpaca_client.sell_all.assert_not_called()
+        self.assertEqual(journal, [])
+        self.assertIn('NVDA', meta)
+
 
 if __name__ == '__main__':
     unittest.main()
