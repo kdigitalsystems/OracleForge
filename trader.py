@@ -63,9 +63,17 @@ def load_json(filepath: str, default):
 
 
 def save_json(filepath: str, data) -> None:
-    os.makedirs(os.path.dirname(filepath) or '.', exist_ok=True)
-    with open(filepath, 'w') as f:
+    # Write-then-rename: os.replace is atomic on POSIX and Windows (same
+    # filesystem), so a reader/writer racing this call always sees either the
+    # complete old file or the complete new one -- never a torn/interleaved
+    # write from two processes writing the same path concurrently (seen in
+    # practice when two runs land on the same self-hosted machine).
+    directory = os.path.dirname(filepath) or '.'
+    os.makedirs(directory, exist_ok=True)
+    tmp_path = f'{filepath}.tmp{os.getpid()}'
+    with open(tmp_path, 'w') as f:
         json.dump(data, f, indent=4)
+    os.replace(tmp_path, filepath)
 
 
 def load_trading_config() -> dict:
