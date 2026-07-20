@@ -699,6 +699,7 @@ def main():
     push_every = args.push_every if args.push_every and args.push_every > 0 else batch_size
     last_push_done = len(existing_enriched)
     fallback_count = 0
+    valid_count = 0
     total = len(market_data)
 
     for start in range(0, len(pending), batch_size):
@@ -724,6 +725,8 @@ def main():
                 )
                 if rp.get('fallback'):
                     fallback_count += 1
+                else:
+                    valid_count += 1
                 batch_raw.setdefault(ticker, {})[model_name] = rp
 
         # Enrich this batch, merge, and rebuild the report from everything so far.
@@ -748,6 +751,20 @@ def main():
 
     if fallback_count:
         print(f"\n  [!] {fallback_count} fallback prediction(s) generated (excluded from consensus).")
+
+    # A total inference outage (every real LLM call this run fell back) must
+    # fail loudly, not exit 0 with a night of unusable data. This is exactly
+    # how three weeks of zero trading signals went unnoticed: fallback_count
+    # was logged but nothing treated "100% fallback" as the failure it is.
+    if fallback_count and valid_count == 0:
+        print(
+            f"\nERROR: all {fallback_count} LLM call(s) this run fell back to a "
+            "synthetic range -- Ollama is reachable but produced no usable "
+            "prediction. Check that the models in config/models.json are "
+            "actually pulled (ollama list) and that inference isn't "
+            "erroring or timing out."
+        )
+        sys.exit(1)
 
     if not enriched_all:
         print("ERROR: No enriched predictions produced.")

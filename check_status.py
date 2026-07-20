@@ -15,10 +15,8 @@ print(f"  Buying power    : ${float(account.buying_power):,.2f}")
 # Positions
 positions = client.get_all_positions()
 print(f"\n=== Open Positions ({len(positions)}) ===")
-total_unrealized = 0.0
 for p in sorted(positions, key=lambda x: float(x.unrealized_pl or 0), reverse=True)[:15]:
     unreal = float(p.unrealized_pl or 0)
-    total_unrealized += unreal
     pct = float(p.unrealized_plpc or 0) * 100
     print(f"  {p.symbol:8} qty={p.qty:10} entry=${float(p.avg_entry_price):8.3f}  "
           f"mkt=${float(p.current_price):8.3f}  P&L ${unreal:+.4f} ({pct:+.2f}%)")
