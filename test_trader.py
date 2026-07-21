@@ -532,6 +532,17 @@ class RunCloseStopTests(unittest.TestCase):
         self.assertEqual(journal, [])
         self.assertNotIn('NVDA', meta)
 
+        # The pop must actually be persisted -- record_sell() isn't called on
+        # this path (no P&L to record), so nothing else writes
+        # positions_meta.json here. Regression check: this previously popped
+        # only the in-memory dict, silently reverting every run.
+        saved_meta_calls = [
+            call.args[1] for call in _save.call_args_list
+            if call.args[0] == trader.POSITIONS_META_FILE
+        ]
+        self.assertTrue(saved_meta_calls, "positions_meta.json was never saved")
+        self.assertNotIn('NVDA', saved_meta_calls[-1])
+
     @patch('trader.time.sleep')
     @patch('trader.now_et', return_value='2026-01-10T16:05:00-05:00')
     @patch('trader.today_str', return_value='2026-01-10')

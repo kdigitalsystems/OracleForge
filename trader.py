@@ -692,6 +692,13 @@ def run_close(dry_run: bool = False) -> None:
 
     if not dry_run:
         save_json(OPEN_ORDERS_FILE, open_orders)
+        # record_sell() already persists positions_meta for the stop/max-hold
+        # paths, but the orphaned-position cleanup above pops from it directly
+        # (bypassing record_sell on purpose, since no P&L should be recorded)
+        # -- without this, that pop only ever happens in memory and reverts on
+        # every subsequent run. Saving here unconditionally is a no-op when
+        # nothing changed and the actual fix when it did.
+        save_json(POSITIONS_META_FILE, positions_meta)
 
     closed = len(set(to_delete))
     print(
