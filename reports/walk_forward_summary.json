@@ -1,55 +1,9 @@
 {
-    "generated_at": "2026-07-20T18:47:08",
+    "generated_at": "2026-07-22T01:10:41",
     "train_window": 3,
     "test_window": 1,
     "candidate_count": 54,
     "windows": [
-        {
-            "train_dates": [
-                "2026-07-14",
-                "2026-07-15",
-                "2026-07-17"
-            ],
-            "test_dates": [
-                "2026-07-19"
-            ],
-            "selected_params": {
-                "min_upside_pct": 1.0,
-                "max_consensus_cv": 0.05,
-                "stop_loss_pct": 0.95,
-                "execution": "limit_stop"
-            },
-            "train_edge": {
-                "n": 0,
-                "mean": 0.0,
-                "std": 0.0,
-                "t_stat": null,
-                "ci95_low": null,
-                "ci95_high": null,
-                "significant": false,
-                "sample_adequate": false
-            },
-            "test_edge": {
-                "n": 0,
-                "mean": 0.0,
-                "std": 0.0,
-                "t_stat": null,
-                "ci95_low": null,
-                "ci95_high": null,
-                "significant": false,
-                "sample_adequate": false
-            },
-            "test_strategy": {
-                "n": 0,
-                "mean": 0.0,
-                "std": 0.0,
-                "t_stat": null,
-                "ci95_low": null,
-                "ci95_high": null,
-                "significant": false,
-                "sample_adequate": false
-            }
-        },
         {
             "train_dates": [
                 "2026-07-15",
@@ -72,6 +26,52 @@
                 "t_stat": null,
                 "ci95_low": null,
                 "ci95_high": null,
+                "significant": false,
+                "sample_adequate": false
+            },
+            "test_edge": {
+                "n": 1,
+                "mean": 0.2176,
+                "std": 0.0,
+                "t_stat": null,
+                "ci95_low": 0.2176,
+                "ci95_high": 0.2176,
+                "significant": false,
+                "sample_adequate": false
+            },
+            "test_strategy": {
+                "n": 1,
+                "mean": 1.03,
+                "std": 0.0,
+                "t_stat": null,
+                "ci95_low": 1.03,
+                "ci95_high": 1.03,
+                "significant": false,
+                "sample_adequate": false
+            }
+        },
+        {
+            "train_dates": [
+                "2026-07-17",
+                "2026-07-19",
+                "2026-07-20"
+            ],
+            "test_dates": [
+                "2026-07-21"
+            ],
+            "selected_params": {
+                "min_upside_pct": 1.0,
+                "max_consensus_cv": 0.05,
+                "stop_loss_pct": 0.95,
+                "execution": "limit_stop"
+            },
+            "train_edge": {
+                "n": 1,
+                "mean": 0.2176,
+                "std": 0.0,
+                "t_stat": null,
+                "ci95_low": 0.2176,
+                "ci95_high": 0.2176,
                 "significant": false,
                 "sample_adequate": false
             },
@@ -99,15 +99,15 @@
     ],
     "summary": {
         "validation_windows": 2,
-        "avg_validation_edge_pct": 0.0,
-        "avg_validation_strategy_pct": 0.0,
-        "positive_edge_windows": 0
+        "avg_validation_edge_pct": 0.1088,
+        "avg_validation_strategy_pct": 0.515,
+        "positive_edge_windows": 1
     },
     "latest_recommendation": {
         "train_dates": [
-            "2026-07-17",
             "2026-07-19",
-            "2026-07-20"
+            "2026-07-20",
+            "2026-07-21"
         ],
         "selected_params": {
             "min_upside_pct": 1.0,
@@ -116,12 +116,12 @@
             "execution": "limit_stop"
         },
         "train_edge": {
-            "n": 0,
-            "mean": 0.0,
+            "n": 1,
+            "mean": 0.2176,
             "std": 0.0,
             "t_stat": null,
-            "ci95_low": null,
-            "ci95_high": null,
+            "ci95_low": 0.2176,
+            "ci95_high": 0.2176,
             "significant": false,
             "sample_adequate": false
         }
