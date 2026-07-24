@@ -1,55 +1,9 @@
 {
-    "generated_at": "2026-07-23T05:17:32",
+    "generated_at": "2026-07-24T06:05:21",
     "train_window": 3,
     "test_window": 1,
     "candidate_count": 54,
     "windows": [
-        {
-            "train_dates": [
-                "2026-07-19",
-                "2026-07-20",
-                "2026-07-21"
-            ],
-            "test_dates": [
-                "2026-07-22"
-            ],
-            "selected_params": {
-                "min_upside_pct": 1.0,
-                "max_consensus_cv": 0.05,
-                "stop_loss_pct": 0.95,
-                "execution": "limit_stop"
-            },
-            "train_edge": {
-                "n": 1,
-                "mean": 0.2176,
-                "std": 0.0,
-                "t_stat": null,
-                "ci95_low": 0.2176,
-                "ci95_high": 0.2176,
-                "significant": false,
-                "sample_adequate": false
-            },
-            "test_edge": {
-                "n": 0,
-                "mean": 0.0,
-                "std": 0.0,
-                "t_stat": null,
-                "ci95_low": null,
-                "ci95_high": null,
-                "significant": false,
-                "sample_adequate": false
-            },
-            "test_strategy": {
-                "n": 0,
-                "mean": 0.0,
-                "std": 0.0,
-                "t_stat": null,
-                "ci95_low": null,
-                "ci95_high": null,
-                "significant": false,
-                "sample_adequate": false
-            }
-        },
         {
             "train_dates": [
                 "2026-07-20",
@@ -95,6 +49,52 @@
                 "significant": false,
                 "sample_adequate": false
             }
+        },
+        {
+            "train_dates": [
+                "2026-07-21",
+                "2026-07-22",
+                "2026-07-23"
+            ],
+            "test_dates": [
+                "2026-07-24"
+            ],
+            "selected_params": {
+                "min_upside_pct": 1.0,
+                "max_consensus_cv": 0.05,
+                "stop_loss_pct": 0.95,
+                "execution": "limit_stop"
+            },
+            "train_edge": {
+                "n": 0,
+                "mean": 0.0,
+                "std": 0.0,
+                "t_stat": null,
+                "ci95_low": null,
+                "ci95_high": null,
+                "significant": false,
+                "sample_adequate": false
+            },
+            "test_edge": {
+                "n": 0,
+                "mean": 0.0,
+                "std": 0.0,
+                "t_stat": null,
+                "ci95_low": null,
+                "ci95_high": null,
+                "significant": false,
+                "sample_adequate": false
+            },
+            "test_strategy": {
+                "n": 0,
+                "mean": 0.0,
+                "std": 0.0,
+                "t_stat": null,
+                "ci95_low": null,
+                "ci95_high": null,
+                "significant": false,
+                "sample_adequate": false
+            }
         }
     ],
     "summary": {
@@ -105,9 +105,9 @@
     },
     "latest_recommendation": {
         "train_dates": [
-            "2026-07-21",
             "2026-07-22",
-            "2026-07-23"
+            "2026-07-23",
+            "2026-07-24"
         ],
         "selected_params": {
             "min_upside_pct": 1.0,
