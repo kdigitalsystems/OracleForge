@@ -565,5 +565,93 @@ class RunCloseStopTests(unittest.TestCase):
         self.assertIn('NVDA', meta)
 
 
+# ---------------------------------------------------------------------------
+# run_close: normal sell-fill / stop-fill settlement (previously untested --
+# this is the path that produced the PLTR/ORCL 200-400%+ fantasy "wins" on
+# 2026-07-27/07-30, which the EOD-stop/max-hold fix from the same bug class
+# did not cover)
+# ---------------------------------------------------------------------------
+
+class RunCloseFillTests(unittest.TestCase):
+
+    def setUp(self):
+        trader.alpaca_client.reset_mock()
+
+    def _fill_state(self, order_qty, order_id_field='sell_order_id', order_id='ord-1',
+                     tracked_usd_invested=2.0, tracked_entry_price=100.0):
+        meta = {'NVDA': {'entry_price': tracked_entry_price, 'usd_invested': tracked_usd_invested,
+                         'entry_date': '2026-01-01', 'predicting_models': ['m'],
+                         'consensus_buy_high': 100.0, 'consensus_sell_low': 110.0}}
+        journal = []
+        open_orders = {'NVDA': {
+            'buy_order_id': None, 'sell_order_id': None, 'stop_order_id': None,
+            'qty': order_qty, 'sell_limit': 110.0, 'buy_limit': 100.0, 'stop_limit': 95.0,
+        }}
+        open_orders['NVDA'][order_id_field] = order_id
+        side_effect = [
+            {'max_per_trade_usd': 2.0, 'max_position_usd': 8.0, 'stop_loss_pct': 0.95, 'max_hold_days': 15},
+            open_orders,
+            meta,
+            journal,
+        ]
+        return meta, journal, side_effect
+
+    @patch('trader.time.sleep')
+    @patch('trader.now_et', return_value='2026-01-05T16:05:00-05:00')
+    @patch('trader.today_str', return_value='2026-01-05')
+    @patch('trader.save_json')
+    @patch('trader.load_json')
+    def test_sell_fill_caps_return_when_real_fill_exceeds_tracked_qty(self, mock_load_json, _save, _today, _now, _sleep):
+        # Tracked: 0.02 shares (usd_invested 2.0 / entry_price 100.0). The DAY
+        # sell order that actually filled sold 0.06 real shares -- e.g.
+        # re-placed the next morning at a since-diverged real Alpaca qty. The
+        # extra 0.04 shares must not be counted as profit.
+        meta, journal, mock_load_json.side_effect = self._fill_state(order_qty=0.02)
+        client = MagicMock()
+        trader.alpaca_client.get_trading_client.return_value = client
+
+        order = MagicMock()
+        order.id = 'ord-1'
+        order.status = 'filled'
+        order.filled_avg_price = 110.0
+        order.filled_qty = 0.06
+        trader.alpaca_client.get_all_recent_orders.return_value = [order]
+
+        trader.run_close(dry_run=False)
+
+        self.assertEqual(len(journal), 1)
+        self.assertEqual(journal[0]['usd_returned'], round(110.0 * 0.02, 4))
+        self.assertAlmostEqual(journal[0]['pnl_usd'], round(110.0 * 0.02, 4) - 2.0, places=4)
+        self.assertLess(journal[0]['pnl_pct'], 50)  # sanity: not a 230%+ fantasy return
+        self.assertNotIn('NVDA', meta)
+
+    @patch('trader.time.sleep')
+    @patch('trader.now_et', return_value='2026-01-05T16:05:00-05:00')
+    @patch('trader.today_str', return_value='2026-01-05')
+    @patch('trader.save_json')
+    @patch('trader.load_json')
+    def test_stop_fill_caps_return_when_real_fill_exceeds_tracked_qty(self, mock_load_json, _save, _today, _now, _sleep):
+        # Same desync, but through the (currently dormant, kept for reference)
+        # stop-limit fill handler -- same bug pattern, same fix.
+        meta, journal, mock_load_json.side_effect = self._fill_state(
+            order_qty=0.02, order_id_field='stop_order_id',
+        )
+        client = MagicMock()
+        trader.alpaca_client.get_trading_client.return_value = client
+
+        order = MagicMock()
+        order.id = 'ord-1'
+        order.status = 'filled'
+        order.filled_avg_price = 95.0
+        order.filled_qty = 0.06
+        trader.alpaca_client.get_all_recent_orders.return_value = [order]
+
+        trader.run_close(dry_run=False)
+
+        self.assertEqual(len(journal), 1)
+        self.assertEqual(journal[0]['usd_returned'], round(95.0 * 0.02, 4))
+        self.assertNotIn('NVDA', meta)
+
+
 if __name__ == '__main__':
     unittest.main()

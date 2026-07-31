@@ -482,9 +482,32 @@ def run_close(dry_run: bool = False) -> None:
                     if status in FILLED_STATUSES or (status in DEAD_STATUSES and _filled_qty(order) > 0):
                         fill_price = float(order.filled_avg_price or entry['sell_limit'])
                         fill_qty = _filled_qty(order, entry.get('qty', 0))
-                        total_qty = float(entry.get('qty') or fill_qty or 0)
+
+                        # positions_meta (usd_invested / entry_price) is the
+                        # authoritative cost-basis record. open_orders['qty']
+                        # is stamped once at buy-fill time and never
+                        # refreshed when the DAY sell is re-placed each
+                        # morning at the real (possibly since-diverged) qty
+                        # -- trusting it here previously let a real fill
+                        # larger than the tracked qty fabricate 200-400%+
+                        # "wins" (e.g. PLTR/ORCL, 2026-07-27/07-30).
+                        meta = positions_meta.get(ticker, {})
+                        meta_entry_price = float(meta.get('entry_price') or 0)
+                        implied_qty = (
+                            meta.get('usd_invested', 0) / meta_entry_price
+                            if meta_entry_price > 0 else 0.0
+                        )
+                        total_qty = implied_qty if implied_qty > 0 else float(entry.get('qty') or fill_qty or 0)
+
                         close_fraction = _close_fraction(fill_qty, total_qty)
-                        usd_returned = round(fill_price * fill_qty, 4)
+                        qty_for_pnl = min(fill_qty, total_qty) if total_qty > 0 else fill_qty
+                        if abs(qty_for_pnl - fill_qty) > 1e-6:
+                            log(
+                                f"  [!] {ticker}: filled qty {fill_qty:.6f} != tracked qty "
+                                f"{total_qty:.6f} -- position desynced from Alpaca; P&L "
+                                f"recorded for the tracked portion only"
+                            )
+                        usd_returned = round(fill_price * qty_for_pnl, 4)
 
                         # Cancel companion stop-loss order
                         if entry.get('stop_order_id'):
@@ -537,9 +560,26 @@ def run_close(dry_run: bool = False) -> None:
                             or entry.get('sell_limit', 0)
                         )
                         fill_qty = _filled_qty(order, entry.get('qty', 0))
-                        total_qty = float(entry.get('qty') or fill_qty or 0)
+
+                        # See the SELL FILLED handler above for why this uses
+                        # positions_meta rather than open_orders['qty'].
+                        meta = positions_meta.get(ticker, {})
+                        meta_entry_price = float(meta.get('entry_price') or 0)
+                        implied_qty = (
+                            meta.get('usd_invested', 0) / meta_entry_price
+                            if meta_entry_price > 0 else 0.0
+                        )
+                        total_qty = implied_qty if implied_qty > 0 else float(entry.get('qty') or fill_qty or 0)
+
                         close_fraction = _close_fraction(fill_qty, total_qty)
-                        usd_returned = round(fill_price * fill_qty, 4)
+                        qty_for_pnl = min(fill_qty, total_qty) if total_qty > 0 else fill_qty
+                        if abs(qty_for_pnl - fill_qty) > 1e-6:
+                            log(
+                                f"  [!] {ticker}: filled qty {fill_qty:.6f} != tracked qty "
+                                f"{total_qty:.6f} -- position desynced from Alpaca; P&L "
+                                f"recorded for the tracked portion only"
+                            )
+                        usd_returned = round(fill_price * qty_for_pnl, 4)
 
                         # Cancel companion profit-target sell
                         if entry.get('sell_order_id'):
