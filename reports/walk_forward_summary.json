@@ -1,33 +1,33 @@
 {
-    "generated_at": "2026-08-03T01:16:40",
+    "generated_at": "2026-08-03T20:42:50",
     "train_window": 3,
     "test_window": 1,
     "candidate_count": 54,
     "windows": [
         {
             "train_dates": [
-                "2026-07-27",
                 "2026-07-28",
-                "2026-07-29"
+                "2026-07-29",
+                "2026-07-30"
             ],
             "test_dates": [
-                "2026-07-30"
+                "2026-08-02"
             ],
             "selected_params": {
                 "min_upside_pct": 2.0,
                 "max_consensus_cv": 0.05,
-                "stop_loss_pct": 0.95,
+                "stop_loss_pct": 0.98,
                 "execution": "limit_stop"
             },
             "train_edge": {
-                "n": 59,
-                "mean": -0.4882,
-                "std": 4.0226,
-                "t_stat": -0.932,
-                "ci95_low": -1.5147,
-                "ci95_high": 0.5382,
+                "n": 20,
+                "mean": 0.3773,
+                "std": 3.5738,
+                "t_stat": 0.472,
+                "ci95_low": -1.189,
+                "ci95_high": 1.9435,
                 "significant": false,
-                "sample_adequate": true
+                "sample_adequate": false
             },
             "test_edge": {
                 "n": 0,
@@ -52,12 +52,12 @@
         },
         {
             "train_dates": [
-                "2026-07-28",
                 "2026-07-29",
-                "2026-07-30"
+                "2026-07-30",
+                "2026-08-02"
             ],
             "test_dates": [
-                "2026-08-02"
+                "2026-08-03"
             ],
             "selected_params": {
                 "min_upside_pct": 2.0,
@@ -105,23 +105,23 @@
     },
     "latest_recommendation": {
         "train_dates": [
-            "2026-07-29",
             "2026-07-30",
-            "2026-08-02"
+            "2026-08-02",
+            "2026-08-03"
         ],
         "selected_params": {
-            "min_upside_pct": 2.0,
+            "min_upside_pct": 1.0,
             "max_consensus_cv": 0.05,
-            "stop_loss_pct": 0.98,
+            "stop_loss_pct": 0.95,
             "execution": "limit_stop"
         },
         "train_edge": {
-            "n": 20,
-            "mean": 0.3773,
-            "std": 3.5738,
-            "t_stat": 0.472,
-            "ci95_low": -1.189,
-            "ci95_high": 1.9435,
+            "n": 0,
+            "mean": 0.0,
+            "std": 0.0,
+            "t_stat": null,
+            "ci95_low": null,
+            "ci95_high": null,
             "significant": false,
             "sample_adequate": false
         }
