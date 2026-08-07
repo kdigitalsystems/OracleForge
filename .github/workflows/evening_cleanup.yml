@@ -55,7 +55,17 @@ jobs:
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          git add state/ history/ reports/ docs/
+          # docs/index.html is committed separately below: it's regenerated
+          # wholesale by every workflow that touches it (this one, nightly,
+          # regenerate_report.yml), so when two runs push around the same
+          # time, rebasing one's HTML diff onto the other's is a near-
+          # guaranteed unresolvable conflict on an opaque generated blob
+          # (this is what was actually failing here). Splitting it out means
+          # a docs/ conflict never blocks the real settlement data from
+          # landing, and the docs retry loop below just regenerates fresh
+          # from whatever's on main instead of trying to merge two versions
+          # of a file that's never hand-edited.
+          git add state/ history/ reports/
 
           if git diff --staged --quiet; then
             echo "No fills to record today."
@@ -66,11 +76,40 @@ jobs:
               git rebase --abort 2>/dev/null || true
               if git pull --rebase --autostash origin main && git push origin HEAD:main; then
                 echo "Pushed on attempt $attempt."
-                exit 0
+                break
               fi
               echo "Push attempt $attempt failed; retrying in 5s..."
               sleep 5
+              if [ "$attempt" = "5" ]; then
+                echo "ERROR: could not push settlement state after 5 attempts."
+                exit 1
+              fi
             done
-            echo "ERROR: could not push settlement state after 5 attempts."
-            exit 1
           fi
+
+      - name: Commit dashboard
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          for attempt in 1 2 3 4 5; do
+            git rebase --abort 2>/dev/null || true
+            git pull --rebase --autostash origin main || { echo "Pull attempt $attempt failed; retrying in 5s..."; sleep 5; continue; }
+            # Regenerate from whatever's on main now, not the pre-pull
+            # snapshot -- guarantees this commit is never a stale replay.
+            python3 scripts/generate_html_report.py
+            git add docs/
+            if git diff --staged --quiet; then
+              echo "Dashboard unchanged after settling on latest main."
+              exit 0
+            fi
+            git commit -m "Evening dashboard $(date -u '+%Y-%m-%d')"
+            if git push origin HEAD:main; then
+              echo "Pushed dashboard on attempt $attempt."
+              exit 0
+            fi
+            echo "Dashboard push attempt $attempt failed; retrying in 5s..."
+            git reset --soft HEAD~1
+            sleep 5
+          done
+          echo "ERROR: could not push dashboard after 5 attempts."
+          exit 1

@@ -195,28 +195,56 @@ jobs:
       - name: Generate GitHub Pages report
         run: python3 scripts/generate_html_report.py
 
-      - name: Commit and Push Dashboard
+      - name: Commit remaining state
         # forge_loop already committed + pushed config/state/history/reports
-        # incrementally; this step only needs to publish the regenerated
-        # dashboard. No changes here is fine (docs unchanged) — not an error.
+        # incrementally; this only catches any final trailing changes.
+        # docs/index.html is committed separately below -- see that step for
+        # why (it's what was actually causing evening_cleanup's daily
+        # failures: rebasing one run's regenerated-HTML diff onto another's
+        # concurrently-pushed version is a near-guaranteed unresolvable
+        # conflict on an opaque generated blob).
         run: |
-          git add docs/ config/ state/analyst_scores.json history/ reports/
+          git add config/ state/analyst_scores.json history/ reports/
 
           if git diff --staged --quiet; then
             echo "Nothing further to commit (forge pushed state incrementally)."
-            exit 0
+          else
+            git commit -m "Automated OracleForge nightly state"
+            for attempt in 1 2 3 4 5; do
+              git rebase --abort 2>/dev/null || true
+              if git pull --rebase --autostash origin main && git push origin HEAD:main; then
+                echo "Pushed on attempt $attempt."
+                break
+              fi
+              echo "Push attempt $attempt failed; retrying in 5s..."
+              sleep 5
+              if [ "$attempt" = "5" ]; then
+                echo "ERROR: could not push state after 5 attempts."
+                exit 1
+              fi
+            done
           fi
 
-          git commit -m "Automated OracleForge nightly dashboard"
-
-          # main may have advanced while this long job ran. Rebase and retry.
+      - name: Commit dashboard
+        run: |
           for attempt in 1 2 3 4 5; do
             git rebase --abort 2>/dev/null || true
-            if git pull --rebase --autostash origin main && git push origin HEAD:main; then
-              echo "Pushed on attempt $attempt."
+            git pull --rebase --autostash origin main || { echo "Pull attempt $attempt failed; retrying in 5s..."; sleep 5; continue; }
+            # Regenerate from whatever's on main now, not the pre-pull
+            # snapshot -- guarantees this commit is never a stale replay.
+            python3 scripts/generate_html_report.py
+            git add docs/
+            if git diff --staged --quiet; then
+              echo "Dashboard unchanged after settling on latest main."
               exit 0
             fi
-            echo "Push attempt $attempt failed; retrying in 5s..."
+            git commit -m "Automated OracleForge nightly dashboard"
+            if git push origin HEAD:main; then
+              echo "Pushed dashboard on attempt $attempt."
+              exit 0
+            fi
+            echo "Dashboard push attempt $attempt failed; retrying in 5s..."
+            git reset --soft HEAD~1
             sleep 5
           done
           echo "ERROR: could not push dashboard after 5 attempts."

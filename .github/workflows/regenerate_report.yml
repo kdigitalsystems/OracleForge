@@ -21,15 +21,33 @@ jobs:
         run: python3 scripts/generate_html_report.py
 
       - name: Commit and push
+        # This repo has several other automated jobs pushing to main
+        # throughout the day (nightly/morning/evening + the retry watchdog),
+        # so a bare push here can lose the race. Rebase and retry, and
+        # regenerate the report fresh on each attempt rather than trying to
+        # replay a stale diff -- docs/index.html is always fully
+        # regenerable, never hand-edited, so there's nothing to merge.
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          git add docs/index.html
 
-          if git diff --staged --quiet; then
-            echo "No changes to commit."
-            exit 0
-          fi
-
-          git commit -m "Regenerate dashboard (manual rebuild)"
-          git push
+          for attempt in 1 2 3 4 5; do
+            git rebase --abort 2>/dev/null || true
+            git pull --rebase --autostash origin main || { echo "Pull attempt $attempt failed; retrying in 5s..."; sleep 5; continue; }
+            python3 scripts/generate_html_report.py
+            git add docs/index.html
+            if git diff --staged --quiet; then
+              echo "No changes to commit."
+              exit 0
+            fi
+            git commit -m "Regenerate dashboard (manual rebuild)"
+            if git push origin HEAD:main; then
+              echo "Pushed on attempt $attempt."
+              exit 0
+            fi
+            echo "Push attempt $attempt failed; retrying in 5s..."
+            git reset --soft HEAD~1
+            sleep 5
+          done
+          echo "ERROR: could not push dashboard after 5 attempts."
+          exit 1
