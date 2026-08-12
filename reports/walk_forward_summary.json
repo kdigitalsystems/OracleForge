@@ -1,17 +1,17 @@
 {
-    "generated_at": "2026-08-11T00:48:33",
+    "generated_at": "2026-08-12T00:54:34",
     "train_window": 3,
     "test_window": 1,
     "candidate_count": 54,
     "windows": [
         {
             "train_dates": [
-                "2026-08-03",
                 "2026-08-04",
-                "2026-08-06"
+                "2026-08-06",
+                "2026-08-09"
             ],
             "test_dates": [
-                "2026-08-09"
+                "2026-08-10"
             ],
             "selected_params": {
                 "min_upside_pct": 1.5,
@@ -20,13 +20,13 @@
                 "execution": "limit_stop"
             },
             "train_edge": {
-                "n": 91,
-                "mean": -1.7646,
-                "std": 3.7788,
-                "t_stat": -4.455,
-                "ci95_low": -2.541,
-                "ci95_high": -0.9882,
-                "significant": true,
+                "n": 42,
+                "mean": -0.9413,
+                "std": 3.1652,
+                "t_stat": -1.927,
+                "ci95_low": -1.8986,
+                "ci95_high": 0.016,
+                "significant": false,
                 "sample_adequate": true
             },
             "test_edge": {
@@ -52,12 +52,12 @@
         },
         {
             "train_dates": [
-                "2026-08-04",
                 "2026-08-06",
-                "2026-08-09"
+                "2026-08-09",
+                "2026-08-10"
             ],
             "test_dates": [
-                "2026-08-10"
+                "2026-08-11"
             ],
             "selected_params": {
                 "min_upside_pct": 1.5,
@@ -66,14 +66,14 @@
                 "execution": "limit_stop"
             },
             "train_edge": {
-                "n": 42,
-                "mean": -0.9418,
-                "std": 3.1641,
-                "t_stat": -1.929,
-                "ci95_low": -1.8987,
-                "ci95_high": 0.0152,
+                "n": 0,
+                "mean": 0.0,
+                "std": 0.0,
+                "t_stat": null,
+                "ci95_low": null,
+                "ci95_high": null,
                 "significant": false,
-                "sample_adequate": true
+                "sample_adequate": false
             },
             "test_edge": {
                 "n": 0,
@@ -105,9 +105,9 @@
     },
     "latest_recommendation": {
         "train_dates": [
-            "2026-08-06",
             "2026-08-09",
-            "2026-08-10"
+            "2026-08-10",
+            "2026-08-11"
         ],
         "selected_params": {
             "min_upside_pct": 1.5,
