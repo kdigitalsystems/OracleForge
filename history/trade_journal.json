@@ -5932,5 +5932,41 @@
         ],
         "consensus_buy_high": 50.49,
         "consensus_sell_low": 51.82
+    },
+    {
+        "close_date": "2026-08-14",
+        "ticker": "LYFT",
+        "entry_date": "2026-08-12",
+        "entry_price": 16.61,
+        "exit_price": 17.562,
+        "usd_invested": 2.0,
+        "usd_returned": 2.1146,
+        "pnl_usd": 0.1146,
+        "pnl_pct": 5.73,
+        "outcome": "win",
+        "predicting_models": [
+            "qwen2.5:14b-instruct-q4_K_M",
+            "deepseek-r1:8b"
+        ],
+        "consensus_buy_high": 16.61,
+        "consensus_sell_low": 17.56
+    },
+    {
+        "close_date": "2026-08-14",
+        "ticker": "CPRT",
+        "entry_date": "2026-08-12",
+        "entry_price": 29.268,
+        "exit_price": 29.83,
+        "usd_invested": 1.9999,
+        "usd_returned": 2.0383,
+        "pnl_usd": 0.0384,
+        "pnl_pct": 1.92,
+        "outcome": "win",
+        "predicting_models": [
+            "qwen2.5:14b-instruct-q4_K_M",
+            "deepseek-r1:8b"
+        ],
+        "consensus_buy_high": 29.27,
+        "consensus_sell_low": 29.83
     }
 ]
