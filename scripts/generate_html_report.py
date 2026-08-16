@@ -697,8 +697,14 @@ def generate() -> None:
 </body>
 </html>'''
 
-    with open(OUT_FILE, 'w', encoding='utf-8') as f:
+    # Write-then-rename: same reasoning as the atomic save_json() in
+    # trader.py/forge_loop.py/signals.py/update_tickers.py -- avoids a
+    # concurrent reader (or a second workflow's checkout on the same
+    # self-hosted runner) ever seeing a partially-written file.
+    tmp_path = f'{OUT_FILE}.tmp{os.getpid()}'
+    with open(tmp_path, 'w', encoding='utf-8') as f:
         f.write(html)
+    os.replace(tmp_path, OUT_FILE)
 
     print(f'Generated {OUT_FILE} ({os.path.getsize(OUT_FILE):,} bytes)')
 

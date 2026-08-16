@@ -221,8 +221,17 @@ def main() -> None:
     final = [s['ticker'] for s in scored[:max_tickers]]
 
     os.makedirs('config', exist_ok=True)
-    with open(TICKERS_FILE, 'w') as f:
+    # Write-then-rename: os.replace is atomic on POSIX and Windows (same
+    # filesystem), so a concurrent reader (e.g. validate_outputs.py, or
+    # another job's worktree on the same self-hosted runner) never sees a
+    # torn/incomplete file. Caught this in production: validate_outputs.py
+    # failed with "Expecting value: line 11 column 1" -- a truncated
+    # config/tickers.json from a plain open(...,'w') write racing another
+    # process. Same fix already applied to trader.py/forge_loop.py/signals.py.
+    tmp_path = f'{TICKERS_FILE}.tmp{os.getpid()}'
+    with open(tmp_path, 'w') as f:
         json.dump(final, f, indent=4)
+    os.replace(tmp_path, TICKERS_FILE)
 
     print(f'\nSaved {len(final)} tickers to {TICKERS_FILE}')
     print(f'Top 10 by volume: {", ".join(final[:10])}')
