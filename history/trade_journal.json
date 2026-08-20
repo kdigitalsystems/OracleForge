@@ -6256,5 +6256,41 @@
         ],
         "consensus_buy_high": 86.11,
         "consensus_sell_low": 87.52
+    },
+    {
+        "close_date": "2026-08-20",
+        "ticker": "CNH",
+        "entry_date": "2026-08-12",
+        "entry_price": 10.278,
+        "exit_price": 10.83,
+        "usd_invested": 1.9429,
+        "usd_returned": 2.0472,
+        "pnl_usd": 0.1043,
+        "pnl_pct": 5.37,
+        "outcome": "win",
+        "predicting_models": [
+            "qwen2.5:14b-instruct-q4_K_M",
+            "deepseek-r1:8b"
+        ],
+        "consensus_buy_high": 10.58,
+        "consensus_sell_low": 10.83
+    },
+    {
+        "close_date": "2026-08-20",
+        "ticker": "FCX",
+        "entry_date": "2026-08-12",
+        "entry_price": 68.356,
+        "exit_price": 70.004,
+        "usd_invested": 1.9958,
+        "usd_returned": 2.0439,
+        "pnl_usd": 0.0481,
+        "pnl_pct": 2.41,
+        "outcome": "win",
+        "predicting_models": [
+            "qwen2.5:14b-instruct-q4_K_M",
+            "deepseek-r1:8b"
+        ],
+        "consensus_buy_high": 68.5,
+        "consensus_sell_low": 70.0
     }
 ]
