@@ -1,31 +1,31 @@
 {
-    "generated_at": "2026-08-20T00:36:55",
+    "generated_at": "2026-08-21T03:00:44",
     "train_window": 3,
     "test_window": 1,
     "candidate_count": 54,
     "windows": [
         {
             "train_dates": [
-                "2026-08-13",
                 "2026-08-16",
-                "2026-08-17"
-            ],
-            "test_dates": [
+                "2026-08-17",
                 "2026-08-18"
             ],
+            "test_dates": [
+                "2026-08-19"
+            ],
             "selected_params": {
-                "min_upside_pct": 2.0,
-                "max_consensus_cv": 0.1,
+                "min_upside_pct": 1.0,
+                "max_consensus_cv": 0.05,
                 "stop_loss_pct": 0.95,
                 "execution": "limit_stop"
             },
             "train_edge": {
-                "n": 20,
-                "mean": -0.7315,
-                "std": 2.1511,
-                "t_stat": -1.521,
-                "ci95_low": -1.6743,
-                "ci95_high": 0.2113,
+                "n": 0,
+                "mean": 0.0,
+                "std": 0.0,
+                "t_stat": null,
+                "ci95_low": null,
+                "ci95_high": null,
                 "significant": false,
                 "sample_adequate": false
             },
@@ -52,12 +52,12 @@
         },
         {
             "train_dates": [
-                "2026-08-16",
                 "2026-08-17",
-                "2026-08-18"
+                "2026-08-18",
+                "2026-08-19"
             ],
             "test_dates": [
-                "2026-08-19"
+                "2026-08-20"
             ],
             "selected_params": {
                 "min_upside_pct": 1.0,
@@ -105,9 +105,9 @@
     },
     "latest_recommendation": {
         "train_dates": [
-            "2026-08-17",
             "2026-08-18",
-            "2026-08-19"
+            "2026-08-19",
+            "2026-08-20"
         ],
         "selected_params": {
             "min_upside_pct": 1.0,
