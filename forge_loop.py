@@ -5,6 +5,7 @@ import os
 import re
 import subprocess
 import sys
+import threading
 import time
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
@@ -111,10 +112,49 @@ def _headline_from_news_item(item):
     return None
 
 
+YFINANCE_CALL_TIMEOUT = 20  # seconds
+
+
+def _with_timeout(fn, timeout_s=YFINANCE_CALL_TIMEOUT, default=None):
+    """Run fn() with a hard wall-clock timeout.
+
+    yfinance's own properties (e.g. .news, .calendar) don't expose a timeout
+    parameter and can hang indefinitely on a network stall rather than
+    raising -- a bare try/except Exception around them does nothing for a
+    hang. This is what actually happened on 2026-08-20: the nightly run sat
+    silent for 2h21m stuck on a single ticker's earnings/news fetch and only
+    ended when the runner service itself was externally restarted, having
+    produced zero data all night.
+
+    Uses a plain daemon thread, not concurrent.futures.ThreadPoolExecutor:
+    a ThreadPoolExecutor's worker threads are NOT daemon threads, so even
+    after this function returns on the timeout, the interpreter's own
+    atexit machinery still joins that thread before the *process* can exit
+    -- the calling loop moves on, but the script itself would hang at the
+    very end waiting on the abandoned network call anyway. A daemon thread
+    is not waited on at interpreter shutdown, so a still-stuck call is
+    truly abandoned rather than just deferred.
+    """
+    result: list = []
+
+    def _run():
+        try:
+            result.append(fn())
+        except Exception:
+            pass
+
+    t = threading.Thread(target=_run, daemon=True)
+    t.start()
+    t.join(timeout_s)
+    if t.is_alive() or not result:
+        return default
+    return result[0]
+
+
 def fetch_recent_news(ticker):
     try:
         stock = yf.Ticker(ticker)
-        news_items = stock.news
+        news_items = _with_timeout(lambda: stock.news, default=None)
         if not news_items:
             return "No recent news available."
         headlines = []
@@ -133,7 +173,7 @@ def has_upcoming_earnings(ticker: str) -> bool:
     try:
         from datetime import date as date_type
         stock = yf.Ticker(ticker)
-        cal = stock.calendar
+        cal = _with_timeout(lambda: stock.calendar, default=None)
         if not cal:
             return False
         # yfinance returns a dict in newer versions

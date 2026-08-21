@@ -11,6 +11,7 @@ sys.modules.setdefault('alpaca_client', MagicMock())
 from forge_loop import (
     _fallback_range,
     _trade_score_delta,
+    _with_timeout,
     apply_score_deltas,
     compute_technicals,
     evaluate_range_prediction,
@@ -382,6 +383,67 @@ class FormatRecentOhlcTests(unittest.TestCase):
         ]
         out = format_recent_ohlc(bars)
         self.assertLess(out.index('2026-05-20'), out.index('2026-05-21'))
+
+
+# ---------------------------------------------------------------------------
+# _with_timeout
+#
+# Regression coverage for 2026-08-20: a yfinance call (.news / .calendar)
+# hung indefinitely on a network stall, and forge_loop's own bare
+# try/except Exception around it does nothing for a hang -- the whole
+# nightly run sat silent for 2h21m producing zero data, only ending when
+# the runner service was externally restarted.
+# ---------------------------------------------------------------------------
+
+class WithTimeoutTests(unittest.TestCase):
+
+    def test_returns_default_when_call_hangs_past_timeout(self):
+        import time
+
+        def hangs():
+            time.sleep(30)
+            return 'never'
+
+        start = time.time()
+        result = _with_timeout(hangs, timeout_s=0.2, default='fallback')
+        elapsed = time.time() - start
+
+        self.assertEqual(result, 'fallback')
+        # Must actually return promptly, not block for anywhere near the
+        # hung call's real duration.
+        self.assertLess(elapsed, 5)
+
+    def test_passes_through_normal_return_value(self):
+        result = _with_timeout(lambda: 42, timeout_s=5, default=None)
+        self.assertEqual(result, 42)
+
+    def test_returns_default_when_call_raises(self):
+        def boom():
+            raise RuntimeError('network error')
+
+        result = _with_timeout(boom, timeout_s=5, default='fallback')
+        self.assertEqual(result, 'fallback')
+
+    def test_abandoned_thread_does_not_block_process_exit(self):
+        # The bug in an earlier draft of this fix: using
+        # concurrent.futures.ThreadPoolExecutor's worker threads (which are
+        # NOT daemon threads) meant the interpreter's own atexit machinery
+        # still joined the hung thread before the *process* could exit, even
+        # though _with_timeout itself returned promptly. Verify the timed-out
+        # call really is a daemon thread, so the process is never blocked at
+        # shutdown by an abandoned network call.
+        import threading
+        import time
+
+        def hangs():
+            time.sleep(30)
+
+        threads_before = set(threading.enumerate())
+        _with_timeout(hangs, timeout_s=0.1, default=None)
+        new_threads = set(threading.enumerate()) - threads_before
+        self.assertTrue(new_threads, "expected the worker thread to still be running")
+        for t in new_threads:
+            self.assertTrue(t.daemon, f"{t} must be a daemon thread")
 
 
 if __name__ == '__main__':
