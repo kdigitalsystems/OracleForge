@@ -652,6 +652,51 @@ class RunCloseFillTests(unittest.TestCase):
         self.assertEqual(journal[0]['usd_returned'], round(95.0 * 0.02, 4))
         self.assertNotIn('NVDA', meta)
 
+    @patch('trader.time.sleep')
+    @patch('trader.now_et', return_value='2026-01-05T16:05:00-05:00')
+    @patch('trader.today_str', return_value='2026-01-05')
+    @patch('trader.save_json')
+    @patch('trader.load_json')
+    def test_genuinely_complete_fill_pops_position_despite_float_rounding(
+        self, mock_load_json, _save, _today, _now, _sleep
+    ):
+        # Regression for a real production incident (BP/CHWY/CPRT/FCX/LYFT/
+        # PBR/TOST, all closed correctly in the journal 2026-08-14..08-20 but
+        # left behind as $0 zombie entries in positions_meta for weeks).
+        # positions_meta['usd_invested'] / ['entry_price'] is an
+        # independently-computed float via division; it essentially never
+        # equals the real order/fill qty bit-for-bit even for a fully
+        # complete fill. Using it as the close_fraction denominator (as an
+        # earlier draft of the qty-desync fix did) meant close_fraction
+        # landed at ~0.9999916 instead of 1.0 -- just under the
+        # >=0.999999 "fully closed" threshold -- so every complete sell
+        # was mistaken for a partial one and never popped.
+        entry_price = 42.608
+        usd_invested = 1.9818
+        implied_qty = usd_invested / entry_price  # 0.046512392039053704
+        real_qty = round(implied_qty, 6)           # 0.046512 -- what was actually bought/sold
+
+        meta, journal, mock_load_json.side_effect = self._fill_state(
+            order_qty=real_qty, tracked_usd_invested=usd_invested, tracked_entry_price=entry_price,
+        )
+        client = MagicMock()
+        trader.alpaca_client.get_trading_client.return_value = client
+
+        order = MagicMock()
+        order.id = 'ord-1'
+        order.status = 'filled'
+        order.filled_avg_price = 44.012
+        order.filled_qty = real_qty  # exactly what was ordered -- a complete fill
+
+        trader.alpaca_client.get_all_recent_orders.return_value = [order]
+
+        trader.run_close(dry_run=False)
+
+        self.assertEqual(len(journal), 1)
+        self.assertEqual(journal[0]['outcome'], 'win')
+        # The position must be gone, not left behind as a $0 zombie entry.
+        self.assertNotIn('NVDA', meta)
+
 
 if __name__ == '__main__':
     unittest.main()
