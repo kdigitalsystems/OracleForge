@@ -554,7 +554,7 @@ def run_close(dry_run: bool = False) -> None:
                             if meta_entry_price > 0 else 0.0
                         )
                         qty_for_pnl = min(fill_qty, implied_qty) if implied_qty > 0 else fill_qty
-                        if abs(qty_for_pnl - fill_qty) > 1e-6:
+                        if abs(qty_for_pnl - fill_qty) > max(0.001 * fill_qty, 1e-5):
                             log(
                                 f"  [!] {ticker}: filled qty {fill_qty:.6f} != tracked qty "
                                 f"{implied_qty:.6f} -- position desynced from Alpaca; P&L "
@@ -627,7 +627,7 @@ def run_close(dry_run: bool = False) -> None:
                             if meta_entry_price > 0 else 0.0
                         )
                         qty_for_pnl = min(fill_qty, implied_qty) if implied_qty > 0 else fill_qty
-                        if abs(qty_for_pnl - fill_qty) > 1e-6:
+                        if abs(qty_for_pnl - fill_qty) > max(0.001 * fill_qty, 1e-5):
                             log(
                                 f"  [!] {ticker}: filled qty {fill_qty:.6f} != tracked qty "
                                 f"{implied_qty:.6f} -- position desynced from Alpaca; P&L "
@@ -757,7 +757,7 @@ def run_close(dry_run: bool = False) -> None:
                 # so a desynced qty can't fabricate a P&L swing either.
                 implied_qty = (meta.get('usd_invested', 0) / entry_price) if entry_price > 0 else pos['qty']
                 qty_for_pnl = min(pos['qty'], implied_qty) if implied_qty > 0 else pos['qty']
-                if abs(qty_for_pnl - pos['qty']) > 1e-6:
+                if abs(qty_for_pnl - pos['qty']) > max(0.001 * pos['qty'], 1e-5):
                     log(
                         f"  [!] {ticker}: real qty {pos['qty']:.6f} != tracked qty "
                         f"{implied_qty:.6f} -- position desynced from Alpaca; "
