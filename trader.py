@@ -337,6 +337,17 @@ def run_open(dry_run: bool = False) -> None:
         try:
             order = alpaca_client.place_limit_sell(client, ticker, qty, sell_limit)
             open_orders[ticker]['sell_order_id'] = str(order.id)
+            # Keep open_orders['qty'] fresh with the qty this order was
+            # actually placed for -- run_close's SELL FILLED handler compares
+            # the real fill against this value to decide whether the
+            # position is now fully closed. It's only ever set once, at
+            # buy-fill time, otherwise; if the real qty ever drifts before a
+            # later re-placed sell finally fills (this loop re-places a DAY
+            # sell every morning it hasn't filled yet), a stale qty here
+            # would misjudge that decision the same way positions_meta did
+            # before it was fixed (2026-08-24, "fix zombie positions left
+            # behind by the qty-desync fix").
+            open_orders[ticker]['qty'] = qty
             log(f"SELL {ticker}: DAY limit {qty} shares @ ${float(sell_limit):.2f} → order {order.id}")
             save_json(OPEN_ORDERS_FILE, open_orders)  # persist immediately
             time.sleep(ORDER_SUBMIT_DELAY)
