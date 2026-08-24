@@ -324,6 +324,21 @@ def run_open(dry_run: bool = False) -> None:
         if qty <= 0 and not dry_run:
             continue
 
+        # Cap the sell at the tracked stake. get_position_qty returns the
+        # account's WHOLE real position, and this shared paper account also
+        # holds positions belonging to other systems -- selling the full
+        # real qty at our target is how another system's PLTR stake got
+        # swept on 2026-08-12. Our profit-target must only reserve/sell the
+        # shares OracleForge actually bought.
+        entry_price = float(meta_entry.get('entry_price') or 0)
+        implied_qty = (meta_entry.get('usd_invested', 0) / entry_price) if entry_price > 0 else 0.0
+        if not dry_run and implied_qty > 0 and qty - implied_qty > 1e-6:
+            log(
+                f"  [!] {ticker}: account holds {qty:.6f} but OracleForge tracks "
+                f"{implied_qty:.6f} -- selling only the tracked portion"
+            )
+            qty = implied_qty
+
         sell_limit = entry.get('sell_limit') or meta_entry.get('consensus_sell_low')
         if not sell_limit or entry.get('sell_order_id'):
             continue  # no target price, or a resting sell already exists
@@ -449,6 +464,22 @@ def run_close(dry_run: bool = False) -> None:
                         if total_qty <= 0:
                             log(f"[!] Could not confirm position qty for {ticker}, using fill qty")
                             total_qty = fill_qty
+
+                        # ...but never MORE than OracleForge's tracked stake:
+                        # get_position_qty returns the account's whole real
+                        # position, and this shared paper account also holds
+                        # other systems' positions. The profit-target sell
+                        # must only reserve the shares we actually bought
+                        # (see the same cap in run_open's re-placement loop).
+                        pm = positions_meta.get(ticker, {})
+                        pm_entry_price = float(pm.get('entry_price') or 0)
+                        pm_implied = (pm.get('usd_invested', 0) / pm_entry_price) if pm_entry_price > 0 else 0.0
+                        if pm_implied > 0 and total_qty - pm_implied > 1e-6:
+                            log(
+                                f"  [!] {ticker}: account holds {total_qty:.6f} but OracleForge "
+                                f"tracks {pm_implied:.6f} -- selling only the tracked portion"
+                            )
+                            total_qty = pm_implied
                         entry['qty'] = total_qty
 
                         # Place the profit-target DAY limit sell. The stop-loss
@@ -715,22 +746,24 @@ def run_close(dry_run: bool = False) -> None:
                 alpaca_client.cancel_order(client, oo['sell_order_id'])
                 oo['sell_order_id'] = None
             try:
-                alpaca_client.sell_all(client, ticker)
-
                 # Alpaca's real held qty can drift from what our state file
                 # believes was bought (e.g. a duplicate buy from a workflow
                 # retry that filled before the crash that triggered the
-                # retry). Cap the recorded return to the tracked cost basis
-                # so a desynced qty can't fabricate a P&L swing -- flag it
-                # instead of inventing profit (or an inflated loss) from it.
+                # retry) -- and this shared paper account also holds
+                # positions belonging to other systems entirely. Sell and
+                # record only the tracked portion: an explicit-qty market
+                # sell (never close_position, which would sweep foreign
+                # shares along with ours) capped at the tracked cost basis,
+                # so a desynced qty can't fabricate a P&L swing either.
                 implied_qty = (meta.get('usd_invested', 0) / entry_price) if entry_price > 0 else pos['qty']
                 qty_for_pnl = min(pos['qty'], implied_qty) if implied_qty > 0 else pos['qty']
                 if abs(qty_for_pnl - pos['qty']) > 1e-6:
                     log(
                         f"  [!] {ticker}: real qty {pos['qty']:.6f} != tracked qty "
                         f"{implied_qty:.6f} -- position desynced from Alpaca; "
-                        f"P&L recorded for the tracked portion only"
+                        f"selling and recording the tracked portion only"
                     )
+                alpaca_client.place_market_sell(client, ticker, qty_for_pnl)
                 usd_returned = round(price * qty_for_pnl, 4)
                 trade = record_sell(positions_meta, journal, ticker, price, usd_returned, today)
                 if trade:

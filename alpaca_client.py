@@ -202,6 +202,29 @@ def buy(client: TradingClient, ticker: str, usd_amount: float) -> None:
     client.submit_order(req)
 
 
+def place_market_sell(client: TradingClient, ticker: str, qty: float):
+    """Market-sell a specific share quantity (DAY, fractional-safe).
+
+    Used by the end-of-day stop / max-hold exits instead of close_position:
+    this Alpaca paper account is shared with other trading systems, so a
+    whole-position close would liquidate shares OracleForge never bought
+    (this is how the 2026-08-12 PLTR position of another system got swept).
+    Selling an explicit qty keeps the exit scoped to our own stake.
+    """
+    req = MarketOrderRequest(
+        symbol=ticker,
+        qty=_sell_qty(qty),
+        side=OrderSide.SELL,
+        time_in_force=TimeInForce.DAY,
+    )
+    return client.submit_order(req)
+
+
 def sell_all(client: TradingClient, ticker: str) -> None:
-    """Close the entire position for a ticker at market."""
+    """Close the entire position for a ticker at market.
+
+    NOTE: liquidates the whole real position, including shares held by other
+    systems sharing this account — prefer place_market_sell with the tracked
+    qty for OracleForge exits.
+    """
     client.close_position(ticker)

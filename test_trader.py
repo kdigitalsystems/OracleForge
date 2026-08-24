@@ -279,6 +279,46 @@ class RunOpenTests(unittest.TestCase):
     @patch('trader.save_json')
     @patch('trader.load_todays_signals', return_value=([], None))
     @patch('trader.load_json')
+    def test_sell_replacement_scoped_to_tracked_stake_on_shared_account(
+        self, mock_load_json, _mock_signals, _mock_save, _mock_today, _mock_now, _mock_sleep,
+    ):
+        # This paper account is shared with other trading systems: the
+        # account really holds 0.10 NVDA, but OracleForge only bought 0.02
+        # (usd_invested 2.0 / entry_price 100.0). The morning profit-target
+        # re-placement must reserve only OUR 0.02, not sweep the other
+        # system's 0.08 into our sell (how a foreign PLTR stake got sold on
+        # 2026-08-12).
+        mock_load_json.side_effect = [
+            {'max_per_trade_usd': 2.0, 'max_position_usd': 8.0, 'stop_loss_pct': 0.95},
+            {},  # open_orders
+            {
+                'NVDA': {
+                    'entry_price': 100.0,
+                    'usd_invested': 2.0,
+                    'entry_date': '2026-01-01',
+                    'predicting_models': ['model_a'],
+                    'consensus_buy_high': 100.0,
+                    'consensus_sell_low': 110.0,
+                }
+            },
+        ]
+        client = MagicMock()
+        client.get_account.return_value.buying_power = 100.0
+        trader.alpaca_client.get_trading_client.return_value = client
+        trader.alpaca_client.get_positions.return_value = {'NVDA': 10.0}
+        trader.alpaca_client.get_position_qty.return_value = 0.10  # whole account position
+        trader.alpaca_client.place_limit_sell.return_value.id = 'profit-order'
+
+        trader.run_open(dry_run=False)
+
+        trader.alpaca_client.place_limit_sell.assert_called_once_with(client, 'NVDA', 0.02, 110.0)
+
+    @patch('trader.time.sleep')
+    @patch('trader.now_et', return_value='2026-01-02T09:30:00-05:00')
+    @patch('trader.today_str', return_value='2026-01-02')
+    @patch('trader.save_json')
+    @patch('trader.load_todays_signals', return_value=([], None))
+    @patch('trader.load_json')
     def test_protects_existing_positions_even_with_no_active_signals(
         self,
         mock_load_json,
@@ -388,7 +428,7 @@ class RunCloseStopTests(unittest.TestCase):
 
         trader.run_close(dry_run=False)
 
-        trader.alpaca_client.sell_all.assert_called_once_with(client, 'NVDA')
+        trader.alpaca_client.place_market_sell.assert_called_once_with(client, 'NVDA', 0.02)
         self.assertEqual(len(journal), 1)
         self.assertEqual(journal[0]['outcome'], 'loss')
         self.assertNotIn('NVDA', meta)  # position closed out
@@ -410,7 +450,7 @@ class RunCloseStopTests(unittest.TestCase):
 
         trader.run_close(dry_run=False)
 
-        trader.alpaca_client.sell_all.assert_not_called()
+        trader.alpaca_client.place_market_sell.assert_not_called()
         self.assertEqual(journal, [])
         self.assertIn('NVDA', meta)
 
@@ -433,7 +473,7 @@ class RunCloseStopTests(unittest.TestCase):
 
         trader.run_close(dry_run=False)
 
-        trader.alpaca_client.sell_all.assert_called_once_with(client, 'NVDA')
+        trader.alpaca_client.place_market_sell.assert_called_once_with(client, 'NVDA', 0.02)
         self.assertEqual(len(journal), 1)
         # Capped to the tracked 0.02 shares, not the real 0.06.
         self.assertEqual(journal[0]['usd_returned'], round(94.0 * 0.02, 4))
@@ -459,7 +499,8 @@ class RunCloseStopTests(unittest.TestCase):
 
         trader.run_close(dry_run=False)
 
-        trader.alpaca_client.sell_all.assert_called_once_with(client, 'NVDA')
+        # Only the real 0.0066667 shares exist to sell.
+        trader.alpaca_client.place_market_sell.assert_called_once_with(client, 'NVDA', 0.0066667)
         self.assertEqual(len(journal), 1)
         self.assertEqual(journal[0]['usd_returned'], round(94.0 * 0.0066667, 4))
         self.assertNotIn('NVDA', meta)
@@ -482,7 +523,7 @@ class RunCloseStopTests(unittest.TestCase):
 
         trader.run_close(dry_run=False)
 
-        trader.alpaca_client.sell_all.assert_called_once_with(client, 'NVDA')
+        trader.alpaca_client.place_market_sell.assert_called_once_with(client, 'NVDA', 0.02)
         self.assertEqual(len(journal), 1)
         self.assertNotIn('NVDA', meta)
 
@@ -503,7 +544,7 @@ class RunCloseStopTests(unittest.TestCase):
 
         trader.run_close(dry_run=False)
 
-        trader.alpaca_client.sell_all.assert_not_called()
+        trader.alpaca_client.place_market_sell.assert_not_called()
         self.assertEqual(journal, [])
         self.assertIn('NVDA', meta)
 
@@ -528,7 +569,7 @@ class RunCloseStopTests(unittest.TestCase):
         # No real shares to sell -- must not attempt a market sell or fabricate
         # a P&L entry, but the ghost tracking entry must be cleared so it
         # doesn't block forever.
-        trader.alpaca_client.sell_all.assert_not_called()
+        trader.alpaca_client.place_market_sell.assert_not_called()
         self.assertEqual(journal, [])
         self.assertNotIn('NVDA', meta)
 
@@ -560,7 +601,7 @@ class RunCloseStopTests(unittest.TestCase):
 
         trader.run_close(dry_run=False)
 
-        trader.alpaca_client.sell_all.assert_not_called()
+        trader.alpaca_client.place_market_sell.assert_not_called()
         self.assertEqual(journal, [])
         self.assertIn('NVDA', meta)
 
