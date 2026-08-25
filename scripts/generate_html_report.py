@@ -25,7 +25,7 @@ WALK_FORWARD_FILE = 'reports/walk_forward_summary.json'
 ATTRIBUTION_FILE = 'reports/trade_attribution.json'
 OUT_FILE = 'docs/index.html'
 
-# GitHub repo — used by the in-page Rebuild button to trigger workflow_dispatch
+# GitHub repo, used by the in-page Rebuild button to trigger workflow_dispatch
 GH_REPO = 'kdigitalsystems/OracleForge'
 GH_WORKFLOW = 'regenerate_report.yml'
 GH_BRANCH = 'main'
@@ -61,14 +61,14 @@ def find_latest_signals() -> tuple[str | None, dict | None]:
 
 def _esc(v) -> str:
     if v is None:
-        return '—'
+        return '-'
     s = str(v)
     return s.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;').replace('"', '&quot;').replace("'", '&#39;')
 
 
 def _fmt_pct(v) -> str:
     if v is None:
-        return '—'
+        return '-'
     try:
         return f'{float(v):+.2f}%'
     except (ValueError, TypeError):
@@ -77,7 +77,7 @@ def _fmt_pct(v) -> str:
 
 def _fmt_usd(v) -> str:
     if v is None:
-        return '—'
+        return '-'
     try:
         return f'${float(v):.4f}'
     except (ValueError, TypeError):
@@ -160,11 +160,11 @@ def build_signals_section(report: dict, date_str: str) -> str:
         tbl_rows = []
         for r in active_rows:
             upside = r.get('upside_pct')
-            upside_str = f'<span class="font-semibold text-green-600">{_fmt_pct(upside)}</span>' if upside else '—'
+            upside_str = f'<span class="font-semibold text-green-600">{_fmt_pct(upside)}</span>' if upside else '-'
             cv = r.get('consensus_cv')
             # Coefficient of variation as a %; higher = models disagree more.
             if cv is None:
-                cv_str = '—'
+                cv_str = '-'
             else:
                 cv_color = 'text-red-600' if cv > 0.05 else 'text-gray-500'
                 cv_str = f'<span class="{cv_color}">{cv * 100:.1f}%</span>'
@@ -226,8 +226,8 @@ new Chart(document.getElementById("upsideChart"), {{
 </details>'''
 
     content = metrics + active_section + other_html
-    return _card(f'Signals — {date_str}', content,
-                 subtitle=f'Generated at {report.get("generated_at", "—")}')
+    return _card(f'Signals: {date_str}', content,
+                 subtitle=f'Generated at {report.get("generated_at", "-")}')
 
 
 def build_scores_section(scores: dict) -> str:
@@ -251,12 +251,12 @@ def build_scores_section(scores: dict) -> str:
 </div>'''
 
     return _card('Model Scores (MoE weights)', bars_html,
-                 subtitle='Scores range 0–10. Updated nightly by OHLC feedback loop.')
+                 subtitle='Scores range 0 to 10. Updated nightly by OHLC feedback loop.')
 
 
 def build_pnl_section(journal: list[dict]) -> str:
     if not journal:
-        return _card('P&amp;L — Trade Journal',
+        return _card('P&amp;L Trade Journal',
                      '<p class="text-gray-500 text-sm">No closed trades yet.</p>')
 
     total_pnl = sum(t.get('pnl_usd', 0) for t in journal)
@@ -328,7 +328,7 @@ new Chart(document.getElementById("pnlChart"), {{
     trades_table = f'<h3 class="font-semibold text-gray-700 mb-2">Recent trades</h3>' + _table(hdrs, tbl_rows)
 
     content = metrics + chart_html + trades_table
-    return _card('P&amp;L — Trade Journal', content)
+    return _card('P&amp;L Trade Journal', content)
 
 
 def build_backtest_section(report: dict) -> str:
@@ -501,7 +501,7 @@ def generate() -> None:
     <div class="bg-white rounded-xl shadow-xl p-6 w-full max-w-md mx-4">
       <h3 class="text-lg font-semibold text-gray-900 mb-1">GitHub Personal Access Token</h3>
       <p class="text-sm text-gray-500 mb-3">
-        Required once to trigger workflow rebuilds. Stored only in your browser's localStorage —
+        Required once to trigger workflow rebuilds. Stored only in your browser's localStorage;
         never sent anywhere except GitHub's API.<br><br>
         Create one at <a href="https://github.com/settings/tokens/new?scopes=workflow&description=OracleForge+rebuild"
           target="_blank" class="text-blue-600 underline">github.com → Settings → Tokens</a>
@@ -684,7 +684,7 @@ def generate() -> None:
           clearInterval(iv);
           msg.textContent = '✅ Done! Reloading…';
           cntEl.textContent = '';
-          // Hard reload — bypass cache so we get the newly committed HTML
+          // Hard reload: bypass cache so we get the newly committed HTML
           location.href = location.href.split('?')[0] + '?v=' + Date.now();
         }} else {{
           cntEl.textContent = 'Reloading in ' + remaining + 's…';

@@ -1,4 +1,4 @@
-# dashboard.py — Streamlit UI (run: streamlit run dashboard.py)
+# dashboard.py: Streamlit UI (run: streamlit run dashboard.py)
 """OracleForge dashboard: signals, positions, trades, and model scores."""
 from __future__ import annotations
 
@@ -73,7 +73,7 @@ def load_alpaca_positions() -> dict[str, float] | None:
 
 def main() -> None:
     st.title('OracleForge')
-    st.caption('LLM ensemble — overnight buy/sell range predictions with Alpaca paper trading.')
+    st.caption('LLM ensemble. Overnight buy/sell range predictions with Alpaca paper trading.')
 
     dates = list_prediction_dates()
     if not dates:
@@ -96,7 +96,7 @@ def main() -> None:
     )
 
     with tab_signals:
-        st.subheader(f'Signals — {selected_date}')
+        st.subheader(f'Signals: {selected_date}')
         if report:
             summary = report.get('summary', {})
             cols = st.columns(4)
@@ -136,17 +136,17 @@ def main() -> None:
         # Per-ticker model breakdown
         if predictions:
             ticker_options = sorted(predictions.keys())
-            selected_ticker = st.selectbox('Model detail for ticker', options=['—'] + ticker_options)
-            if selected_ticker and selected_ticker != '—' and selected_ticker in predictions:
+            selected_ticker = st.selectbox('Model detail for ticker', options=['-'] + ticker_options)
+            if selected_ticker and selected_ticker != '-' and selected_ticker in predictions:
                 entry = predictions[selected_ticker]
-                st.write(f"**Close:** ${entry.get('close', '—')}")
+                st.write(f"**Close:** ${entry.get('close', '-')}")
                 consensus = entry.get('consensus') or {}
                 if consensus:
                     st.write(
-                        f"**Consensus buy range:** ${consensus.get('buy_low')} – ${consensus.get('buy_high')}"
+                        f"**Consensus buy range:** ${consensus.get('buy_low')} to ${consensus.get('buy_high')}"
                     )
                     st.write(
-                        f"**Consensus sell range:** ${consensus.get('sell_low')} – ${consensus.get('sell_high')}"
+                        f"**Consensus sell range:** ${consensus.get('sell_low')} to ${consensus.get('sell_high')}"
                     )
                 models = entry.get('models', {})
                 if models:
@@ -190,7 +190,7 @@ def main() -> None:
             tk: e for tk, e in open_orders.items()
             if isinstance(e, dict) and not e.get('closed')
         }
-        st.markdown('**Tracked open orders** — `state/open_orders.json`')
+        st.markdown('**Tracked open orders**: `state/open_orders.json`')
         if not active_orders:
             st.info('No tracked open orders. Run `python trader.py --open` during market hours.')
         else:
@@ -202,15 +202,15 @@ def main() -> None:
                     'buy_limit': e.get('buy_limit'),
                     'sell_limit': e.get('sell_limit'),
                     'stop_limit': e.get('stop_limit'),
-                    'buy': 'open' if e.get('buy_order_id') else '—',
-                    'sell': 'open' if e.get('sell_order_id') else '—',
-                    'stop': 'open' if e.get('stop_order_id') else '—',
+                    'buy': 'open' if e.get('buy_order_id') else '-',
+                    'sell': 'open' if e.get('sell_order_id') else '-',
+                    'stop': 'open' if e.get('stop_order_id') else '-',
                     'placed': e.get('date'),
                 })
             st.dataframe(pd.DataFrame(order_rows), use_container_width=True, hide_index=True)
 
         # Positions closed today (from the trade journal)
-        st.markdown(f'**Closed today — {today_str}**')
+        st.markdown(f'**Closed today: {today_str}**')
         journal = load_trade_journal()
         todays = [t for t in journal if t.get('close_date') == today_str]
         if not todays:
@@ -229,7 +229,7 @@ def main() -> None:
             cols[2].metric("Today's P&L", f"${sum(t.get('pnl_usd', 0) for t in todays):+.4f}")
 
     with tab_pnl:
-        st.subheader('P&L — trade journal')
+        st.subheader('P&L trade journal')
         journal = load_trade_journal()
         if not journal:
             st.info('No closed trades yet. P&L will appear here after trader.py closes positions.')
