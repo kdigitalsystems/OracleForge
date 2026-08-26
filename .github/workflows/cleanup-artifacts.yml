@@ -56,3 +56,24 @@ jobs:
           done < "$ids_file"
 
           echo "Deleted $deleted artifact(s) older than four days."
+
+      - name: Trim old runner diagnostic logs
+        shell: bash
+        run: |
+          # The runner agent writes per-job diagnostic logs under _diag and
+          # never cleans them up. On 2026-08-18 a stale _diag/pages log
+          # caused a job to fail with "The file ... already exists", and by
+          # 2026-08-26 this machine had accumulated 927 MB / 6,462 files.
+          # Trim anything older than 7 days on whichever runner this lands
+          # on. The directory lives two levels up from the job workspace
+          # (_work/<repo>/<repo>); fall back to the known home path.
+          diag="$(cd "$GITHUB_WORKSPACE/../../.." 2>/dev/null && pwd)/_diag"
+          [ -d "$diag" ] || diag="$HOME/github/actions-runner/_diag"
+          if [ -d "$diag" ]; then
+            before=$(find "$diag" -type f -name '*.log' | wc -l)
+            find "$diag" -type f -name '*.log' -mtime +7 -delete || true
+            after=$(find "$diag" -type f -name '*.log' | wc -l)
+            echo "Trimmed $((before - after)) diag log(s) from $diag ($after remain)."
+          else
+            echo "No _diag directory found; skipping."
+          fi
