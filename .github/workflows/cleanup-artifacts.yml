@@ -10,6 +10,8 @@ permissions:
 
 jobs:
   cleanup:
+    # Not containerized: the diag-trim step's whole purpose is maintaining
+    # the host runner's own filesystem, which a container cannot see.
     runs-on: [self-hosted, terrascout-ci]
     timeout-minutes: 10
     steps:

@@ -9,9 +9,18 @@ on:
 
 jobs:
   close:
-    # 'gpu' label = fully provisioned machine (also has ~/.ssh/alpaca_paper_keys);
+    # 'gpu' label = fully provisioned machine (also has ~/.ssh/alpaca_paper_keys
+    # and Docker, verified on both pool machines via runner_health.yml);
     # keeps the job off unprovisioned runners like servert130.
     runs-on: [self-hosted, gpu]
+    # Containerized for isolation and a reproducible Python environment; see
+    # morning_orders.yml for the volume rationale (keys path, separate
+    # container pip cache).
+    container:
+      image: python:3.12
+      volumes:
+        - /home/saqib/.ssh/alpaca_paper_keys:/github/home/.ssh/alpaca_paper_keys:ro
+        - /home/saqib/.cache/pip-container:/github/home/.cache/pip
     timeout-minutes: 10
 
     permissions:
@@ -21,17 +30,8 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-          # No pip cache: redundant on a self-hosted runner and its cache-save
-          # post-step is a flaky cleanup surface that can fail the job.
-
       - name: Install Dependencies
-        run: |
-          python3 -m pip install --upgrade pip
-          pip install -r requirements.txt
+        run: pip install -r requirements.txt
 
       - name: Verify Alpaca connection
         run: |
@@ -39,7 +39,7 @@ jobs:
           import alpaca_client
           client = alpaca_client.get_trading_client()
           positions = alpaca_client.get_positions(client)
-          print(f'OK: connected to Alpaca — {len(positions)} open position(s)')
+          print(f'OK: connected to Alpaca: {len(positions)} open position(s)')
           "
 
       - name: Settle fills and update journal

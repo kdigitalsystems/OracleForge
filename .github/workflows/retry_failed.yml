@@ -30,6 +30,8 @@ concurrency:
 jobs:
   retry-failures:
     name: Check and retry failed runs
+    # Not containerized: the only step is a marketplace JS action making API
+    # calls; no repo code runs, so a container adds startup cost for nothing.
     runs-on: [self-hosted, gpu]
     permissions:
       contents: read

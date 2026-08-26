@@ -15,6 +15,11 @@ jobs:
     # machine (Ollama + models + ~/.ssh/alpaca_paper_keys). Unprovisioned
     # runners (e.g. servert130) lack the label and are skipped, so jobs queue
     # for a good machine instead of failing at Start Ollama / Verify Alpaca.
+    #
+    # Deliberately NOT containerized (unlike morning/evening/regenerate):
+    # this job manages the host Ollama systemd service (sudo systemctl
+    # restart, a self-heal that has fired in production) and pulls models
+    # with the host ollama binary. Neither works inside a job container.
     runs-on: [self-hosted, gpu]
     timeout-minutes: 720
 

@@ -7,6 +7,10 @@ jobs:
   rebuild:
     # Pin to a provisioned machine for consistency with the other jobs.
     runs-on: [self-hosted, gpu]
+    # Containerized like the trading jobs. The report generator is
+    # stdlib-only, so no pip install or key mount is needed here.
+    container:
+      image: python:3.12
     timeout-minutes: 5
 
     permissions:
