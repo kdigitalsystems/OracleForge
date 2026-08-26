@@ -53,6 +53,12 @@ jobs:
 
       - name: Commit settlement state
         run: |
+          # Container runs as root while the mounted workspace carries the
+          # host user's uid; git refuses such repos (dubious ownership), and
+          # for config --local the failure is a misleading "not inside a git
+          # repository". Allow this workspace explicitly.
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
           # docs/index.html is committed separately below: it's regenerated
