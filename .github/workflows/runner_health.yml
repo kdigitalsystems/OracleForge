@@ -1,0 +1,35 @@
+name: Runner Health Probe
+
+# Dispatch-only diagnostic: reports what this heterogeneous self-hosted pool
+# actually provides on whichever machine picks the job up (Docker, Ollama,
+# Alpaca keys, disk). Dispatch it a couple of times back to back to sample
+# multiple runners. Used to verify capability assumptions before pinning
+# workflows to features like Docker container jobs.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  probe:
+    runs-on: [self-hosted, gpu]
+    timeout-minutes: 5
+    steps:
+      - name: Report runner capabilities
+        shell: bash
+        run: |
+          echo "runner: $RUNNER_NAME"
+          echo "--- docker ---"
+          if command -v docker >/dev/null 2>&1; then
+            docker --version || true
+            docker info --format 'server: {{.ServerVersion}}' 2>/dev/null \
+              || echo "docker CLI present but daemon not usable by this user"
+          else
+            echo "docker: NOT INSTALLED"
+          fi
+          echo "--- ollama ---"
+          curl -sf -m 5 http://localhost:11434/api/tags >/dev/null 2>&1 \
+            && echo "ollama API: serving" || echo "ollama API: not reachable"
+          echo "--- alpaca keys ---"
+          [ -f "$HOME/.ssh/alpaca_paper_keys" ] && echo "keys: present" || echo "keys: MISSING"
+          echo "--- disk ---"
+          df -h / | tail -1
