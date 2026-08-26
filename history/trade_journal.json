@@ -6418,5 +6418,41 @@
         ],
         "consensus_buy_high": 13.76,
         "consensus_sell_low": 14.12
+    },
+    {
+        "close_date": "2026-08-26",
+        "ticker": "VTRS",
+        "entry_date": "2026-08-13",
+        "entry_price": 16.148,
+        "exit_price": 17.01,
+        "usd_invested": 1.9573,
+        "usd_returned": 2.0618,
+        "pnl_usd": 0.1045,
+        "pnl_pct": 5.34,
+        "outcome": "win",
+        "predicting_models": [
+            "qwen2.5:14b-instruct-q4_K_M",
+            "deepseek-r1:8b"
+        ],
+        "consensus_buy_high": 16.5,
+        "consensus_sell_low": 17.01
+    },
+    {
+        "close_date": "2026-08-26",
+        "ticker": "NKE",
+        "entry_date": "2026-08-12",
+        "entry_price": 40.768,
+        "exit_price": 38.69,
+        "usd_invested": 1.9638,
+        "usd_returned": 1.8637,
+        "pnl_usd": -0.1001,
+        "pnl_pct": -5.1,
+        "outcome": "loss",
+        "predicting_models": [
+            "qwen2.5:14b-instruct-q4_K_M",
+            "deepseek-r1:8b"
+        ],
+        "consensus_buy_high": 41.52,
+        "consensus_sell_low": 42.6
     }
 ]
