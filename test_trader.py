@@ -317,6 +317,46 @@ class RunOpenTests(unittest.TestCase):
     @patch('trader.now_et', return_value='2026-01-02T09:30:00-05:00')
     @patch('trader.today_str', return_value='2026-01-02')
     @patch('trader.save_json')
+    @patch('trader.load_todays_signals')
+    @patch('trader.load_json')
+    def test_protect_only_places_sells_but_never_buys(
+        self, mock_load_json, mock_load_signals, _mock_save, _mock_today, _mock_now, _mock_sleep,
+    ):
+        # protect_only exists for mornings after a missed/failed nightly: no
+        # trusted signals, so no buys, but held positions must still get
+        # their profit-target sells re-placed. Signals must not even be
+        # loaded (they would be stale).
+        mock_load_json.side_effect = [
+            {'max_per_trade_usd': 2.0, 'max_position_usd': 8.0, 'stop_loss_pct': 0.95},
+            {},  # open_orders
+            {
+                'NVDA': {
+                    'entry_price': 100.0,
+                    'usd_invested': 2.0,
+                    'entry_date': '2026-01-01',
+                    'predicting_models': ['model_a'],
+                    'consensus_buy_high': 100.0,
+                    'consensus_sell_low': 110.0,
+                }
+            },
+        ]
+        client = MagicMock()
+        client.get_account.return_value.buying_power = 100.0
+        trader.alpaca_client.get_trading_client.return_value = client
+        trader.alpaca_client.get_positions.return_value = {'NVDA': 2.0}
+        trader.alpaca_client.get_position_qty.return_value = 0.02
+        trader.alpaca_client.place_limit_sell.return_value.id = 'profit-order'
+
+        trader.run_open(dry_run=False, protect_only=True)
+
+        mock_load_signals.assert_not_called()
+        trader.alpaca_client.place_limit_buy.assert_not_called()
+        trader.alpaca_client.place_limit_sell.assert_called_once_with(client, 'NVDA', 0.02, 110.0)
+
+    @patch('trader.time.sleep')
+    @patch('trader.now_et', return_value='2026-01-02T09:30:00-05:00')
+    @patch('trader.today_str', return_value='2026-01-02')
+    @patch('trader.save_json')
     @patch('trader.load_todays_signals', return_value=([], None))
     @patch('trader.load_json')
     def test_protects_existing_positions_even_with_no_active_signals(

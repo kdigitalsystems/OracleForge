@@ -214,7 +214,7 @@ def log(msg: str) -> None:
 # --open: place orders at market open
 # ---------------------------------------------------------------------------
 
-def run_open(dry_run: bool = False) -> None:
+def run_open(dry_run: bool = False, protect_only: bool = False) -> None:
     cfg = load_trading_config()
     max_per_trade = float(cfg['max_per_trade_usd'])
     max_position = float(cfg['max_position_usd'])
@@ -222,14 +222,24 @@ def run_open(dry_run: bool = False) -> None:
     client = None if dry_run else alpaca_client.get_trading_client()
     today = today_str()
 
-    active_rows, signals_date = load_todays_signals()
-    if not active_rows:
-        print(
-            f"No ACTIVE setups found (searched last {SIGNALS_MAX_LOOKBACK_DAYS} days). "
-            "Will still protect existing positions."
-        )
+    # protect_only: skip all buying but still re-place profit-target sells
+    # for held positions. Used when the nightly forge did not produce fresh
+    # signals (e.g. a missed schedule on 2026-08-26): trading on stale
+    # signals is wrong, but leaving held positions without their resting
+    # sell for the whole day is worse, and previously the workflow's
+    # freshness gate hard-failed before any of this ran.
+    if protect_only:
+        active_rows, signals_date = [], None
+        print("Protect-only mode: no buys; re-placing sells for held positions.")
     else:
-        print(f"  Using signals from {signals_date} ({len(active_rows)} ACTIVE).")
+        active_rows, signals_date = load_todays_signals()
+        if not active_rows:
+            print(
+                f"No ACTIVE setups found (searched last {SIGNALS_MAX_LOOKBACK_DAYS} days). "
+                "Will still protect existing positions."
+            )
+        else:
+            print(f"  Using signals from {signals_date} ({len(active_rows)} ACTIVE).")
 
     # Best upside first — ensures top setups are funded if buying power runs out
     active_rows.sort(key=lambda r: float(r.get('upside_pct', 0)), reverse=True)
@@ -814,10 +824,12 @@ def main() -> None:
     group.add_argument('--open', action='store_true', help='Place limit buy orders (run at market open).')
     group.add_argument('--close', action='store_true', help='Settle fills and update journal (run after close).')
     parser.add_argument('--dry-run', action='store_true', help='Log actions without placing or recording anything.')
+    parser.add_argument('--protect-only', action='store_true',
+                        help='With --open: skip buys, only re-place profit-target sells for held positions.')
     args = parser.parse_args()
 
     if args.open:
-        run_open(dry_run=args.dry_run)
+        run_open(dry_run=args.dry_run, protect_only=args.protect_only)
     else:
         run_close(dry_run=args.dry_run)
 

@@ -46,6 +46,7 @@ jobs:
           "
 
       - name: Check today's signals exist
+        id: signals
         run: |
           python3 -c "
           import json, os, sys
@@ -64,18 +65,31 @@ jobs:
               if os.path.exists(candidate):
                   path = candidate
                   break
+          out = open(os.environ['GITHUB_OUTPUT'], 'a')
           if not path:
-              print(f'ERROR: No signals file found for {candidates[0]} or {candidates[1]}.')
-              print('The nightly forge must run successfully before the morning orders job.')
-              sys.exit(1)
-          with open(path) as f:
-              report = json.load(f)
-          active = report.get('summary', {}).get('active', 0)
-          print(f'OK: {active} ACTIVE setups ({path})')
+              # A missed/failed nightly must not block position protection:
+              # previously this exit(1) stopped the whole job, so held
+              # positions got no profit-target sells all day (seen when the
+              # 2026-08-26 nightly schedule was silently dropped by GitHub).
+              # Fall through to protect-only trading instead.
+              print(f'WARNING: No signals file for {candidates[0]} or {candidates[1]}.')
+              print('Falling back to protect-only mode (no buys, sells still re-placed).')
+              out.write('fresh=false\n')
+          else:
+              with open(path) as f:
+                  report = json.load(f)
+              active = report.get('summary', {}).get('active', 0)
+              print(f'OK: {active} ACTIVE setups ({path})')
+              out.write('fresh=true\n')
           "
 
       - name: Place limit buy orders
-        run: python3 trader.py --open
+        run: |
+          if [ "${{ steps.signals.outputs.fresh }}" = "true" ]; then
+            python3 trader.py --open
+          else
+            python3 trader.py --open --protect-only
+          fi
 
       - name: Commit order state
         run: |
