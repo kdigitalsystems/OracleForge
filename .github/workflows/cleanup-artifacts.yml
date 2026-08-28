@@ -2,7 +2,7 @@ name: Cleanup old Actions artifacts
 
 on:
   schedule:
-    - cron: "17 4 */3 * *"
+    - cron: "17 4 * * *"   # daily at 04:17 UTC
   workflow_dispatch:
 
 permissions:
@@ -15,7 +15,7 @@ jobs:
     runs-on: [self-hosted, terrascout-ci]
     timeout-minutes: 10
     steps:
-      - name: Delete artifacts older than four days
+      - name: Delete artifacts older than one day
         env:
           GH_TOKEN: ${{ github.token }}
           REPOSITORY: ${{ github.repository }}
@@ -40,7 +40,7 @@ jobs:
             python3 -c "
           import json, sys
           from datetime import datetime, timedelta, timezone
-          cutoff = datetime.now(timezone.utc) - timedelta(days=4)
+          cutoff = datetime.now(timezone.utc) - timedelta(days=1)
           for a in json.loads(sys.stdin.read())['artifacts']:
               created = datetime.fromisoformat(a['created_at'].replace('Z', '+00:00'))
               if created < cutoff:
@@ -57,7 +57,7 @@ jobs:
             deleted=$((deleted + 1))
           done < "$ids_file"
 
-          echo "Deleted $deleted artifact(s) older than four days."
+          echo "Deleted $deleted artifact(s) older than one day."
 
       - name: Trim old runner diagnostic logs
         shell: bash
@@ -66,14 +66,14 @@ jobs:
           # never cleans them up. On 2026-08-18 a stale _diag/pages log
           # caused a job to fail with "The file ... already exists", and by
           # 2026-08-26 this machine had accumulated 927 MB / 6,462 files.
-          # Trim anything older than 7 days on whichever runner this lands
+          # Trim anything older than 1 day on whichever runner this lands
           # on. The directory lives two levels up from the job workspace
           # (_work/<repo>/<repo>); fall back to the known home path.
           diag="$(cd "$GITHUB_WORKSPACE/../../.." 2>/dev/null && pwd)/_diag"
           [ -d "$diag" ] || diag="$HOME/github/actions-runner/_diag"
           if [ -d "$diag" ]; then
             before=$(find "$diag" -type f -name '*.log' | wc -l)
-            find "$diag" -type f -name '*.log' -mtime +7 -delete || true
+            find "$diag" -type f -name '*.log' -mtime +1 -delete || true
             after=$(find "$diag" -type f -name '*.log' | wc -l)
             echo "Trimmed $((before - after)) diag log(s) from $diag ($after remain)."
           else
