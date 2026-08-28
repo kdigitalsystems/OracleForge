@@ -12,7 +12,9 @@ jobs:
   cleanup:
     # Not containerized: the diag-trim step's whole purpose is maintaining
     # the host runner's own filesystem, which a container cannot see.
-    runs-on: [self-hosted, terrascout-ci]
+    # Any self-hosted machine works (the steps need only curl and python3),
+    # and each run trims the diag logs of whichever runner picks it up.
+    runs-on: self-hosted
     timeout-minutes: 10
     steps:
       - name: Delete artifacts older than one day
@@ -21,19 +23,19 @@ jobs:
           REPOSITORY: ${{ github.repository }}
         shell: bash
         run: |
-          # Avoid a `jq` dependency -- this workflow is pinned to a runner
-          # pool where it isn't guaranteed to be installed (it wasn't; every
-          # run failed with "jq: command not found" until this rewrite).
-          # Every other JSON-handling step in this repo already uses Python
-          # for the same reason, so do the same here instead of adding an
-          # apt-get install step to a shared self-hosted machine.
+          # Uses curl + python3 only (no jq, no gh CLI): this job may land on
+          # any self-hosted machine in the heterogeneous pool, and those two
+          # are the only tools reliably present on all of them. A jq
+          # dependency already broke every run once, and gh is not
+          # guaranteed on the aws runners.
+          api="https://api.github.com/repos/$REPOSITORY/actions/artifacts"
           ids_file=$(mktemp)
           trap 'rm -f "$ids_file"' EXIT
           page=1
 
           # Collect IDs before deleting so pagination cannot skip artifacts as the list shrinks.
           while :; do
-            response=$(gh api -H 'Accept: application/vnd.github+json' "/repos/$REPOSITORY/actions/artifacts?per_page=100&page=$page")
+            response=$(curl -sf -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "$api?per_page=100&page=$page")
             count=$(python3 -c "import json,sys; print(len(json.loads(sys.stdin.read())['artifacts']))" <<< "$response")
             [ "$count" -eq 0 ] && break
 
@@ -53,7 +55,7 @@ jobs:
           deleted=0
           while IFS= read -r id; do
             [ -z "$id" ] && continue
-            gh api -X DELETE "/repos/$REPOSITORY/actions/artifacts/$id"
+            curl -sf -X DELETE -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "$api/$id"
             deleted=$((deleted + 1))
           done < "$ids_file"
 
