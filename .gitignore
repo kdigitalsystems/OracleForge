@@ -239,3 +239,8 @@ models/
 # OS generated files
 .DS_Store
 Thumbs.db
+
+# Atomic-write leftovers (save_json writes <file>.tmp<pid> then renames;
+# a kill between the two leaves the temp file, and the workflows git-add
+# whole state/history/reports directories)
+*.tmp[0-9]*

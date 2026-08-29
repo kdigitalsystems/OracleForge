@@ -55,6 +55,15 @@ class SimulateRangeTests(unittest.TestCase):
         self.assertEqual(result['outcome'], 'miss')
         self.assertTrue(result['triggered'])
 
+    def test_miss_is_valued_at_close_not_high(self):
+        # Regression: a miss used to be scored as an exit at the day's HIGH,
+        # booking nearly every unexited trade as a win at the best print of
+        # the day. Entry 100, high 104, close 103: the return must be +3%
+        # (close), not +4% (high).
+        bar = {'open': 101, 'high': 104, 'low': 99, 'close': 103}
+        result = simulate_range_outcome(bar, RANGE_MISS)
+        self.assertEqual(result['return_pct'], 3.0)
+
     def test_no_trigger(self):
         bar = {'open': 101, 'high': 108, 'low': 97, 'close': 105}
         result = simulate_range_outcome(bar, RANGE_NO_TRIGGER)
@@ -165,12 +174,13 @@ class BucketTests(unittest.TestCase):
         self.assertEqual(final['profit_factor'], 0.0)  # loss present, zero profit
 
     def test_avg_loss_pct_not_inflated_by_stop_only_divisor(self):
-        # One -5% stop and one -1% miss: avg loss must be 3%, not 6% (5+1)/1.
+        # One -5% stop and one -3% miss (valued at the close, 97 vs entry
+        # 100): avg loss must be 4%, not 8% (5+3)/1.
         bucket = _new_bucket()
         _update_bucket(bucket, simulate_range_outcome({'open': 101, 'high': 101, 'low': 93, 'close': 96}, RANGE_STOP))
         _update_bucket(bucket, simulate_range_outcome({'open': 99, 'high': 99, 'low': 96, 'close': 97}, RANGE_MISS))
         final = _finalize_bucket(bucket)
-        self.assertAlmostEqual(final['avg_loss_pct'], 3.0, places=2)
+        self.assertAlmostEqual(final['avg_loss_pct'], 4.0, places=2)
 
     def test_internal_fields_not_in_output(self):
         final = _finalize_bucket(_new_bucket())

@@ -142,7 +142,8 @@ def simulate_range_outcome(bar: dict, pred: dict, stop_loss_pct: float = 0.95,
 
       limit_stop  (current live behavior): enter only if price dips to buy_high;
                   exit at sell_low (win), at buy_high*stop_loss_pct (stop), or
-                  at the day's high (miss).
+                  at the close (miss: neither level was hit, position carries,
+                  and the close is the honest one-bar proxy for its value).
       limit_hold: enter only if price dips to buy_high; no stop/target — exit at
                   the close. Isolates whether the stop/target is the leak.
       market_hold: ignore the range entirely — buy at the open, sell at the
@@ -185,7 +186,12 @@ def simulate_range_outcome(bar: dict, pred: dict, stop_loss_pct: float = 0.95,
         ret = ((sell_low - entry) / entry) * 100
         return {'outcome': 'win', 'return_pct': round(ret, 2), 'triggered': True}
 
-    ret = ((high - entry) / entry) * 100
+    # Neither target nor stop was hit: the position carries overnight in live
+    # trading, so value it at the close. Valuing at the day's HIGH (the
+    # previous behavior) booked nearly every miss as a small win at the best
+    # print of the day, inflating every aggregate and biasing the
+    # walk-forward optimizer toward configs that produce many near-misses.
+    ret = ((close - entry) / entry) * 100
     return {'outcome': 'miss', 'return_pct': round(ret, 2), 'triggered': True}
 
 
