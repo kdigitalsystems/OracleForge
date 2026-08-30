@@ -132,7 +132,8 @@ python3 trader.py --close --dry-run
 
 ## Automation (GitHub Actions)
 
-All four workflows run on a **self-hosted runner** and read Alpaca keys directly from
+All workflows run on **self-hosted runners** (the morning, evening, and
+report jobs inside Docker containers) and read Alpaca keys directly from
 `~/.ssh/alpaca_paper_keys` (colon-delimited: `Key:`, `Secret_Key:`, `URL:`).
 Keys are never stored in GitHub Secrets.
 
@@ -275,7 +276,6 @@ python3 backtest.py --attribution
 {
     "min_upside_pct": 1.5,
     "max_spread_pct": 3.0,
-    "min_bullish_models": 2,
     "min_agreeing_models": 2,
     "max_consensus_cv": 0.10
 }
