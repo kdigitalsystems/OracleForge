@@ -85,5 +85,46 @@ class GetSessionTests(unittest.TestCase):
         self.assertIsNone(alpaca_client.get_session(client, date(2026, 9, 7)))
 
 
+def _api_error(status):
+    response = MagicMock(status_code=status)
+    return alpaca_client.APIError('{"code": 0, "message": "x"}', MagicMock(response=response))
+
+
+class FindOrderTests(unittest.TestCase):
+
+    def test_returns_none_only_on_404(self):
+        client = MagicMock()
+        client.get_order_by_id.side_effect = _api_error(404)
+        self.assertIsNone(alpaca_client.find_order(client, 'ord-1'))
+
+    def test_other_errors_propagate(self):
+        client = MagicMock()
+        client.get_order_by_id.side_effect = _api_error(500)
+        with self.assertRaises(alpaca_client.APIError):
+            alpaca_client.find_order(client, 'ord-1')
+
+
+class RecentOrdersTests(unittest.TestCase):
+
+    def test_closed_batch_failure_propagates_instead_of_returning_partial_list(self):
+        client = MagicMock()
+        client.get_orders.side_effect = [[MagicMock()], RuntimeError('503')]
+        with self.assertRaises(RuntimeError):
+            alpaca_client.get_all_recent_orders(client)
+
+
+class PositionDetailsTests(unittest.TestCase):
+
+    def test_position_with_unparseable_price_is_kept(self):
+        client = MagicMock()
+        client.get_all_positions.return_value = [
+            MagicMock(symbol='NVDA', qty='0.02', current_price=None, avg_entry_price='100'),
+        ]
+        self.assertEqual(
+            alpaca_client.get_position_details(client),
+            {'NVDA': {'qty': 0.02, 'current_price': None, 'avg_entry_price': 100.0}},
+        )
+
+
 if __name__ == '__main__':
     unittest.main()

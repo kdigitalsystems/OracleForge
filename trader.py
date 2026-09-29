@@ -439,14 +439,24 @@ def run_close(dry_run: bool = False) -> None:
         print("  -- DRY RUN: no state will be written --")
 
     # Fetch all recent orders in one API call instead of one per ticker
+    # A failure here aborts the run before any state changes: settling
+    # against a missing or partial order list would clear the IDs of orders
+    # that actually filled, losing their P&L. The job fails and the retry
+    # watchdog re-runs it from a clean checkout.
     orders_by_id: dict[str, object] = {}
     if not dry_run:
-        try:
-            all_orders = alpaca_client.get_all_recent_orders(client)
-            orders_by_id = {str(o.id): o for o in all_orders}
-            print(f"  Fetched {len(orders_by_id)} recent order(s) from Alpaca.")
-        except Exception as e:
-            print(f"  [!] Could not fetch orders from Alpaca: {e}")
+        all_orders = alpaca_client.get_all_recent_orders(client)
+        orders_by_id = {str(o.id): o for o in all_orders}
+        print(f"  Fetched {len(orders_by_id)} recent order(s) from Alpaca.")
+
+    def lookup_order(order_id):
+        # The bulk list is capped (500 closed orders in 7 days, on an account
+        # shared with other systems), so confirm by ID before treating an
+        # order as gone.
+        order = orders_by_id.get(order_id)
+        if order is None:
+            order = alpaca_client.find_order(client, order_id)
+        return order
 
     to_delete: list[str] = []
     settled: set[str] = set()  # tickers for which a fill was recorded this run
@@ -467,9 +477,9 @@ def run_close(dry_run: bool = False) -> None:
             if dry_run:
                 log(f"DRY CHECK buy order {buy_oid} for {ticker}")
             else:
-                order = orders_by_id.get(buy_oid)
+                order = lookup_order(buy_oid)
                 if order is None:
-                    log(f"[!] Buy order {buy_oid} for {ticker} not found in recent orders")
+                    log(f"[!] Buy order {buy_oid} for {ticker} does not exist on Alpaca")
                 else:
                     status = str(order.status).lower().replace('orderstatus.', '')
 
@@ -555,10 +565,10 @@ def run_close(dry_run: bool = False) -> None:
             if dry_run:
                 log(f"DRY CHECK sell order {sell_oid} for {ticker}")
             else:
-                order = orders_by_id.get(sell_oid)
+                order = lookup_order(sell_oid)
                 if order is None:
-                    # Order not in recent history — treat as expired, let --open re-place
-                    log(f"[!] Sell order {sell_oid} for {ticker} not found — clearing, will re-place at open")
+                    # Alpaca confirmed (404) the order doesn't exist; let --open re-place
+                    log(f"[!] Sell order {sell_oid} for {ticker} does not exist on Alpaca; clearing, will re-place at open")
                     entry['sell_order_id'] = None
                 else:
                     status = str(order.status).lower().replace('orderstatus.', '')
@@ -641,9 +651,9 @@ def run_close(dry_run: bool = False) -> None:
             if dry_run:
                 log(f"DRY CHECK stop order {stop_oid} for {ticker}")
             else:
-                order = orders_by_id.get(stop_oid)
+                order = lookup_order(stop_oid)
                 if order is None:
-                    log(f"[!] Stop order {stop_oid} for {ticker} not found — clearing, will re-place at open")
+                    log(f"[!] Stop order {stop_oid} for {ticker} does not exist on Alpaca; clearing, will re-place at open")
                     entry['stop_order_id'] = None
                 else:
                     status = str(order.status).lower().replace('orderstatus.', '')
@@ -722,11 +732,11 @@ def run_close(dry_run: bool = False) -> None:
     timed_out = 0
     orphaned = 0
     if not dry_run and positions_meta:
-        try:
-            details = alpaca_client.get_position_details(client)
-        except Exception as e:
-            details = {}
-            print(f"  [!] Could not fetch positions for stop check: {e}")
+        # No try/except: treating a failed fetch as "no positions" made every
+        # tracked position look missing, and the orphan cleanup below then
+        # dropped the ones held past max_hold_days with no P&L recorded.
+        # Failing lets the retry watchdog re-run the whole settle.
+        details = alpaca_client.get_position_details(client)
 
         today_date = datetime.strptime(today, '%Y-%m-%d').date()
 
@@ -761,6 +771,9 @@ def run_close(dry_run: bool = False) -> None:
                         orphaned += 1
                 continue
             price = pos['current_price']
+            if price is None:
+                log(f"[!] {ticker}: Alpaca returned no usable price; skipping stop/max-hold check tonight")
+                continue
 
             reason = None
             is_stop = False

@@ -900,5 +900,106 @@ class MainSessionGateTests(unittest.TestCase):
         run_open.assert_called_once_with(dry_run=False, protect_only=False)
 
 
+class RunCloseAlpacaFailureTests(unittest.TestCase):
+    """A failed or incomplete read from Alpaca must never be taken as
+    "order gone" or "position gone": both paths used to discard real state
+    (a filled sell's P&L, or a held position) with nothing recorded."""
+
+    def setUp(self):
+        trader.alpaca_client.reset_mock(return_value=True, side_effect=True)
+        self.addCleanup(patch.stopall)
+        patch('trader.time.sleep').start()
+        self.save = patch('trader.save_json').start()
+        patch('trader.today_str', return_value='2026-01-20').start()
+        patch('trader.now_et', return_value='2026-01-20T16:05:00-05:00').start()
+        trader.alpaca_client.get_trading_client.return_value = MagicMock()
+
+    def _state(self, sell_order_id=None, entry_date='2026-01-01'):
+        self.meta = {'NVDA': {'entry_price': 100.0, 'usd_invested': 2.0, 'entry_date': entry_date,
+                              'predicting_models': ['m'], 'consensus_buy_high': 100.0,
+                              'consensus_sell_low': 110.0}}
+        self.journal = []
+        self.open_orders = {'NVDA': {
+            'buy_order_id': None, 'sell_order_id': sell_order_id, 'stop_order_id': None,
+            'qty': 0.02, 'sell_limit': 110.0, 'buy_limit': 100.0, 'stop_limit': 95.0,
+        }}
+        patch('trader.load_json', side_effect=[
+            {'max_per_trade_usd': 2.0, 'max_position_usd': 8.0, 'stop_loss_pct': 0.95, 'max_hold_days': 15},
+            self.open_orders, self.meta, self.journal,
+        ]).start()
+
+    def test_order_fetch_failure_aborts_before_touching_state(self):
+        self._state(sell_order_id='sell-1')
+        trader.alpaca_client.get_all_recent_orders.side_effect = RuntimeError('503')
+
+        with self.assertRaises(RuntimeError):
+            trader.run_close(dry_run=False)
+
+        self.assertEqual(self.open_orders['NVDA']['sell_order_id'], 'sell-1')
+        self.save.assert_not_called()
+
+    def test_sell_missing_from_bulk_list_is_confirmed_by_id(self):
+        self._state(sell_order_id='sell-1')
+        trader.alpaca_client.get_all_recent_orders.return_value = []
+        order = MagicMock(id='sell-1', status='filled', filled_avg_price=110.0, filled_qty=0.02)
+        trader.alpaca_client.find_order.return_value = order
+        trader.alpaca_client.get_position_details.return_value = {}
+
+        trader.run_close(dry_run=False)
+
+        trader.alpaca_client.find_order.assert_called_once()
+        self.assertEqual(len(self.journal), 1)
+        self.assertEqual(self.journal[0]['outcome'], 'win')
+
+    def test_sell_cleared_only_when_alpaca_confirms_it_does_not_exist(self):
+        self._state(sell_order_id='sell-1', entry_date='2026-01-15')
+        trader.alpaca_client.get_all_recent_orders.return_value = []
+        trader.alpaca_client.find_order.return_value = None
+        trader.alpaca_client.get_position_details.return_value = {
+            'NVDA': {'qty': 0.02, 'current_price': 101.0},
+        }
+
+        trader.run_close(dry_run=False)
+
+        self.assertIsNone(self.open_orders['NVDA']['sell_order_id'])
+        self.assertEqual(self.journal, [])
+
+    def test_order_lookup_error_aborts_and_keeps_the_order_id(self):
+        self._state(sell_order_id='sell-1')
+        trader.alpaca_client.get_all_recent_orders.return_value = []
+        trader.alpaca_client.find_order.side_effect = RuntimeError('timeout')
+
+        with self.assertRaises(RuntimeError):
+            trader.run_close(dry_run=False)
+
+        self.assertEqual(self.open_orders['NVDA']['sell_order_id'], 'sell-1')
+
+    def test_position_fetch_failure_does_not_drop_old_positions(self):
+        # Held 19 days (> max_hold_days): with the old details = {} fallback
+        # this was removed as a ghost entry with no P&L recorded.
+        self._state()
+        trader.alpaca_client.get_all_recent_orders.return_value = []
+        trader.alpaca_client.get_position_details.side_effect = RuntimeError('503')
+
+        with self.assertRaises(RuntimeError):
+            trader.run_close(dry_run=False)
+
+        self.assertIn('NVDA', self.meta)
+        trader.alpaca_client.place_market_sell.assert_not_called()
+
+    def test_position_without_a_price_is_kept_not_orphaned(self):
+        self._state()
+        trader.alpaca_client.get_all_recent_orders.return_value = []
+        trader.alpaca_client.get_position_details.return_value = {
+            'NVDA': {'qty': 0.02, 'current_price': None},
+        }
+
+        trader.run_close(dry_run=False)
+
+        self.assertIn('NVDA', self.meta)
+        self.assertIn('NVDA', self.open_orders)
+        trader.alpaca_client.place_market_sell.assert_not_called()
+
+
 if __name__ == '__main__':
     unittest.main()

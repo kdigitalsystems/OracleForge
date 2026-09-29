@@ -6,6 +6,7 @@ import math
 import os
 from datetime import datetime, timedelta, timezone
 
+from alpaca.common.exceptions import APIError
 from alpaca.data.historical import StockHistoricalDataClient
 from alpaca.trading.client import TradingClient
 from alpaca.trading.enums import OrderSide, QueryOrderStatus, TimeInForce
@@ -80,17 +81,26 @@ def get_position_details(client: TradingClient) -> dict[str, dict]:
     """Return {symbol: {'qty', 'current_price', 'avg_entry_price'}} for open positions.
 
     Used by the end-of-day stop check, which needs each position's live price.
+    A position whose price can't be parsed is still returned, with
+    current_price None: leaving it out would make the caller treat real
+    shares as a ghost entry and stop tracking them.
     """
+    def _num(v):
+        try:
+            return float(v)
+        except (TypeError, ValueError):
+            return None
+
     out: dict[str, dict] = {}
     for p in client.get_all_positions():
-        try:
-            out[p.symbol] = {
-                'qty': float(p.qty),
-                'current_price': float(p.current_price),
-                'avg_entry_price': float(p.avg_entry_price),
-            }
-        except (TypeError, ValueError):
+        qty = _num(p.qty)
+        if qty is None:
             continue
+        out[p.symbol] = {
+            'qty': qty,
+            'current_price': _num(p.current_price),
+            'avg_entry_price': _num(p.avg_entry_price),
+        }
     return out
 
 
@@ -169,31 +179,40 @@ def get_order(client: TradingClient, order_id: str):
     return client.get_order_by_id(order_id)
 
 
+def find_order(client: TradingClient, order_id: str):
+    """Fetch a single order by ID, or None only if Alpaca says it doesn't exist.
+
+    Any other failure propagates: a transient error must never be mistaken
+    for a missing order, since the caller clears the order ID and a filled
+    sell's P&L would never be recorded.
+    """
+    try:
+        return client.get_order_by_id(order_id)
+    except APIError as e:
+        if e.status_code == 404:
+            return None
+        raise
+
+
 def get_all_recent_orders(client: TradingClient, lookback_days: int = 7) -> list:
     """Fetch all open + recently closed orders (avoids per-order API requests).
 
     Uses an `after` date filter on CLOSED orders so the 500-order window is not
     exhausted by old fills when many positions are active.
+
+    Errors propagate rather than returning a partial list: a caller that
+    sees an order missing clears its ID, so a silently dropped CLOSED batch
+    would lose every fill in it.
     """
-    results = []
     after_dt = datetime.now(timezone.utc) - timedelta(days=lookback_days)
 
     # Open orders — no date filter needed (there are never thousands of open orders)
-    try:
-        orders = client.get_orders(GetOrdersRequest(status=QueryOrderStatus.OPEN, limit=500))
-        results.extend(orders)
-    except Exception as exc:
-        print(f"  [!] Could not fetch OPEN orders from Alpaca: {exc}")
+    results = list(client.get_orders(GetOrdersRequest(status=QueryOrderStatus.OPEN, limit=500)))
 
     # Closed orders — filter by date to stay within the 500-order window
-    try:
-        orders = client.get_orders(
-            GetOrdersRequest(status=QueryOrderStatus.CLOSED, limit=500, after=after_dt)
-        )
-        results.extend(orders)
-    except Exception as exc:
-        print(f"  [!] Could not fetch CLOSED orders from Alpaca: {exc}")
-
+    results.extend(client.get_orders(
+        GetOrdersRequest(status=QueryOrderStatus.CLOSED, limit=500, after=after_dt)
+    ))
     return results
 
 
