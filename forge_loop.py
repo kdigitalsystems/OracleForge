@@ -211,11 +211,32 @@ def _fallback_range(price: float) -> dict:
     }
 
 
+_THINK_BLOCK = re.compile(r'<think>.*?</think>', re.DOTALL | re.IGNORECASE)
+
+
+def _strip_reasoning(text: str) -> str:
+    """Drop a reasoning model's chain of thought, keeping only its answer.
+
+    Current Ollama returns deepseek-r1's reasoning in a separate `thinking`
+    field, but older versions inline it in `response` as <think>...</think>,
+    sometimes with only the closing tag. An unclosed <think> means the
+    answer never came, so nothing after it is kept.
+    """
+    text = _THINK_BLOCK.sub('', text)
+    lower = text.lower()
+    if '</think>' in lower:
+        text = text[lower.rindex('</think>') + len('</think>'):]
+    elif '<think>' in lower:
+        text = text[:lower.index('<think>')]
+    return text
+
+
 def parse_llm_range(raw_output: str, fallback_price: float) -> dict:
     if not raw_output or not raw_output.strip():
         return _fallback_range(fallback_price)
 
-    text = re.sub(r'```(?:json)?\s*', '', raw_output.strip()).strip('`').strip()
+    text = _strip_reasoning(raw_output)
+    text = re.sub(r'```(?:json)?\s*', '', text.strip()).strip('`').strip()
 
     def _try_parse(s: str) -> dict | None:
         try:
@@ -239,8 +260,9 @@ def parse_llm_range(raw_output: str, fallback_price: float) -> dict:
     result = _try_parse(text)
     if result:
         return result
-    m = re.search(r'\{[^{}]+\}', text, re.DOTALL)
-    if m:
+    # Prefer the last well-formed object: text before the answer (leftover
+    # reasoning, an echoed template, a draft) can contain braces too.
+    for m in reversed(list(re.finditer(r'\{[^{}]+\}', text, re.DOTALL))):
         result = _try_parse(m.group())
         if result:
             return result
@@ -523,7 +545,14 @@ All values must be positive numbers. buy_high must be less than sell_low."""
                 timeout=120,
             )
             response.raise_for_status()
-            return parse_llm_range(response.json().get('response', '').strip(), current_price)
+            raw = response.json().get('response', '').strip()
+            result = parse_llm_range(raw, current_price)
+            if result.get('fallback'):
+                # Parse failures used to be silent, which hid a model falling
+                # back on nearly every ticker on one runner. Show what it sent.
+                snippet = ' '.join(raw.split())[:200]
+                print(f"    [!] {model_name} output for {ticker} unparseable; using fallback. Raw: {snippet!r}")
+            return result
         except Exception as e:
             if attempt < MAX_LLM_RETRIES:
                 print(f"    [!] Attempt {attempt}/{MAX_LLM_RETRIES} failed: {e}. Retrying in {LLM_RETRY_DELAY}s...")

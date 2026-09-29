@@ -77,6 +77,38 @@ class ParseLlmRangeTests(unittest.TestCase):
         result = parse_llm_range('', 100.0)
         self.assertIn('Fallback', result['rationale'])
 
+    def test_inline_think_block_with_echoed_template_is_skipped(self):
+        # Older Ollama inlines deepseek-r1 reasoning in the response. The
+        # template echo inside it used to be the only {...} tried.
+        raw = ('<think>The format is {"buy_low": <number>, "buy_high": <number>}. '
+               'Support is near 95.</think>\n'
+               '{"buy_low":95,"buy_high":97,"sell_low":105,"sell_high":108,"rationale":"x"}')
+        result = parse_llm_range(raw, 100.0)
+        self.assertFalse(result.get('fallback'))
+        self.assertEqual(result['buy_high'], 97.0)
+
+    def test_draft_answer_in_reasoning_is_not_used(self):
+        raw = ('<think>Draft: {"buy_low":90,"buy_high":91,"sell_low":120,"sell_high":121,"rationale":"d"} '
+               'too wide, tighten it.</think>'
+               '{"buy_low":95,"buy_high":97,"sell_low":105,"sell_high":108,"rationale":"final"}')
+        result = parse_llm_range(raw, 100.0)
+        self.assertEqual((result['buy_low'], result['rationale']), (95.0, 'final'))
+
+    def test_only_closing_think_tag(self):
+        raw = ('Reasoning about {"buy_low": <number>} here...</think>\n\n'
+               '```json\n{"buy_low":95,"buy_high":97,"sell_low":105,"sell_high":108,"rationale":"x"}\n```')
+        self.assertEqual(parse_llm_range(raw, 100.0)['sell_low'], 105.0)
+
+    def test_unclosed_think_block_is_a_fallback(self):
+        # Reasoning cut off before an answer: a draft inside must not be used.
+        raw = '<think>Maybe {"buy_low":90,"buy_high":91,"sell_low":120,"sell_high":121,"rationale":"d"}'
+        self.assertTrue(parse_llm_range(raw, 100.0).get('fallback'))
+
+    def test_last_valid_object_wins_in_plain_text(self):
+        raw = ('Example: {"buy_low":1,"buy_high":2,"sell_low":3,"sell_high":4,"rationale":"e"}. '
+               'Answer: {"buy_low":95,"buy_high":97,"sell_low":105,"sell_high":108,"rationale":"a"}')
+        self.assertEqual(parse_llm_range(raw, 100.0)['rationale'], 'a')
+
     def test_incoherent_range_returns_fallback(self):
         # buy_high > sell_low ? invalid
         raw = '{"buy_low": 95, "buy_high": 110, "sell_low": 105, "sell_high": 108, "rationale": "bad"}'
