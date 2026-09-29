@@ -2,10 +2,21 @@ name: OracleForge Morning Orders
 
 on:
   schedule:
-    # Weekdays 13:30 UTC = 9:30 AM ET (market open)
+    # Weekdays 13:30 UTC: 9:30 AM EDT in summer, 8:30 AM EST in winter.
+    # Both are fine: DAY orders placed before the open queue for the
+    # session. trader.py --open checks Alpaca's calendar and skips holidays
+    # and runs that GitHub delays past the close.
     - cron: '30 13 * * 1-5'
 
   workflow_dispatch:
+
+# One run at a time: an overlapping retry, backstop dispatch or manual run
+# could otherwise act on the same positions twice (e.g. two market sells).
+# A newer pending run replaces an older pending one, which is harmless for
+# a same-day job.
+concurrency:
+  group: morning-orders
+  cancel-in-progress: false
 
 jobs:
   open:

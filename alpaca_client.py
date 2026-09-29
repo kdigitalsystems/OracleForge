@@ -10,6 +10,7 @@ from alpaca.data.historical import StockHistoricalDataClient
 from alpaca.trading.client import TradingClient
 from alpaca.trading.enums import OrderSide, QueryOrderStatus, TimeInForce
 from alpaca.trading.requests import (
+    GetCalendarRequest,
     GetOrdersRequest,
     LimitOrderRequest,
     MarketOrderRequest,
@@ -148,6 +149,19 @@ def place_stop_limit_sell(
         limit_price=round(limit_price, 2),
     )
     return client.submit_order(req)
+
+
+def get_session(client: TradingClient, day) -> tuple[datetime, datetime] | None:
+    """Regular session (open, close) for ``day`` as naive ET datetimes.
+
+    Returns None when the market is closed all day (weekend or holiday).
+    Early closes (e.g. 13:00 the day after Thanksgiving) come through as-is.
+    """
+    days = client.get_calendar(GetCalendarRequest(start=day, end=day))
+    for d in days:
+        if d.date == day:
+            return d.open, d.close
+    return None
 
 
 def get_order(client: TradingClient, order_id: str):

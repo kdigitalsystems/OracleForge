@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import unittest
 import sys
+from datetime import date, datetime
 from unittest.mock import MagicMock
 
 from alpaca.trading.enums import OrderSide, OrderType, TimeInForce
@@ -61,6 +62,27 @@ class SellQtyTests(unittest.TestCase):
         alpaca_client.place_limit_sell(client, 'NVDA', qty=0.1234567, limit_price=100.0)
         req = client.submit_order.call_args.args[0]
         self.assertEqual(req.qty, 0.123456)
+
+
+class GetSessionTests(unittest.TestCase):
+
+    def test_returns_open_and_close_for_a_trading_day(self):
+        client = MagicMock()
+        day = date(2026, 11, 27)
+        client.get_calendar.return_value = [MagicMock(
+            date=day, open=datetime(2026, 11, 27, 9, 30), close=datetime(2026, 11, 27, 13, 0),
+        )]
+        self.assertEqual(
+            alpaca_client.get_session(client, day),
+            (datetime(2026, 11, 27, 9, 30), datetime(2026, 11, 27, 13, 0)),
+        )
+        req = client.get_calendar.call_args.args[0]
+        self.assertEqual((req.start, req.end), (day, day))
+
+    def test_returns_none_on_a_holiday(self):
+        client = MagicMock()
+        client.get_calendar.return_value = []
+        self.assertIsNone(alpaca_client.get_session(client, date(2026, 9, 7)))
 
 
 if __name__ == '__main__':

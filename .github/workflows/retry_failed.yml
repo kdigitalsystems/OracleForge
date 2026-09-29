@@ -155,12 +155,13 @@ jobs:
               return;
             }
             // window: UTC hours during which a missed run is worth
-            // recovering. maxAgeH: latest run older than this means the
+            // recovering (trader.py also gates on Alpaca's calendar, so a
+            // dispatch that lands outside market-appropriate hours no-ops). maxAgeH: latest run older than this means the
             // schedule was dropped (all three are daily on weekdays).
             const SCHEDULES = [
               { wf: 'nightly_forge.yml',   from: 2,  to: 13, maxAgeH: 20 },
               { wf: 'morning_orders.yml',  from: 14, to: 19, maxAgeH: 22 },
-              { wf: 'evening_cleanup.yml', from: 20, to: 24, maxAgeH: 22 },
+              { wf: 'evening_cleanup.yml', from: 21, to: 24, maxAgeH: 22 },
             ];
             for (const s of SCHEDULES) {
               if (hour < s.from || hour >= s.to) {

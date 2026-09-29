@@ -2,10 +2,21 @@ name: OracleForge Evening Cleanup
 
 on:
   schedule:
-    # Weekdays 20:05 UTC = 4:05 PM ET (5 min after market close)
-    - cron: '5 20 * * 1-5'
+    # Weekdays 21:05 UTC: 5:05 PM EDT in summer, 4:05 PM EST in winter.
+    # Cron is fixed UTC, so the time has to be after the close under both;
+    # 20:05 was 3:05 PM, mid-session, once DST ended. trader.py --close also
+    # checks Alpaca's calendar and skips holidays and still-open sessions.
+    - cron: '5 21 * * 1-5'
 
   workflow_dispatch:
+
+# One run at a time: an overlapping retry, backstop dispatch or manual run
+# could otherwise act on the same positions twice (e.g. two market sells).
+# A newer pending run replaces an older pending one, which is harmless for
+# a same-day job.
+concurrency:
+  group: evening-cleanup
+  cancel-in-progress: false
 
 jobs:
   close:
@@ -43,15 +54,19 @@ jobs:
           "
 
       - name: Settle fills and update journal
+        id: settle
         run: python3 trader.py --close
 
       - name: Generate trade attribution
+        if: steps.settle.outputs.skipped != 'true'
         run: python3 backtest.py --attribution
 
       - name: Regenerate GitHub Pages dashboard
+        if: steps.settle.outputs.skipped != 'true'
         run: python3 scripts/generate_html_report.py
 
       - name: Commit settlement state
+        if: steps.settle.outputs.skipped != 'true'
         run: |
           # Container runs as root while the mounted workspace carries the
           # host user's uid; git refuses such repos (dubious ownership), and
@@ -94,6 +109,7 @@ jobs:
           fi
 
       - name: Commit dashboard
+        if: steps.settle.outputs.skipped != 'true'
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"

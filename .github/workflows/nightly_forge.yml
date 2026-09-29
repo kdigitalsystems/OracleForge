@@ -9,6 +9,14 @@ on:
 
   workflow_dispatch:
 
+# One run at a time: an overlapping retry, backstop dispatch or manual run
+# could otherwise double-apply the once-per-day model-score update.
+# A newer pending run replaces an older pending one, which is harmless for
+# a resumable job.
+concurrency:
+  group: nightly-forge
+  cancel-in-progress: false
+
 jobs:
   execute_loop:
     # Require the 'gpu' label so the job only lands on a fully provisioned

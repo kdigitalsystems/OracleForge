@@ -214,6 +214,30 @@ def _close_fraction(fill_qty: float, total_qty: float) -> float:
     return min(1.0, max(0.0, fill_qty / total_qty))
 
 
+def session_skip_reason(mode: str, session, now) -> str | None:
+    """Why a --open/--close run must not trade now, or None to proceed.
+
+    ``session`` is (open, close) from alpaca_client.get_session, or None on a
+    non-trading day; ``now`` and the session times are naive ET. The cron
+    schedules are fixed UTC, so they drift an hour against the market at
+    each DST change, and GitHub sometimes fires them hours late. Keying off
+    Alpaca's calendar also covers holidays and early closes.
+
+    --open may run before the open (DAY orders queue for the session) but
+    not after the close, when they would queue for the next day instead.
+    --close must run after the close: before it, DAY orders are still live
+    and the end-of-day stop check would market-sell mid-session.
+    """
+    if session is None:
+        return 'market closed today (weekend or holiday)'
+    _, close = session
+    if mode == 'open' and now >= close:
+        return f"today's session already closed at {close:%H:%M} ET"
+    if mode == 'close' and now < close:
+        return f"today's session is still open until {close:%H:%M} ET"
+    return None
+
+
 def log(msg: str) -> None:
     print(f"  [{now_et()}] {msg}")
 
@@ -834,7 +858,23 @@ def main() -> None:
     parser.add_argument('--dry-run', action='store_true', help='Log actions without placing or recording anything.')
     parser.add_argument('--protect-only', action='store_true',
                         help='With --open: skip buys, only re-place profit-target sells for held positions.')
+    parser.add_argument('--force', action='store_true',
+                        help='Skip the market-session check (run even outside the expected window).')
     args = parser.parse_args()
+
+    mode = 'open' if args.open else 'close'
+    if not args.force:
+        now = datetime.now(ET).replace(tzinfo=None)
+        session = alpaca_client.get_session(alpaca_client.get_trading_client(), now.date())
+        reason = session_skip_reason(mode, session, now)
+        if reason:
+            print(f"Skipping --{mode}: {reason}.")
+            # Lets the workflow skip its follow-up steps (attribution,
+            # dashboard, commits) on a no-op run.
+            if os.environ.get('GITHUB_OUTPUT'):
+                with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+                    f.write('skipped=true\n')
+            return
 
     if args.open:
         run_open(dry_run=args.dry_run, protect_only=args.protect_only)

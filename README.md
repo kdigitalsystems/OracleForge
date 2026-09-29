@@ -56,7 +56,7 @@ Each night, local Ollama models independently analyse every ticker on the watchl
 
 ### Daytime (trader.py — two short jobs, no polling)
 
-**Morning (`trader.py --open`, 9:30 AM ET):**
+**Morning (`trader.py --open`, 9:30 AM EDT / 8:30 AM EST):**
 ```
 For each ACTIVE ticker:
   if no existing position AND no order placed today:
@@ -67,7 +67,7 @@ For each existing position without a resting sell:
   place DAY limit sell @ consensus sell_low   (single resting profit-target order)
 ```
 
-**Evening (`trader.py --close`, 4:05 PM ET):**
+**Evening (`trader.py --close`, 5:05 PM EDT / 4:05 PM EST):**
 ```
 For each tracked buy order:
   if FILLED  → record entry price; place DAY profit-target sell @ sell_low
@@ -140,8 +140,8 @@ Keys are never stored in GitHub Secrets.
 | Workflow | Schedule | What it does |
 |---|---|---|
 | [Nightly Forge](.github/workflows/nightly_forge.yml) | 23:00 UTC weekdays | Runs unit tests → `update_tickers.py` → `forge_loop.py` → validates outputs → refreshes recent walk-forward study → regenerates dashboard → commits state |
-| [Morning Orders](.github/workflows/morning_orders.yml) | 13:30 UTC weekdays (9:30 AM ET) | Places DAY limit buy orders for ACTIVE tickers; re-places the DAY profit-target sell for held positions |
-| [Evening Cleanup](.github/workflows/evening_cleanup.yml) | 20:05 UTC weekdays (4:05 PM ET) | Detects fills, records P&L, runs the end-of-day stop check, clears expired orders, refreshes trade attribution, regenerates dashboard |
+| [Morning Orders](.github/workflows/morning_orders.yml) | 13:30 UTC weekdays (9:30 AM EDT / 8:30 AM EST) | Places DAY limit buy orders for ACTIVE tickers; re-places the DAY profit-target sell for held positions |
+| [Evening Cleanup](.github/workflows/evening_cleanup.yml) | 21:05 UTC weekdays (5:05 PM EDT / 4:05 PM EST) | Detects fills, records P&L, runs the end-of-day stop check, clears expired orders, refreshes trade attribution, regenerates dashboard |
 | [Rebuild Dashboard](.github/workflows/regenerate_report.yml) | Manual (via Rebuild button) | Regenerates `docs/index.html` from existing data files and commits |
 
 ### Runner registration

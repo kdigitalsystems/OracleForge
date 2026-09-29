@@ -1,8 +1,11 @@
 """Unit tests for trader.py helpers (record_buy, record_sell)."""
 from __future__ import annotations
 
+import os
 import sys
+import tempfile
 import unittest
+from datetime import datetime, timezone
 from unittest.mock import MagicMock, patch
 
 # Stub heavy dependencies so trader can be imported in a pure-Python test env
@@ -839,6 +842,62 @@ class RunCloseFillTests(unittest.TestCase):
 
         self.assertEqual(len(journal), 1)
         self.assertNotIn('NVDA', meta)
+
+
+class SessionGateTests(unittest.TestCase):
+    """The crons are fixed UTC, so they drift against the market at each DST
+    change (20:05 UTC was 3:05 PM EST, mid-session). The gate keys off
+    Alpaca's calendar instead."""
+
+    REGULAR = (datetime(2026, 11, 2, 9, 30), datetime(2026, 11, 2, 16, 0))
+    EARLY_CLOSE = (datetime(2026, 11, 27, 9, 30), datetime(2026, 11, 27, 13, 0))
+
+    def test_close_skipped_while_session_is_open(self):
+        reason = trader.session_skip_reason('close', self.REGULAR, datetime(2026, 11, 2, 15, 5))
+        self.assertIn('still open', reason)
+
+    def test_close_proceeds_after_close_including_early_close(self):
+        self.assertIsNone(trader.session_skip_reason('close', self.REGULAR, datetime(2026, 11, 2, 16, 5)))
+        self.assertIsNone(trader.session_skip_reason('close', self.EARLY_CLOSE, datetime(2026, 11, 27, 16, 5)))
+
+    def test_open_proceeds_before_and_during_session(self):
+        self.assertIsNone(trader.session_skip_reason('open', self.REGULAR, datetime(2026, 11, 2, 8, 30)))
+        self.assertIsNone(trader.session_skip_reason('open', self.REGULAR, datetime(2026, 11, 2, 11, 0)))
+
+    def test_open_skipped_once_session_closed(self):
+        reason = trader.session_skip_reason('open', self.EARLY_CLOSE, datetime(2026, 11, 27, 14, 0))
+        self.assertIn('already closed', reason)
+
+    def test_both_skipped_on_non_trading_day(self):
+        for mode in ('open', 'close'):
+            self.assertIn('market closed', trader.session_skip_reason(mode, None, datetime(2026, 9, 7, 16, 5)))
+
+
+class MainSessionGateTests(unittest.TestCase):
+
+    def setUp(self):
+        trader.alpaca_client.reset_mock()
+        patch('trader.ET', timezone.utc).start()
+        self.addCleanup(patch.stopall)
+
+    def _main(self, *argv):
+        with patch.object(sys, 'argv', ['trader.py', *argv]):
+            trader.main()
+
+    def test_skipped_run_does_not_trade_and_flags_the_workflow(self):
+        trader.alpaca_client.get_session.return_value = None
+        run_close = patch('trader.run_close').start()
+        with tempfile.NamedTemporaryFile('r', suffix='.out') as out:
+            with patch.dict(os.environ, {'GITHUB_OUTPUT': out.name}):
+                self._main('--close')
+            self.assertEqual(out.read(), 'skipped=true\n')
+        run_close.assert_not_called()
+
+    def test_force_bypasses_the_session_check(self):
+        run_open = patch('trader.run_open').start()
+        self._main('--open', '--force')
+        trader.alpaca_client.get_session.assert_not_called()
+        run_open.assert_called_once_with(dry_run=False, protect_only=False)
 
 
 if __name__ == '__main__':
