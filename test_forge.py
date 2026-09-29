@@ -2,14 +2,10 @@
 from __future__ import annotations
 
 import os
-import sys
 import tempfile
 from datetime import datetime, timedelta, timezone
 import unittest
 from unittest.mock import MagicMock, patch
-
-# Stub alpaca_client so forge_loop can be imported without Alpaca credentials
-sys.modules.setdefault('alpaca_client', MagicMock())
 
 from forge_loop import (
     _fallback_range,

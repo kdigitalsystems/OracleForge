@@ -8,12 +8,25 @@ import unittest
 from datetime import datetime, timezone
 from unittest.mock import MagicMock, patch
 
-# Stub heavy dependencies so trader can be imported in a pure-Python test env
-sys.modules.setdefault('alpaca_client', MagicMock())
-sys.modules.setdefault('pytz', MagicMock())
+import trader
+from trader import get_predicting_models, record_buy, record_sell
 
-import trader  # noqa: E402  (must come after stubs)
-from trader import get_predicting_models, record_buy, record_sell  # noqa: E402
+# Every test here talks to a mock broker. Swap the name trader looks up,
+# not sys.modules: a sys.modules stub silently does nothing when another
+# test module has already imported the real alpaca_client (and stubbing
+# pytz broke alpaca's own imports for modules loaded afterwards), so
+# results depended on test order. Assigned directly rather than via
+# patch().start(), because several tests clean up with patch.stopall(),
+# which would also stop a module-wide patch.
+_real_alpaca_client = trader.alpaca_client
+
+
+def setUpModule():
+    trader.alpaca_client = MagicMock()
+
+
+def tearDownModule():
+    trader.alpaca_client = _real_alpaca_client
 
 
 # ---------------------------------------------------------------------------

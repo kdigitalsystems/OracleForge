@@ -2,15 +2,11 @@
 from __future__ import annotations
 
 import unittest
-import sys
 from datetime import date, datetime
 from unittest.mock import MagicMock
 
 from alpaca.trading.enums import OrderSide, OrderType, TimeInForce
 
-# test_trader stubs alpaca_client in sys.modules for pure helper tests. Remove
-# that stub here so this module always exercises the real wrapper.
-sys.modules.pop('alpaca_client', None)
 import alpaca_client
 
 
