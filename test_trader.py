@@ -778,6 +778,68 @@ class RunCloseFillTests(unittest.TestCase):
         # The position must be gone, not left behind as a $0 zombie entry.
         self.assertNotIn('NVDA', meta)
 
+    def _run_exit_fill(self, order_id_field, tracked_qty, filled_qty):
+        meta, journal, side_effect = self._fill_state(
+            order_qty=tracked_qty, order_id_field=order_id_field,
+        )
+        open_orders = side_effect[1]
+        mock_load_json = patch('trader.load_json', side_effect=side_effect).start()
+        self.addCleanup(patch.stopall)
+        for target in ('trader.save_json', 'trader.time.sleep'):
+            patch(target).start()
+        patch('trader.today_str', return_value='2026-01-05').start()
+        patch('trader.now_et', return_value='2026-01-05T16:05:00-05:00').start()
+        trader.alpaca_client.get_trading_client.return_value = MagicMock()
+        trader.alpaca_client.get_position_details.return_value = {
+            'NVDA': {'qty': max(tracked_qty - filled_qty, 0.0), 'current_price': 105.0},
+        }
+
+        order = MagicMock()
+        order.id = 'ord-1'
+        order.status = 'filled'
+        order.filled_avg_price = 110.0
+        order.filled_qty = filled_qty
+        trader.alpaca_client.get_all_recent_orders.return_value = [order]
+
+        trader.run_close(dry_run=False)
+        self.assertEqual(mock_load_json.call_count, 4)
+        return meta, journal, open_orders
+
+    def test_partial_sell_fill_keeps_remainder_without_a_buy_in_the_same_run(self):
+        # Regression: the partial-exit branch read total_qty, which is only
+        # assigned when a buy fills in the same run, so a partial sell on its
+        # own raised UnboundLocalError after record_sell had already run.
+        meta, journal, open_orders = self._run_exit_fill('sell_order_id', 0.02, 0.005)
+
+        self.assertEqual(len(journal), 1)
+        self.assertIn('NVDA', meta)
+        self.assertAlmostEqual(open_orders['NVDA']['qty'], 0.015)
+        self.assertIsNone(open_orders['NVDA']['sell_order_id'])
+
+    def test_partial_stop_fill_keeps_remainder_without_a_buy_in_the_same_run(self):
+        meta, journal, open_orders = self._run_exit_fill('stop_order_id', 0.02, 0.005)
+
+        self.assertEqual(len(journal), 1)
+        self.assertAlmostEqual(open_orders['NVDA']['qty'], 0.015)
+        self.assertIsNone(open_orders['NVDA']['stop_order_id'])
+
+    def test_fill_of_floored_sell_qty_is_a_full_exit(self):
+        # Alpaca reports positions to 9 dp, but sells are placed for the qty
+        # floored to 6 dp, so a complete fill leaves unsellable dust. That
+        # must close the position, not be treated as a partial exit.
+        meta, journal, _ = self._run_exit_fill('sell_order_id', 0.015721987, 0.015721)
+
+        self.assertEqual(len(journal), 1)
+        self.assertNotIn('NVDA', meta)
+
+    def test_fill_of_exact_6dp_qty_hit_by_float_floor_is_a_full_exit(self):
+        # floor(0.001001 * 1e6) == 1000: the placed sell is one microshare
+        # short of the tracked qty purely from float error.
+        meta, journal, _ = self._run_exit_fill('sell_order_id', 0.001001, 0.001)
+
+        self.assertEqual(len(journal), 1)
+        self.assertNotIn('NVDA', meta)
+
 
 if __name__ == '__main__':
     unittest.main()

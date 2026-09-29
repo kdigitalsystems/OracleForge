@@ -200,8 +200,16 @@ def _filled_qty(order, fallback: float = 0.0) -> float:
         return float(fallback or 0.0)
 
 
+# Sells are placed for the tracked qty floored to 6 dp (alpaca_client._sell_qty),
+# while the tracked qty keeps Alpaca's up-to-9-dp position size. A complete fill
+# therefore leaves a sub-microshare remainder that can never be sold; treat it
+# as a full exit. The epsilon absorbs float error on exact 6-dp quantities
+# (floor(0.001001 * 1e6) == 1000, leaving exactly one microshare).
+_DUST_QTY = 1e-6 + 1e-9
+
+
 def _close_fraction(fill_qty: float, total_qty: float) -> float:
-    if total_qty <= 0:
+    if total_qty <= 0 or total_qty - fill_qty <= _DUST_QTY:
         return 1.0
     return min(1.0, max(0.0, fill_qty / total_qty))
 
@@ -590,7 +598,7 @@ def run_close(dry_run: bool = False) -> None:
                             entry['closed'] = True
                             to_delete.append(ticker)
                         else:
-                            entry['qty'] = round(max(total_qty - fill_qty, 0.0), 6)
+                            entry['qty'] = round(max(order_qty - fill_qty, 0.0), 6)
                             entry['sell_order_id'] = None
                             entry['stop_order_id'] = None
                             log(f"  Partial exit for {ticker}: {entry['qty']} shares remain")
@@ -663,7 +671,7 @@ def run_close(dry_run: bool = False) -> None:
                             entry['closed'] = True
                             to_delete.append(ticker)
                         else:
-                            entry['qty'] = round(max(total_qty - fill_qty, 0.0), 6)
+                            entry['qty'] = round(max(order_qty - fill_qty, 0.0), 6)
                             entry['sell_order_id'] = None
                             entry['stop_order_id'] = None
                             log(f"  Partial stop exit for {ticker}: {entry['qty']} shares remain")

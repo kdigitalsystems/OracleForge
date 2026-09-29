@@ -61,3 +61,13 @@ jobs:
           done
           echo "ERROR: could not push dashboard after 5 attempts."
           exit 1
+
+      - name: Return workspace to host runner user
+        # This container runs as root, but the workspace is shared with the
+        # host-native nightly job (runner user). Root-owned leftovers,
+        # .git included, make that job's checkout fail with EACCES; this is
+        # what broke every nightly run from 2026-08-27. The workspace dir
+        # itself is created by the host runner, so its owner is the uid to
+        # restore.
+        if: always()
+        run: chown -R "$(stat -c '%u:%g' "$GITHUB_WORKSPACE")" "$GITHUB_WORKSPACE"

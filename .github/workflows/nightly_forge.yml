@@ -27,6 +27,20 @@ jobs:
       contents: write
 
     steps:
+      - name: Reclaim workspace from container jobs
+        # The containerized jobs (morning/evening/regenerate) run as root in
+        # this same workspace and hand it back when done, but a cancelled or
+        # killed container job can still leave root-owned files, which make
+        # checkout fail with EACCES (every nightly from 2026-08-27 died this
+        # way). The runner user can't chown root files without sudo, but it
+        # is in the docker group, so do it from a throwaway container. The
+        # python:3.12 image is already cached for the container jobs.
+        run: |
+          if [ -n "$(find "$GITHUB_WORKSPACE" -not -user "$(id -u)" -print -quit 2>/dev/null)" ]; then
+            echo "Reclaiming root-owned files in $GITHUB_WORKSPACE"
+            docker run --rm -v "$GITHUB_WORKSPACE:/w" python:3.12 chown -R "$(id -u):$(id -g)" /w
+          fi
+
       - name: Checkout Repository
         uses: actions/checkout@v4
 
