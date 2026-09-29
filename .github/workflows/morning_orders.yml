@@ -60,35 +60,24 @@ jobs:
         id: signals
         run: |
           python3 -c "
-          import json, os, sys
-          from datetime import datetime, timedelta
-          from zoneinfo import ZoneInfo
-          # Nightly runs at 23:00 UTC the previous calendar day; check that date first,
-          # then today as a fallback (e.g. if nightly ran early or same-day re-run).
-          now_et = datetime.now(ZoneInfo('America/New_York'))
-          candidates = [
-              (now_et - timedelta(days=1)).strftime('%Y-%m-%d'),
-              now_et.strftime('%Y-%m-%d'),
-          ]
-          path = None
-          for date in candidates:
-              candidate = f'reports/signals_{date}.json'
-              if os.path.exists(candidate):
-                  path = candidate
-                  break
+          import os
+          import alpaca_client
+          # The nightly dates its outputs by the last closed session (see
+          # alpaca_client.last_closed_session). Before today's close that is
+          # the previous trading day, which is the run that prepared today:
+          # Monday morning expects Friday's file (written by the Sunday run).
+          session = alpaca_client.last_closed_session(alpaca_client.get_trading_client())
+          path = f'reports/signals_{session:%Y-%m-%d}.json'
           out = open(os.environ['GITHUB_OUTPUT'], 'a')
-          if not path:
+          if not os.path.exists(path):
               # A missed/failed nightly must not block position protection:
-              # previously this exit(1) stopped the whole job, so held
-              # positions got no profit-target sells all day (seen when the
-              # 2026-08-26 nightly schedule was silently dropped by GitHub).
-              # Fall through to protect-only trading instead.
-              print(f'WARNING: No signals file for {candidates[0]} or {candidates[1]}.')
+              # held positions still get their profit-target sells re-placed.
+              print(f'WARNING: No signals file for session {session} ({path}).')
               print('Falling back to protect-only mode (no buys, sells still re-placed).')
               out.write('fresh=false\n')
           else:
-              with open(path) as f:
-                  report = json.load(f)
+              import json
+              report = json.load(open(path))
               active = report.get('summary', {}).get('active', 0)
               print(f'OK: {active} ACTIVE setups ({path})')
               out.write('fresh=true\n')

@@ -126,5 +126,53 @@ class PositionDetailsTests(unittest.TestCase):
         )
 
 
+class LastClosedSessionTests(unittest.TestCase):
+
+    def _client(self):
+        # Thu 11-26 Thanksgiving (closed), Fri 11-27 early close, Mon 11-30.
+        sessions = [
+            (date(2026, 11, 25), 16), (date(2026, 11, 27), 13), (date(2026, 11, 30), 16),
+        ]
+        client = MagicMock()
+        client.get_calendar.return_value = [
+            MagicMock(date=d, open=datetime(d.year, d.month, d.day, 9, 30),
+                      close=datetime(d.year, d.month, d.day, h, 0))
+            for d, h in sessions
+        ]
+        return client
+
+    def test_late_start_and_after_midnight_retry_agree(self):
+        client = self._client()
+        evening = alpaca_client.last_closed_session(client, datetime(2026, 11, 30, 22, 21))
+        after_midnight = alpaca_client.last_closed_session(client, datetime(2026, 12, 1, 0, 13))
+        self.assertEqual(evening, date(2026, 11, 30))
+        self.assertEqual(after_midnight, date(2026, 11, 30))
+
+    def test_before_the_close_is_the_previous_session(self):
+        self.assertEqual(
+            alpaca_client.last_closed_session(self._client(), datetime(2026, 11, 30, 8, 30)),
+            date(2026, 11, 27),
+        )
+
+    def test_weekend_and_holiday_resolve_to_the_last_trading_day(self):
+        client = self._client()
+        self.assertEqual(alpaca_client.last_closed_session(client, datetime(2026, 11, 29, 19, 0)),
+                         date(2026, 11, 27))
+        self.assertEqual(alpaca_client.last_closed_session(client, datetime(2026, 11, 26, 19, 0)),
+                         date(2026, 11, 25))
+
+    def test_early_close_counts_from_its_own_close_time(self):
+        self.assertEqual(
+            alpaca_client.last_closed_session(self._client(), datetime(2026, 11, 27, 13, 30)),
+            date(2026, 11, 27),
+        )
+
+    def test_no_closed_session_raises(self):
+        client = MagicMock()
+        client.get_calendar.return_value = []
+        with self.assertRaises(RuntimeError):
+            alpaca_client.last_closed_session(client, datetime(2026, 11, 30, 22, 0))
+
+
 if __name__ == '__main__':
     unittest.main()

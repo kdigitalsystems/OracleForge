@@ -3,13 +3,13 @@
 import json
 import os
 import sys
-from datetime import datetime
-from zoneinfo import ZoneInfo
+
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
+import alpaca_client  # noqa: E402
 
 CONFIG_TICKERS = 'config/tickers.json'
 HISTORY_DIR = 'history/'
 REPORTS_DIR = 'reports/'
-ET = ZoneInfo('America/New_York')
 
 
 def fail(message: str) -> None:
@@ -27,7 +27,9 @@ def main() -> None:
     if not isinstance(tickers, list) or len(tickers) == 0:
         fail(f"{CONFIG_TICKERS} is empty — forge_loop would not produce data")
 
-    today = datetime.now(ET).strftime('%Y-%m-%d')
+    # Same run date forge_loop.py used: the last closed session, not the
+    # clock (a run that finished after midnight ET looked for the wrong file).
+    today = alpaca_client.last_closed_session(alpaca_client.get_trading_client()).strftime('%Y-%m-%d')
     predictions_path = os.path.join(HISTORY_DIR, f'predictions_{today}.json')
     signals_path = os.path.join(REPORTS_DIR, f'signals_{today}.json')
 

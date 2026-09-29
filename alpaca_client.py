@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import math
 import os
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
 
 from alpaca.common.exceptions import APIError
 from alpaca.data.historical import StockHistoricalDataClient
@@ -19,6 +20,7 @@ from alpaca.trading.requests import (
 )
 
 KEYS_FILE = os.path.expanduser('~/.ssh/alpaca_paper_keys')
+ET = ZoneInfo('America/New_York')
 
 
 def _sell_qty(qty: float) -> float:
@@ -172,6 +174,25 @@ def get_session(client: TradingClient, day) -> tuple[datetime, datetime] | None:
         if d.date == day:
             return d.open, d.close
     return None
+
+
+def last_closed_session(client: TradingClient, now: datetime | None = None) -> date:
+    """Date of the most recent regular session that had closed by ``now``.
+
+    The nightly run and its outputs are dated by this rather than by the
+    wall clock. A run GitHub starts late, or a retry, can cross midnight ET,
+    and a calendar date then split one run across two days (2026-09-28/29:
+    validation looked for the wrong file and the retry forecast everything
+    again). Every invocation between one close and the next agrees on the
+    date, weekends and holidays included. ``now`` is naive ET, matching the
+    calendar's session times.
+    """
+    now = now or datetime.now(ET).replace(tzinfo=None)
+    days = client.get_calendar(GetCalendarRequest(start=now.date() - timedelta(days=14), end=now.date()))
+    closed = [d.date for d in days if d.close <= now]
+    if not closed:
+        raise RuntimeError(f"No closed market session in the 14 days up to {now:%Y-%m-%d}")
+    return max(closed)
 
 
 def get_order(client: TradingClient, order_id: str):

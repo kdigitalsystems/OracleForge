@@ -51,6 +51,12 @@ jobs:
 
       - name: Checkout Repository
         uses: actions/checkout@v4
+        with:
+          # A re-run checks out the run's original commit by default, which
+          # predates the checkpoints earlier attempts pushed. forge_loop then
+          # can't resume and redoes the day, and its pushes conflict with
+          # the ones already on main. Always start from main's tip.
+          ref: main
 
       - name: Set up Python
         uses: actions/setup-python@v5

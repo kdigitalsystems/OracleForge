@@ -1,7 +1,9 @@
 """Unit tests for forge_loop helpers."""
 from __future__ import annotations
 
+import os
 import sys
+import tempfile
 from datetime import datetime, timedelta, timezone
 import unittest
 from unittest.mock import MagicMock, patch
@@ -467,6 +469,36 @@ class FetchAllBarsTests(unittest.TestCase):
         # today's midnight, hours before the nightly run.
         end_utc = req.end.replace(tzinfo=req.end.tzinfo or timezone.utc)
         self.assertLess(abs(datetime.now(timezone.utc) - end_utc), timedelta(minutes=1))
+
+
+class FindLatestPredictionsPathTests(unittest.TestCase):
+
+    def test_newest_file_strictly_before_the_run_date(self):
+        import forge_loop
+        with tempfile.TemporaryDirectory() as d:
+            for day in ('2026-09-24', '2026-09-25', '2026-09-28'):
+                open(os.path.join(d, f'predictions_{day}.json'), 'w').close()
+            with patch.object(forge_loop, 'HISTORY_DIR', d):
+                # Monday's run grades Friday's file, never its own.
+                path, date_str = forge_loop.find_latest_predictions_path('2026-09-28')
+        self.assertEqual(date_str, '2026-09-25')
+        self.assertTrue(path.endswith('predictions_2026-09-25.json'))
+
+    def test_none_when_nothing_in_lookback(self):
+        import forge_loop
+        with tempfile.TemporaryDirectory() as d:
+            with patch.object(forge_loop, 'HISTORY_DIR', d):
+                self.assertEqual(forge_loop.find_latest_predictions_path('2026-09-28'), (None, None))
+
+
+class BarSessionDateTests(unittest.TestCase):
+
+    def test_midnight_et_stamps_map_to_their_session_in_both_dst_states(self):
+        import forge_loop
+        edt = MagicMock(timestamp=datetime(2026, 9, 28, 4, 0, tzinfo=timezone.utc))
+        est = MagicMock(timestamp=datetime(2026, 11, 30, 5, 0, tzinfo=timezone.utc))
+        self.assertEqual(forge_loop.bar_session_date(edt), '2026-09-28')
+        self.assertEqual(forge_loop.bar_session_date(est), '2026-11-30')
 
 
 if __name__ == '__main__':

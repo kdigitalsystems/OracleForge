@@ -80,10 +80,11 @@ def save_json(filepath, data):
     os.replace(tmp_path, filepath)
 
 
-def find_latest_predictions_path():
-    now_et = datetime.now(ET)
+def find_latest_predictions_path(before_date: str):
+    """Newest predictions file dated strictly before ``before_date``."""
+    base = datetime.strptime(before_date, '%Y-%m-%d')
     for days_back in range(1, MAX_PREDICTION_LOOKBACK_DAYS + 1):
-        date_str = (now_et - timedelta(days=days_back)).strftime('%Y-%m-%d')
+        date_str = (base - timedelta(days=days_back)).strftime('%Y-%m-%d')
         path = os.path.join(HISTORY_DIR, f'predictions_{date_str}.json')
         if os.path.exists(path):
             return path, date_str
@@ -560,6 +561,11 @@ def fetch_all_bars(tickers: list[str], days: int = 30) -> dict[str, list]:
     return result
 
 
+def bar_session_date(bar) -> str:
+    """Session date of a daily bar (Alpaca stamps them at midnight ET)."""
+    return bar.timestamp.astimezone(ET).strftime('%Y-%m-%d')
+
+
 def git_checkpoint(message: str, paths: list[str]) -> bool:
     """Stage paths, commit if anything changed, and push with rebase+retry.
 
@@ -644,7 +650,11 @@ def main():
     print(f"Score decay per day: {score_decay}")
     print(f"Trade score feedback: pnl_pct * {trade_score_scale} capped at +/-{trade_score_cap}")
 
-    today_date = datetime.now(ET).strftime('%Y-%m-%d')  # ET, consistent across runner machines
+    # The run is dated by the last closed market session, not the clock, so
+    # a late start or a retry that crosses midnight ET still resumes the same
+    # day's files (see alpaca_client.last_closed_session).
+    today_date = alpaca_client.last_closed_session(alpaca_client.get_trading_client()).strftime('%Y-%m-%d')
+    print(f"Run date (last closed session): {today_date}")
     today_log_path = os.path.join(HISTORY_DIR, f'predictions_{today_date}.json')
     report_path = os.path.join(REPORTS_DIR, f'signals_{today_date}.json')
 
@@ -656,7 +666,7 @@ def main():
     existing_enriched = load_json(today_log_path, {})
     already_done = set(existing_enriched.keys())
 
-    prior_log_path, prior_date = find_latest_predictions_path()
+    prior_log_path, prior_date = find_latest_predictions_path(today_date)
     prior_predictions = load_json(prior_log_path, {}) if prior_log_path else {}
     if prior_log_path:
         print(f"Evaluating predictions from {prior_date} ({prior_log_path})")
@@ -692,6 +702,10 @@ def main():
             if not bar_list:
                 continue
             latest = bar_list[-1]
+            # Grade only against a session after the one the prediction was
+            # made from; otherwise the model is scored on a bar it was shown.
+            if bar_session_date(latest) <= prior_date:
+                continue
             prior_models = extract_model_predictions(prior_predictions.get(ticker, {}))
             for model_name, past_pred in prior_models.items():
                 if model_name not in scores:
