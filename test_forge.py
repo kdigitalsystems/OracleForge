@@ -2,8 +2,9 @@
 from __future__ import annotations
 
 import sys
+from datetime import datetime, timedelta, timezone
 import unittest
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 # Stub alpaca_client so forge_loop can be imported without Alpaca credentials
 sys.modules.setdefault('alpaca_client', MagicMock())
@@ -15,6 +16,7 @@ from forge_loop import (
     apply_score_deltas,
     compute_technicals,
     evaluate_range_prediction,
+    fetch_all_bars,
     format_recent_ohlc,
     parse_llm_range,
     score_deltas_from_journal,
@@ -444,6 +446,27 @@ class WithTimeoutTests(unittest.TestCase):
         self.assertTrue(new_threads, "expected the worker thread to still be running")
         for t in new_threads:
             self.assertTrue(t.daemon, f"{t} must be a daemon thread")
+
+
+class FetchAllBarsTests(unittest.TestCase):
+
+    def test_end_is_a_timestamp_so_the_session_just_closed_is_included(self):
+        # Alpaca reads a date-only end as 00:00 UTC of that day. The nightly
+        # runs at 23:00 UTC, the same UTC date as the session that just
+        # closed, so a date-only end silently dropped it and every run saw
+        # the previous day's bar (identical closes in the 08-23 and 08-24
+        # prediction files).
+        import forge_loop
+        data_client = MagicMock()
+        data_client.get_stock_bars.return_value.data = {}
+        with patch.object(forge_loop.alpaca_client, 'get_data_client', return_value=data_client):
+            fetch_all_bars(['NVDA'])
+
+        req = data_client.get_stock_bars.call_args.args[0]
+        # alpaca-py normalizes end to naive UTC; a date-only end would be
+        # today's midnight, hours before the nightly run.
+        end_utc = req.end.replace(tzinfo=req.end.tzinfo or timezone.utc)
+        self.assertLess(abs(datetime.now(timezone.utc) - end_utc), timedelta(minutes=1))
 
 
 if __name__ == '__main__':

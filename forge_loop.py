@@ -545,7 +545,10 @@ def fetch_all_bars(tickers: list[str], days: int = 30) -> dict[str, list]:
                 symbol_or_symbols=batch,
                 timeframe=TimeFrame.Day,
                 start=start.strftime('%Y-%m-%d'),
-                end=end.strftime('%Y-%m-%d'),
+                # A date-only end is read as 00:00 UTC of that day, which drops
+                # the session that just closed (the nightly runs at 23:00 UTC,
+                # same UTC date) and fed the models the previous day's bar.
+                end=end,
                 feed=DataFeed.IEX,
             )
             bars = data_client.get_stock_bars(req)

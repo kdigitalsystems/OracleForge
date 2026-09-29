@@ -115,7 +115,7 @@ def fetch_daily_bars(data_client, symbols: list[str], days: int) -> dict[str, li
                 symbol_or_symbols=batch,
                 timeframe=TimeFrame.Day,
                 start=start.strftime('%Y-%m-%d'),
-                end=end.strftime('%Y-%m-%d'),
+                end=end,  # a date-only end would exclude today's session
                 feed=DataFeed.IEX,
             )
             bars = data_client.get_stock_bars(req)
