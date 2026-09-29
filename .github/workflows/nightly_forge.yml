@@ -73,7 +73,10 @@ jobs:
           pip install -r requirements.txt
 
       - name: Run Unit Tests
-        run: python3 -m unittest test_signals test_backtest test_forge test_trader test_alpaca_client test_update_tickers test_no_banned_punctuation -v
+        # Discover rather than list modules, so a new test_*.py file runs
+        # without anyone remembering to add it here. The suite is order-
+        # independent, so discovery's alphabetical order is safe.
+        run: python3 -m unittest discover -p 'test_*.py' -v
 
       - name: Start Ollama
         run: |

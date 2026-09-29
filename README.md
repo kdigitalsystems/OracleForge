@@ -361,17 +361,20 @@ Tracks open position entry data for P&L calculation:
 ## Tests
 
 ```bash
-python3 -m unittest test_signals test_backtest test_forge test_trader test_alpaca_client -v
+python3 -m unittest discover -p 'test_*.py' -v
 ```
 
-**115 tests** covering:
+Discovery picks up every `test_*.py`; CI runs the same command before each nightly forge. Coverage:
 
 | Module | Areas |
 |---|---|
 | `test_signals` | Consensus weighting, CV disagreement gate, fallback exclusion, signal classification, STALE upside handling |
 | `test_backtest` | Win/stop/miss simulation, profit factor, avg win/loss %, max consecutive losses, internal field cleanup |
-| `test_forge` | LLM output parsing, fallback tagging, RSI/Bollinger/%B/momentum technicals, score delta feedback, recency decay, stop-threshold evaluation |
-| `test_trader` | `record_buy` (new + averaging), `record_sell` (win/loss/missing), P&L calculation, trade provenance fields |
+| `test_forge` | LLM output parsing (incl. inline reasoning blocks), fallback tagging, bar fetch window, prior-predictions lookup, RSI/Bollinger/%B/momentum technicals, score delta feedback, recency decay, stop-threshold evaluation |
+| `test_trader` | `record_buy` / `record_sell`, P&L and qty-desync capping, partial vs full exits, EOD stop and max-hold, Alpaca read failures, market-session gate |
+| `test_alpaca_client` | Order request construction, qty flooring, market calendar and last closed session, order lookup (404 vs error), position parsing |
+| `test_update_tickers` | Leveraged/inverse/VIX fund exclusion |
+| `test_no_banned_punctuation` | Site copy punctuation guard |
 
 ---
 
