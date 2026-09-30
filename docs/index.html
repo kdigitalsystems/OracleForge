@@ -56,7 +56,7 @@
       <div class="flex items-center gap-3 shrink-0">
         <div class="text-right hidden sm:block">
           <div class="text-xs font-medium text-gray-700">Last built</div>
-          <div class="text-xs text-gray-400" id="build-time-rel" title="Sep 29, 2026  07:47 UTC">Sep 29, 2026  07:47 UTC</div>
+          <div class="text-xs text-gray-400" id="build-time-rel" title="Sep 30, 2026  00:20 UTC">Sep 30, 2026  00:20 UTC</div>
         </div>
         <button id="rebuild-btn" onclick="onRebuildClick()"
           class="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg transition-colors">
@@ -86,7 +86,7 @@
 
     <div id="pane-signals">
 <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 mb-6">
-  <h2 class="text-lg font-semibold text-gray-900">Signals: 2026-09-29</h2>
+  <h2 class="text-lg font-semibold text-gray-900">Signals: 2026-09-28</h2>
   <p class="text-sm text-gray-500 mt-0.5">Generated at 2026-09-29T02:46:42</p>
   <div class="mt-4">
 <div class="grid grid-cols-4 gap-3 mb-5">
@@ -316,7 +316,7 @@ new Chart(document.getElementById("pnlChart"), {
 
     // ── Relative build time ────────────────────────────────────────────────
     (function() {
-      const built = new Date('2026-09-29T07:47:56Z');
+      const built = new Date('2026-09-30T00:20:27Z');
       function relTime() {
         const diff = Math.floor((Date.now() - built) / 1000);
         if (diff < 60)  return diff + 's ago';
