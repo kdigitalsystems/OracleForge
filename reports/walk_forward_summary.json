@@ -1,55 +1,9 @@
 {
-    "generated_at": "2026-09-29T23:19:14",
+    "generated_at": "2026-10-01T03:27:57",
     "train_window": 3,
     "test_window": 1,
     "candidate_count": 54,
     "windows": [
-        {
-            "train_dates": [
-                "2026-08-23",
-                "2026-08-24",
-                "2026-08-25"
-            ],
-            "test_dates": [
-                "2026-09-28"
-            ],
-            "selected_params": {
-                "min_upside_pct": 1.0,
-                "max_consensus_cv": 0.05,
-                "stop_loss_pct": 0.95,
-                "execution": "limit_stop"
-            },
-            "train_edge": {
-                "n": 0,
-                "mean": 0.0,
-                "std": 0.0,
-                "t_stat": null,
-                "ci95_low": null,
-                "ci95_high": null,
-                "significant": false,
-                "sample_adequate": false
-            },
-            "test_edge": {
-                "n": 93,
-                "mean": -0.3795,
-                "std": 3.5241,
-                "t_stat": -1.038,
-                "ci95_low": -1.0958,
-                "ci95_high": 0.3368,
-                "significant": false,
-                "sample_adequate": true
-            },
-            "test_strategy": {
-                "n": 93,
-                "mean": -0.4173,
-                "std": 1.4636,
-                "t_stat": -2.75,
-                "ci95_low": -0.7148,
-                "ci95_high": -0.1198,
-                "significant": true,
-                "sample_adequate": true
-            }
-        },
         {
             "train_dates": [
                 "2026-08-24",
@@ -67,11 +21,57 @@
             },
             "train_edge": {
                 "n": 45,
-                "mean": 0.0308,
-                "std": 1.5308,
-                "t_stat": 0.135,
-                "ci95_low": -0.4165,
-                "ci95_high": 0.4781,
+                "mean": 0.0315,
+                "std": 1.5304,
+                "t_stat": 0.138,
+                "ci95_low": -0.4157,
+                "ci95_high": 0.4786,
+                "significant": false,
+                "sample_adequate": true
+            },
+            "test_edge": {
+                "n": 43,
+                "mean": -0.0201,
+                "std": 1.1053,
+                "t_stat": -0.119,
+                "ci95_low": -0.3504,
+                "ci95_high": 0.3103,
+                "significant": false,
+                "sample_adequate": true
+            },
+            "test_strategy": {
+                "n": 43,
+                "mean": -0.4335,
+                "std": 1.3902,
+                "t_stat": -2.045,
+                "ci95_low": -0.849,
+                "ci95_high": -0.018,
+                "significant": true,
+                "sample_adequate": true
+            }
+        },
+        {
+            "train_dates": [
+                "2026-08-25",
+                "2026-09-28",
+                "2026-09-29"
+            ],
+            "test_dates": [
+                "2026-09-30"
+            ],
+            "selected_params": {
+                "min_upside_pct": 2.0,
+                "max_consensus_cv": 0.1,
+                "stop_loss_pct": 0.95,
+                "execution": "limit_stop"
+            },
+            "train_edge": {
+                "n": 89,
+                "mean": 0.0072,
+                "std": 1.3247,
+                "t_stat": 0.052,
+                "ci95_low": -0.268,
+                "ci95_high": 0.2825,
                 "significant": false,
                 "sample_adequate": true
             },
@@ -99,29 +99,29 @@
     ],
     "summary": {
         "validation_windows": 2,
-        "avg_validation_edge_pct": -0.1898,
-        "avg_validation_strategy_pct": -0.2087,
+        "avg_validation_edge_pct": -0.01,
+        "avg_validation_strategy_pct": -0.2167,
         "positive_edge_windows": 0
     },
     "latest_recommendation": {
         "train_dates": [
-            "2026-08-25",
             "2026-09-28",
-            "2026-09-29"
+            "2026-09-29",
+            "2026-09-30"
         ],
         "selected_params": {
             "min_upside_pct": 2.0,
-            "max_consensus_cv": 0.05,
+            "max_consensus_cv": 0.1,
             "stop_loss_pct": 0.95,
             "execution": "limit_stop"
         },
         "train_edge": {
-            "n": 45,
-            "mean": 0.0308,
-            "std": 1.5308,
-            "t_stat": 0.135,
-            "ci95_low": -0.4165,
-            "ci95_high": 0.4781,
+            "n": 89,
+            "mean": 0.0072,
+            "std": 1.3247,
+            "t_stat": 0.052,
+            "ci95_low": -0.268,
+            "ci95_high": 0.2825,
             "significant": false,
             "sample_adequate": true
         }
