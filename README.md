@@ -15,7 +15,7 @@ Live results are published automatically to GitHub Pages after every nightly run
 |---|---|
 | **Signals** | Today's ACTIVE/SKIP/STALE setups with consensus buy/sell ranges, upside chart, and model disagreement (CV) |
 | **P&L** | Cumulative P&L curve, win rate, best/worst trades, full trade journal |
-| **Backtest** | Historical simulation with profit factor, avg win/loss %, and max consecutive losses |
+| **Backtest** | Replay of stored signals under the live trading rules: returns by exit, benchmark, per-model results, calibration against the live journal, and the walk-forward study |
 | **Model Scores** | Current ensemble weights (0–10 scale) per model, updated nightly with recency decay |
 
 The page has a **Rebuild** button that re-generates the dashboard on demand (requires a GitHub PAT with `repo` scope stored in your browser's local storage).
@@ -139,7 +139,7 @@ Keys are never stored in GitHub Secrets.
 
 | Workflow | Schedule | What it does |
 |---|---|---|
-| [Nightly Forge](.github/workflows/nightly_forge.yml) | 23:00 UTC weekdays | Runs unit tests → `update_tickers.py` → `forge_loop.py` → validates outputs → refreshes recent walk-forward study → regenerates dashboard → commits state |
+| [Nightly Forge](.github/workflows/nightly_forge.yml) | 23:00 UTC weekdays | Runs unit tests → `update_tickers.py` → `forge_loop.py` → validates outputs → refreshes backtest and walk-forward study → regenerates dashboard → commits state |
 | [Morning Orders](.github/workflows/morning_orders.yml) | 13:30 UTC weekdays (9:30 AM EDT / 8:30 AM EST) | Places DAY limit buy orders for ACTIVE tickers; re-places the DAY profit-target sell for held positions |
 | [Evening Cleanup](.github/workflows/evening_cleanup.yml) | 21:05 UTC weekdays (5:05 PM EDT / 4:05 PM EST) | Detects fills, records P&L, runs the end-of-day stop check, clears expired orders, refreshes trade attribution, regenerates dashboard |
 | [Rebuild Dashboard](.github/workflows/regenerate_report.yml) | Manual (via Rebuild button) | Regenerates `docs/index.html` from existing data files and commits |
@@ -171,11 +171,10 @@ The self-hosted runner must be registered to this repository. To register:
 | `python3 trader.py --close` | Settle fills and update P&L journal |
 | `python3 trader.py --open --dry-run` | Preview orders without placing them |
 | `python3 trader.py --close --dry-run` | Preview settlement without writing state |
-| `python3 backtest.py` | Score historical predictions vs realized OHLC |
+| `python3 backtest.py` | Replay stored signals under the live trading rules |
 | `python3 backtest.py --from-date 2026-05-01 --to-date 2026-05-15` | Backtest a bounded date window |
-| `python3 backtest.py --max-dates 5` | Backtest only the most recent 5 prediction dates |
-| `python3 backtest.py --compare-executions` | A/B the ACTIVE edge under limit_stop / limit_hold / market_hold execution models |
-| `python3 backtest.py --walk-forward` | Train parameters on rolling prior windows, validate on unseen future windows |
+| `python3 backtest.py --stop-loss-pct 0.97 --max-hold-days 10` | What-if on execution parameters |
+| `python3 backtest.py --walk-forward` | Also pick parameters on trailing windows and validate on the next |
 | `python3 backtest.py --attribution` | Summarise actual closed-trade attribution by model, ticker, and execution quality |
 | `python3 scripts/generate_html_report.py` | Regenerate `docs/index.html` from local data |
 
@@ -183,65 +182,53 @@ The self-hosted runner must be registered to this repository. To register:
 
 ## Backtesting
 
-Walk the saved prediction history and score each predicted buy/sell range against the
-**next trading session's** realized OHLC (fetched from yfinance, independent of Alpaca).
+`backtest.py` replays every stored signal day under the **live trading rules** and reports
+what the strategy would have made, so its numbers are comparable with the live journal.
 
 ```bash
-# Backtest all available prediction history
-python3 backtest.py
-
-# Restrict to a date range (both inclusive, YYYY-MM-DD)
-python3 backtest.py --from-date 2026-05-01
-python3 backtest.py --from-date 2026-05-01 --to-date 2026-05-15
+python3 backtest.py                                    # all history
+python3 backtest.py --from-date 2026-07-01             # bounded window (inclusive)
+python3 backtest.py --stop-loss-pct 0.97 --max-hold-days 10   # what-if on execution params
+python3 backtest.py --walk-forward                     # plus the rolling train/test study
+python3 backtest.py --attribution                      # break down actual closed trades
 ```
 
-Each `history/predictions_YYYY-MM-DD.json` file is replayed: entry is assumed at `buy_high`
-(conservative), with the stop at `buy_high × stop_loss_pct` — the **same** `stop_loss_pct`
-(default 0.95 = −5%) used by the live trader and the nightly scorer, read from
-`config/trading.json` so the backtest matches what is actually traded. Outcomes are bucketed as
-**win** (price reached `sell_low`), **stop** (price fell to the stop), **miss** (triggered but
-neither target nor stop hit), or **no_trigger**. Win/loss averages and profit factor are
-aggregated by the sign of each trade's realized return.
+**What is simulated** (mirrors `trader.py`):
+- **Signals as traded:** each `history/predictions_*.json` file is traded at the session its
+  morning job used, with its stored ACTIVE classification. Nothing is recomputed from today's
+  model scores, so there is no lookahead.
+- **Entry:** DAY limit buy at `buy_high` at the open; fills at the open on a gap down, else at
+  `buy_high` if the session trades down to it. One position per ticker, `max_per_trade_usd` each.
+- **Target:** DAY limit sell at the signal's `sell_low`, working from the day **after** entry
+  (live places it after the entry day's close); fills at the open on a gap up.
+- **Stop and max hold:** checked against each close, entry day included. The market sell goes
+  in after the close, so it fills at the **next open**. The report also scores the close that
+  the live journal books (`strategy_as_booked`).
+- **Prices:** Alpaca SIP daily bars (consolidated, unadjusted), downloaded once per run.
 
-**Output:**
-- **Console summary** — per-model and per-signal tables: trade count, win %, avg win %,
-  avg loss %, profit factor, and max consecutive losses.
-- **Significance read** — each signal bucket reports whether its mean per-trade return is
-  statistically distinguishable from zero, and whether the sample is even large enough
-  (`>= 30` trades) to trust. Guards against tuning on noise.
-- **Benchmark vs. buy-and-hold** — for ACTIVE names it compares the strategy return against
-  simply buying the same names at the prior close and holding to the next close (paired,
-  with significance), plus the whole-universe drift. A one-line **verdict** states whether the
-  signal layer is actually adding value, hurting, or indistinguishable from the baseline.
-- **`reports/backtest_summary.json`** — full report (daily equity curve, significance,
-  benchmark), which the dashboard's **Backtest** tab renders. A timestamped snapshot is also
-  archived to `reports/backtest_history/` so metric evolution is trackable over time.
-- **`reports/walk_forward_summary.json`** — rolling train/test parameter study. The optimizer
-  selects the best parameter set on prior prediction dates, then measures it on later unseen
-  dates. This is evidence-only: it recommends settings but never rewrites live config.
-- **`reports/trade_attribution.json`** — actual closed-trade breakdown by model and ticker,
-  plus execution-quality diagnostics such as average entry improvement versus `buy_high` and
-  target capture versus the consensus sell range.
+**Output** (`reports/backtest_summary.json`, rendered on the dashboard's **Backtest** tab, with
+a dated snapshot in `reports/backtest_history/`):
+- Strategy stats: trades, win rate, average return, profit factor, P&L in dollars, and a
+  breakdown by exit (target / stop / max hold), with a significance read (`>= 30` trades).
+- **Benchmark:** each trade against holding the same name over the same sessions.
+- **By model:** each model's own ranges traded under the same rules.
+- **Selection:** entry-session open-to-close return by stored signal (ACTIVE vs SKIP).
+- **Calibration:** simulated trades matched to the live journal on (ticker, signal date), with
+  win/loss agreement and the average return gap. Rows flagged `qty_desync_corrected` are left
+  out, since their P&L reflects a share-count bug rather than the strategy.
 
-```bash
-# Pick parameters on rolling 4-date windows, validate on the next date
-python3 backtest.py --walk-forward
+**Walk-forward** (`reports/walk_forward_summary.json`): picks stop, max hold and a tighter
+`min_upside_pct` on a trailing window of signal days, then validates on the next window.
+Training is cut off before the test window starts, and windows without enough trades are
+reported but left out of the averages. Evidence only: live config is never changed. The
+nightly forge refreshes both reports.
 
-# Use wider windows once there is more history
-python3 backtest.py --walk-forward --train-window 10 --test-window 2
+**Trade attribution** (`reports/trade_attribution.json`): actual closed trades by model and
+ticker, plus execution quality (entry improvement versus `buy_high`, target capture).
 
-# Fast recent-history check when yfinance is slow
-python3 backtest.py --walk-forward --max-dates 5 --train-window 3 --test-window 1
-
-# Attribute actual closed trades
-python3 backtest.py --attribution
-```
-
-**Requirements:**
-- At least one completed nightly run (so `history/predictions_*.json` exists). With no history,
-  the command prints `No prediction history files found in history/.` and exits.
-- Outbound internet for yfinance. Tickers with no available next-session bar (too recent,
-  delisted, etc.) are counted under `skipped_pairs` rather than failing the run.
+**Requirements:** at least one predictions file in `history/`, and the Alpaca keys (for the
+bar download). The free data plan cannot query the last 15 minutes of SIP data, so today's
+still-forming bar is always left out.
 
 ---
 

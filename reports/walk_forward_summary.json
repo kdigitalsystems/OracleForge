@@ -1,45 +1,35 @@
 {
-    "generated_at": "2026-10-02T03:49:24",
-    "train_window": 3,
-    "test_window": 1,
-    "candidate_count": 54,
+    "generated_at": "2026-09-29T08:28:04",
+    "train_window": 20,
+    "test_window": 5,
+    "min_train_trades": 30,
+    "candidate_count": 27,
     "windows": [
         {
-            "train_dates": [
-                "2026-08-25",
-                "2026-09-28",
-                "2026-09-29"
+            "train": [
+                "2026-05-03",
+                "2026-07-05"
             ],
-            "test_dates": [
-                "2026-09-30"
+            "test": [
+                "2026-07-06",
+                "2026-07-12"
             ],
             "selected_params": {
-                "min_upside_pct": 2.0,
-                "max_consensus_cv": 0.1,
                 "stop_loss_pct": 0.95,
-                "execution": "limit_stop"
+                "max_hold_days": 15,
+                "min_upside_pct": 4.0
             },
-            "train_edge": {
-                "n": 90,
-                "mean": 0.029,
-                "std": 1.3338,
-                "t_stat": 0.206,
-                "ci95_low": -0.2466,
-                "ci95_high": 0.3046,
+            "train_stats": {
+                "n": 50,
+                "mean": 0.371,
+                "std": 6.452,
+                "t_stat": 0.407,
+                "ci95_low": -1.4174,
+                "ci95_high": 2.1594,
                 "significant": false,
                 "sample_adequate": true
             },
-            "test_edge": {
-                "n": 0,
-                "mean": 0.0,
-                "std": 0.0,
-                "t_stat": null,
-                "ci95_low": null,
-                "ci95_high": null,
-                "significant": false,
-                "sample_adequate": false
-            },
-            "test_strategy": {
+            "test_stats": {
                 "n": 0,
                 "mean": 0.0,
                 "std": 0.0,
@@ -51,31 +41,30 @@
             }
         },
         {
-            "train_dates": [
-                "2026-09-28",
-                "2026-09-29",
-                "2026-09-30"
+            "train": [
+                "2026-06-04",
+                "2026-07-12"
             ],
-            "test_dates": [
-                "2026-10-01"
+            "test": [
+                "2026-07-13",
+                "2026-07-20"
             ],
             "selected_params": {
-                "min_upside_pct": 2.0,
-                "max_consensus_cv": 0.1,
-                "stop_loss_pct": 0.95,
-                "execution": "limit_stop"
+                "stop_loss_pct": 0.93,
+                "max_hold_days": 5,
+                "min_upside_pct": 4.0
             },
-            "train_edge": {
-                "n": 90,
-                "mean": 0.029,
-                "std": 1.3338,
-                "t_stat": 0.206,
-                "ci95_low": -0.2466,
-                "ci95_high": 0.3046,
+            "train_stats": {
+                "n": 33,
+                "mean": 1.3197,
+                "std": 5.1809,
+                "t_stat": 1.463,
+                "ci95_low": -0.448,
+                "ci95_high": 3.0874,
                 "significant": false,
                 "sample_adequate": true
             },
-            "test_edge": {
+            "test_stats": {
                 "n": 0,
                 "mean": 0.0,
                 "std": 0.0,
@@ -84,45 +73,196 @@
                 "ci95_high": null,
                 "significant": false,
                 "sample_adequate": false
+            }
+        },
+        {
+            "train": [
+                "2026-06-15",
+                "2026-07-20"
+            ],
+            "test": [
+                "2026-07-21",
+                "2026-07-27"
+            ],
+            "selected_params": {
+                "stop_loss_pct": 0.95,
+                "max_hold_days": 15,
+                "min_upside_pct": 1.5
             },
-            "test_strategy": {
-                "n": 0,
-                "mean": 0.0,
-                "std": 0.0,
-                "t_stat": null,
-                "ci95_low": null,
-                "ci95_high": null,
+            "train_stats": {
+                "n": 84,
+                "mean": -0.8772,
+                "std": 5.7774,
+                "t_stat": -1.392,
+                "ci95_low": -2.1127,
+                "ci95_high": 0.3583,
+                "significant": false,
+                "sample_adequate": true
+            },
+            "test_stats": {
+                "n": 58,
+                "mean": 3.399,
+                "std": 4.2255,
+                "t_stat": 6.126,
+                "ci95_low": 2.3115,
+                "ci95_high": 4.4865,
+                "significant": true,
+                "sample_adequate": true
+            }
+        },
+        {
+            "train": [
+                "2026-06-25",
+                "2026-07-27"
+            ],
+            "test": [
+                "2026-07-28",
+                "2026-08-03"
+            ],
+            "selected_params": null,
+            "train_stats": {
+                "n": 4,
+                "mean": 5.1417,
+                "std": 1.5353,
+                "t_stat": 6.698,
+                "ci95_low": 3.6371,
+                "ci95_high": 6.6463,
+                "significant": false,
+                "sample_adequate": false
+            },
+            "test_stats": null
+        },
+        {
+            "train": [
+                "2026-07-06",
+                "2026-08-03"
+            ],
+            "test": [
+                "2026-08-04",
+                "2026-08-11"
+            ],
+            "selected_params": {
+                "stop_loss_pct": 0.93,
+                "max_hold_days": 15,
+                "min_upside_pct": 2.5
+            },
+            "train_stats": {
+                "n": 30,
+                "mean": 4.8841,
+                "std": 4.3156,
+                "t_stat": 6.199,
+                "ci95_low": 3.3398,
+                "ci95_high": 6.4284,
+                "significant": true,
+                "sample_adequate": true
+            },
+            "test_stats": {
+                "n": 4,
+                "mean": 2.0427,
+                "std": 4.3796,
+                "t_stat": 0.933,
+                "ci95_low": -2.2492,
+                "ci95_high": 6.3347,
+                "significant": false,
+                "sample_adequate": false
+            }
+        },
+        {
+            "train": [
+                "2026-07-13",
+                "2026-08-11"
+            ],
+            "test": [
+                "2026-08-12",
+                "2026-08-18"
+            ],
+            "selected_params": {
+                "stop_loss_pct": 0.93,
+                "max_hold_days": 15,
+                "min_upside_pct": 2.5
+            },
+            "train_stats": {
+                "n": 43,
+                "mean": 4.7254,
+                "std": 4.2691,
+                "t_stat": 7.258,
+                "ci95_low": 3.4494,
+                "ci95_high": 6.0014,
+                "significant": true,
+                "sample_adequate": true
+            },
+            "test_stats": {
+                "n": 17,
+                "mean": 2.3853,
+                "std": 4.399,
+                "t_stat": 2.236,
+                "ci95_low": 0.2942,
+                "ci95_high": 4.4764,
+                "significant": false,
+                "sample_adequate": false
+            }
+        },
+        {
+            "train": [
+                "2026-07-21",
+                "2026-08-18"
+            ],
+            "test": [
+                "2026-08-19",
+                "2026-08-25"
+            ],
+            "selected_params": {
+                "stop_loss_pct": 0.93,
+                "max_hold_days": 15,
+                "min_upside_pct": 2.5
+            },
+            "train_stats": {
+                "n": 54,
+                "mean": 3.9717,
+                "std": 4.4982,
+                "t_stat": 6.488,
+                "ci95_low": 2.7719,
+                "ci95_high": 5.1714,
+                "significant": true,
+                "sample_adequate": true
+            },
+            "test_stats": {
+                "n": 5,
+                "mean": 4.0246,
+                "std": 1.0632,
+                "t_stat": 8.464,
+                "ci95_low": 3.0927,
+                "ci95_high": 4.9566,
                 "significant": false,
                 "sample_adequate": false
             }
         }
     ],
     "summary": {
-        "validation_windows": 2,
-        "avg_validation_edge_pct": 0.0,
-        "avg_validation_strategy_pct": 0.0,
-        "positive_edge_windows": 0
+        "windows": 7,
+        "validation_windows": 4,
+        "validation_trades": 84,
+        "avg_validation_return_pct": 2.9629,
+        "positive_windows": 4
     },
     "latest_recommendation": {
-        "train_dates": [
-            "2026-09-29",
-            "2026-09-30",
-            "2026-10-01"
+        "train": [
+            "2026-07-28",
+            "2026-08-25"
         ],
         "selected_params": {
-            "min_upside_pct": 2.0,
-            "max_consensus_cv": 0.05,
-            "stop_loss_pct": 0.98,
-            "execution": "limit_stop"
+            "stop_loss_pct": 0.93,
+            "max_hold_days": 15,
+            "min_upside_pct": 2.5
         },
-        "train_edge": {
-            "n": 44,
-            "mean": 0.1785,
-            "std": 1.3315,
-            "t_stat": 0.889,
-            "ci95_low": -0.215,
-            "ci95_high": 0.5719,
-            "significant": false,
+        "train_stats": {
+            "n": 40,
+            "mean": 2.877,
+            "std": 3.8377,
+            "t_stat": 4.741,
+            "ci95_low": 1.6877,
+            "ci95_high": 4.0663,
+            "significant": true,
             "sample_adequate": true
         }
     }

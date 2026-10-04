@@ -56,7 +56,7 @@
       <div class="flex items-center gap-3 shrink-0">
         <div class="text-right hidden sm:block">
           <div class="text-xs font-medium text-gray-700">Last built</div>
-          <div class="text-xs text-gray-400" id="build-time-rel" title="Oct 03, 2026  00:24 UTC">Oct 03, 2026  00:24 UTC</div>
+          <div class="text-xs text-gray-400" id="build-time-rel" title="Oct 04, 2026  10:16 UTC">Oct 04, 2026  10:16 UTC</div>
         </div>
         <button id="rebuild-btn" onclick="onRebuildClick()"
           class="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg transition-colors">
@@ -195,51 +195,79 @@ new Chart(document.getElementById("pnlChart"), {
 </div></div>
     <div id="pane-backtest" class="hidden">
 <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 mb-6">
-  <h2 class="text-lg font-semibold text-gray-900">Backtest Summary</h2>
-  <p class="text-sm text-gray-500 mt-0.5">5 prediction day(s) evaluated · 151 ticker/date pairs skipped (no data) · stop 5% below entry</p>
+  <h2 class="text-lg font-semibold text-gray-900">Backtest</h2>
+  <p class="text-sm text-gray-500 mt-0.5">Replay of stored ACTIVE signals under the live trading rules: 55 signal day(s), $2.00 per order, stop 5% below entry, max hold 15d</p>
   <div class="mt-4">
-<h3 class="font-semibold text-gray-700 mb-2">By signal</h3>
-
-<div class="overflow-x-auto ">
-  <table class="min-w-full divide-y divide-gray-200">
-    <thead class="bg-gray-50"><tr><th class="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Signal</th><th class="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Trades</th><th class="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Win %</th><th class="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Avg Return %</th><th class="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Avg Win %</th><th class="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Avg Loss %</th><th class="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Profit Factor</th></tr></thead>
-    <tbody class="bg-white"><tr class="border-t border-gray-100 hover:bg-gray-50"><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap"><span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-800">ACTIVE</span></td><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap">415</td><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap">10.1%</td><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap"><span class="text-green-600 font-medium">0.37%</span></td><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap">1.27%</td><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap">1.83%</td><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap"><span class="text-green-600 font-medium">1.71</span></td></tr><tr class="border-t border-gray-100 hover:bg-gray-50"><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap">CONSENSUS</td><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap">645</td><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap">16.6%</td><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap"><span class="text-green-600 font-medium">0.37%</span></td><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap">1.19%</td><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap">1.61%</td><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap"><span class="text-green-600 font-medium">1.80</span></td></tr><tr class="border-t border-gray-100 hover:bg-gray-50"><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap"><span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-600">SKIP</span></td><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap">230</td><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap">29.1%</td><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap"><span class="text-green-600 font-medium">0.37%</span></td><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap">1.03%</td><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap">1.20%</td><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap"><span class="text-green-600 font-medium">2.06</span></td></tr></tbody>
-  </table>
+<div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-5">
+  
+<div class="bg-gray-50 rounded-lg p-4 text-center">
+  <div class="text-2xl font-bold text-gray-900">502</div>
+  <div class="text-xs text-gray-500 mt-1">Closed Trades</div>
 </div>
-<h3 class="font-semibold text-gray-700 mt-5 mb-2">By model</h3>
-
+  
+<div class="bg-gray-50 rounded-lg p-4 text-center">
+  <div class="text-2xl font-bold text-gray-900">66.3%</div>
+  <div class="text-xs text-gray-500 mt-1">Win Rate</div>
+</div>
+  
+<div class="bg-gray-50 rounded-lg p-4 text-center">
+  <div class="text-2xl font-bold text-gray-900">+0.64%</div>
+  <div class="text-xs text-gray-500 mt-1">Avg Return</div>
+</div>
+  
+<div class="bg-gray-50 rounded-lg p-4 text-center">
+  <div class="text-2xl font-bold text-gray-900">1.35</div>
+  <div class="text-xs text-gray-500 mt-1">Profit Factor</div>
+</div>
+  
+<div class="bg-gray-50 rounded-lg p-4 text-center">
+  <div class="text-2xl font-bold text-gray-900">+0.44%<div class="text-xs text-gray-500 font-normal">significant, n=502</div></div>
+  <div class="text-xs text-gray-500 mt-1">Edge vs Hold</div>
+</div>
+</div><h3 class="font-semibold text-gray-700 mb-2">By exit</h3>
 <div class="overflow-x-auto ">
   <table class="min-w-full divide-y divide-gray-200">
-    <thead class="bg-gray-50"><tr><th class="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Model</th><th class="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Trades</th><th class="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Win %</th><th class="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Avg Return %</th><th class="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Avg Win %</th><th class="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Avg Loss %</th><th class="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Profit Factor</th><th class="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Max Consec. Losses</th></tr></thead>
-    <tbody class="bg-white"><tr class="border-t border-gray-100 hover:bg-gray-50"><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap">gemma4</td><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap">498</td><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap">39.3%</td><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap"><span class="text-red-600 font-medium">-0.14%</span></td><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap">0.71%</td><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap">1.85%</td><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap"><span class="text-red-600 font-medium">0.77</span></td><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap">4</td></tr><tr class="border-t border-gray-100 hover:bg-gray-50"><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap">qwen2.5:14b-instruct-q4_K_M</td><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap">153</td><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap">22.9%</td><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap"><span class="text-green-600 font-medium">0.48%</span></td><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap">1.11%</td><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap">1.06%</td><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap"><span class="text-green-600 font-medium">2.58</span></td><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap">5</td></tr><tr class="border-t border-gray-100 hover:bg-gray-50"><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap">llama3.1:8b-instruct-q8_0</td><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap">651</td><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap">21.1%</td><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap"><span class="text-green-600 font-medium">0.40%</span></td><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap">1.27%</td><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap">1.68%</td><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap"><span class="text-green-600 font-medium">1.80</span></td><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap">4</td></tr><tr class="border-t border-gray-100 hover:bg-gray-50"><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap">deepseek-r1:8b</td><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap">153</td><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap">17.5%</td><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap"><span class="text-green-600 font-medium">0.41%</span></td><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap">1.03%</td><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap">1.10%</td><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap"><span class="text-green-600 font-medium">2.28</span></td><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap">5</td></tr><tr class="border-t border-gray-100 hover:bg-gray-50"><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap">mistral-nemo</td><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap">498</td><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap">16.2%</td><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap"><span class="text-green-600 font-medium">0.19%</span></td><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap">1.20%</td><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap">1.76%</td><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap"><span class="text-green-600 font-medium">1.31</span></td><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap">4</td></tr></tbody>
+    <thead class="bg-gray-50"><tr><th class="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Exit</th><th class="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Trades</th><th class="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Avg Return</th><th class="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">P&amp;L</th></tr></thead>
+    <tbody class="bg-white"><tr class="border-t border-gray-100 hover:bg-gray-50"><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap">max_hold</td><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap">54</td><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap"><span class="text-red-600 font-medium">-0.69%</span></td><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap">$-0.75</td></tr><tr class="border-t border-gray-100 hover:bg-gray-50"><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap">stop</td><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap">135</td><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap"><span class="text-red-600 font-medium">-6.30%</span></td><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap">$-17.02</td></tr><tr class="border-t border-gray-100 hover:bg-gray-50"><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap">target</td><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap">313</td><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap"><span class="text-green-600 font-medium">+3.87%</span></td><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap">$+24.24</td></tr></tbody>
   </table>
-</div></div>
+</div><h3 class="font-semibold text-gray-700 mt-5 mb-2">Each model on its own ranges</h3>
+<div class="overflow-x-auto ">
+  <table class="min-w-full divide-y divide-gray-200">
+    <thead class="bg-gray-50"><tr><th class="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Model</th><th class="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Trades</th><th class="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Win %</th><th class="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Avg Return</th><th class="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Profit Factor</th><th class="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Max Consec. Losses</th></tr></thead>
+    <tbody class="bg-white"><tr class="border-t border-gray-100 hover:bg-gray-50"><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap">gemma4</td><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap">253</td><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap">83.8%</td><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap"><span class="text-green-600 font-medium">+0.85%</span></td><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap"><span class="text-green-600 font-medium">1.89</span></td><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap">4</td></tr><tr class="border-t border-gray-100 hover:bg-gray-50"><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap">mistral-nemo</td><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap">261</td><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap">72.4%</td><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap"><span class="text-green-600 font-medium">+0.76%</span></td><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap"><span class="text-green-600 font-medium">1.53</span></td><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap">5</td></tr><tr class="border-t border-gray-100 hover:bg-gray-50"><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap">deepseek-r1:8b</td><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap">1622</td><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap">68.6%</td><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap"><span class="text-green-600 font-medium">+0.42%</span></td><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap"><span class="text-green-600 font-medium">1.26</span></td><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap">9</td></tr><tr class="border-t border-gray-100 hover:bg-gray-50"><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap">llama3.1:8b-instruct-q8_0</td><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap">855</td><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap">68.9%</td><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap"><span class="text-green-600 font-medium">+0.35%</span></td><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap"><span class="text-green-600 font-medium">1.21</span></td><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap">7</td></tr><tr class="border-t border-gray-100 hover:bg-gray-50"><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap">qwen2.5:14b-instruct-q4_K_M</td><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap">1678</td><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap">70.7%</td><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap"><span class="text-green-600 font-medium">+0.33%</span></td><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap"><span class="text-green-600 font-medium">1.22</span></td><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap">9</td></tr></tbody>
+  </table>
+</div><p class="text-sm text-gray-500 mt-4">Calibration against the live journal: 226 matched trades agree on win or loss 88% of the time (live avg +1.63%, simulated +0.85%).</p></div>
 </div>
 <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 mb-6">
   <h2 class="text-lg font-semibold text-gray-900">Walk-Forward Study</h2>
-  <p class="text-sm text-gray-500 mt-0.5">Evidence-only rolling train/test optimizer; live config is not auto-mutated.</p>
+  <p class="text-sm text-gray-500 mt-0.5">Parameters picked on a trailing window and validated on the next one; windows without trades are left out. Live config is never changed.</p>
   <div class="mt-4">
-<div class="grid grid-cols-3 gap-3 mb-5">
+<div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
   
 <div class="bg-gray-50 rounded-lg p-4 text-center">
-  <div class="text-2xl font-bold text-gray-900">2</div>
-  <div class="text-xs text-gray-500 mt-1">Validation Windows</div>
+  <div class="text-2xl font-bold text-gray-900">4 of 7</div>
+  <div class="text-xs text-gray-500 mt-1">Windows</div>
 </div>
   
 <div class="bg-gray-50 rounded-lg p-4 text-center">
-  <div class="text-2xl font-bold text-gray-900">+0.00%</div>
-  <div class="text-xs text-gray-500 mt-1">Avg Edge</div>
+  <div class="text-2xl font-bold text-gray-900">84</div>
+  <div class="text-xs text-gray-500 mt-1">Validation Trades</div>
 </div>
   
 <div class="bg-gray-50 rounded-lg p-4 text-center">
-  <div class="text-2xl font-bold text-gray-900">0</div>
+  <div class="text-2xl font-bold text-gray-900">+2.96%</div>
+  <div class="text-xs text-gray-500 mt-1">Avg Validation Return</div>
+</div>
+  
+<div class="bg-gray-50 rounded-lg p-4 text-center">
+  <div class="text-2xl font-bold text-gray-900">4</div>
   <div class="text-xs text-gray-500 mt-1">Positive Windows</div>
 </div>
-</div><h3 class="font-semibold text-gray-700 mb-2">Latest recommendation</h3>
+</div><h3 class="font-semibold text-gray-700 mb-2">Latest pick (2026-07-28 to 2026-08-25, n=40)</h3>
 <div class="overflow-x-auto ">
   <table class="min-w-full divide-y divide-gray-200">
     <thead class="bg-gray-50"><tr><th class="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Parameter</th><th class="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Value</th></tr></thead>
-    <tbody class="bg-white"><tr class="border-t border-gray-100 hover:bg-gray-50"><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap">min_upside_pct</td><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap">2.0</td></tr><tr class="border-t border-gray-100 hover:bg-gray-50"><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap">max_consensus_cv</td><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap">0.05</td></tr><tr class="border-t border-gray-100 hover:bg-gray-50"><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap">stop_loss_pct</td><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap">0.98</td></tr><tr class="border-t border-gray-100 hover:bg-gray-50"><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap">execution</td><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap">limit_stop</td></tr></tbody>
+    <tbody class="bg-white"><tr class="border-t border-gray-100 hover:bg-gray-50"><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap">stop_loss_pct</td><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap">0.93</td></tr><tr class="border-t border-gray-100 hover:bg-gray-50"><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap">max_hold_days</td><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap">15</td></tr><tr class="border-t border-gray-100 hover:bg-gray-50"><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap">min_upside_pct</td><td class="px-3 py-2 text-sm text-gray-800 whitespace-nowrap">2.5</td></tr></tbody>
   </table>
 </div></div>
 </div>
@@ -316,7 +344,7 @@ new Chart(document.getElementById("pnlChart"), {
 
     // ── Relative build time ────────────────────────────────────────────────
     (function() {
-      const built = new Date('2026-10-03T00:24:30Z');
+      const built = new Date('2026-10-04T10:16:29Z');
       function relTime() {
         const diff = Math.floor((Date.now() - built) / 1000);
         if (diff < 60)  return diff + 's ago';

@@ -332,87 +332,98 @@ new Chart(document.getElementById("pnlChart"), {{
 
 
 def build_backtest_section(report: dict) -> str:
-    if not report:
+    if not report or 'strategy' not in report:
         return ''
+    strat = report['strategy']
+    params = report.get('params', {})
+    edge = (report.get('benchmark') or {}).get('edge_vs_buy_hold') or {}
+    calib = report.get('calibration') or {}
 
-    by_signal = report.get('by_signal', {})
-    by_model = report.get('by_model', {})
-
-    def _pf(s) -> str:
-        pf = s.get('profit_factor')
-        if pf is None:
+    def _pf(v) -> str:
+        if v is None:
             return 'N/A'
-        color = 'text-green-600' if pf >= 1.0 else 'text-red-600'
-        return f'<span class="{color} font-medium">{pf:.2f}</span>'
+        color = 'text-green-600' if v >= 1.0 else 'text-red-600'
+        return f'<span class="{color} font-medium">{v:.2f}</span>'
 
-    def _ret(s) -> str:
-        v = s.get('avg_return_pct', 0)
-        color = 'text-green-600' if v > 0 else 'text-red-600'
-        return f'<span class="{color} font-medium">{v:.2f}%</span>'
+    def _ret(v) -> str:
+        color = 'text-green-600' if (v or 0) > 0 else 'text-red-600'
+        return f'<span class="{color} font-medium">{(v or 0):+.2f}%</span>'
 
-    signal_hdrs = ['Signal', 'Trades', 'Win %', 'Avg Return %', 'Avg Win %', 'Avg Loss %', 'Profit Factor']
-    signal_rows = []
-    for sig, s in sorted(by_signal.items()):
-        signal_rows.append([
-            _signal_badge(sig) if sig in ('ACTIVE', 'SKIP', 'STALE') else _esc(sig),
-            str(s.get('trades', 0)),
-            f'{s.get("win_rate", 0) * 100:.1f}%',
-            _ret(s),
-            f'{s.get("avg_win_pct", 0):.2f}%',
-            f'{s.get("avg_loss_pct", 0):.2f}%',
-            _pf(s),
-        ])
+    edge_txt = _fmt_pct(edge.get('mean')) if edge.get('n') else '-'
+    if edge.get('n'):
+        edge_note = 'significant' if edge.get('significant') else 'not significant'
+        edge_txt += f'<div class="text-xs text-gray-500 font-normal">{edge_note}, n={edge["n"]}</div>'
+    metrics = f'''
+<div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-5">
+  {_metric("Closed Trades", str(strat.get("trades", 0)))}
+  {_metric("Win Rate", f'{strat.get("win_rate", 0) * 100:.1f}%')}
+  {_metric("Avg Return", _fmt_pct(strat.get("avg_return_pct")))}
+  {_metric("Profit Factor", "N/A" if strat.get("profit_factor") is None else f'{strat["profit_factor"]:.2f}')}
+  {_metric("Edge vs Hold", edge_txt)}
+</div>'''
 
-    model_hdrs = ['Model', 'Trades', 'Win %', 'Avg Return %', 'Avg Win %', 'Avg Loss %', 'Profit Factor', 'Max Consec. Losses']
-    model_rows = []
-    for model, s in sorted(by_model.items(), key=lambda x: x[1].get('win_rate', 0), reverse=True):
-        model_rows.append([
-            _esc(model),
-            str(s.get('trades', 0)),
-            f'{s.get("win_rate", 0) * 100:.1f}%',
-            _ret(s),
-            f'{s.get("avg_win_pct", 0):.2f}%',
-            f'{s.get("avg_loss_pct", 0):.2f}%',
-            _pf(s),
-            str(s.get('max_consecutive_losses', 0)),
-        ])
-
-    content = f'''
-<h3 class="font-semibold text-gray-700 mb-2">By signal</h3>
-{_table(signal_hdrs, signal_rows)}
-<h3 class="font-semibold text-gray-700 mt-5 mb-2">By model</h3>
-{_table(model_hdrs, model_rows)}'''
+    reason_rows = [
+        [_esc(reason), str(r.get('trades', 0)), _ret(r.get('avg_return_pct')), f'${r.get("total_pnl_usd", 0):+.2f}']
+        for reason, r in (strat.get('by_exit_reason') or {}).items()
+    ]
+    model_rows = [
+        [_esc(model), str(m.get('trades', 0)), f'{m.get("win_rate", 0) * 100:.1f}%',
+         _ret(m.get('avg_return_pct')), _pf(m.get('profit_factor')), str(m.get('max_consecutive_losses', 0))]
+        for model, m in sorted((report.get('by_model') or {}).items(),
+                               key=lambda x: x[1].get('avg_return_pct', 0), reverse=True)
+    ]
+    content = metrics
+    if reason_rows:
+        content += '<h3 class="font-semibold text-gray-700 mb-2">By exit</h3>'
+        content += _table(['Exit', 'Trades', 'Avg Return', 'P&amp;L'], reason_rows)
+    if model_rows:
+        content += '<h3 class="font-semibold text-gray-700 mt-5 mb-2">Each model on its own ranges</h3>'
+        content += _table(['Model', 'Trades', 'Win %', 'Avg Return', 'Profit Factor', 'Max Consec. Losses'], model_rows)
+    if calib.get('matched'):
+        content += (
+            '<p class="text-sm text-gray-500 mt-4">Calibration against the live journal: '
+            f'{calib["matched"]} matched trades agree on win or loss '
+            f'{(calib.get("agreement_rate") or 0) * 100:.0f}% of the time '
+            f'(live avg {calib.get("avg_live_return_pct", 0):+.2f}%, '
+            f'simulated {calib.get("avg_sim_booked_return_pct", 0):+.2f}%).</p>'
+        )
 
     days = report.get('days_in_history', 0)
-    skipped = report.get('skipped_pairs', 0)
-    stop = report.get('stop_loss_pct')
-    subtitle = f'{days} prediction day(s) evaluated · {skipped} ticker/date pairs skipped (no data)'
-    if stop is not None:
-        subtitle += f' · stop {(1 - stop) * 100:.0f}% below entry'
-    return _card('Backtest Summary', content, subtitle=subtitle)
+    subtitle = (f'Replay of stored ACTIVE signals under the live trading rules: {days} signal day(s), '
+                f'${params.get("order_usd", 0):.2f} per order')
+    if params.get('stop_loss_pct') is not None:
+        subtitle += (f', stop {(1 - params["stop_loss_pct"]) * 100:.0f}% below entry, '
+                     f'max hold {params.get("max_hold_days")}d')
+    return _card('Backtest', content, subtitle=subtitle)
 
 
 def build_walk_forward_section(report: dict) -> str:
-    if not report:
+    if not report or 'summary' not in report:
         return ''
-    summary = report.get('summary', {})
+    summary = report['summary']
     rec = report.get('latest_recommendation') or {}
     params = rec.get('selected_params') or {}
     metrics = f'''
-<div class="grid grid-cols-3 gap-3 mb-5">
-  {_metric("Validation Windows", str(summary.get("validation_windows", 0)))}
-  {_metric("Avg Edge", _fmt_pct(summary.get("avg_validation_edge_pct")))}
-  {_metric("Positive Windows", str(summary.get("positive_edge_windows", 0)))}
+<div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+  {_metric("Windows", f'{summary.get("validation_windows", 0)} of {summary.get("windows", 0)}')}
+  {_metric("Validation Trades", str(summary.get("validation_trades", 0)))}
+  {_metric("Avg Validation Return", _fmt_pct(summary.get("avg_validation_return_pct")))}
+  {_metric("Positive Windows", str(summary.get("positive_windows", 0)))}
 </div>'''
-    rows = [[_esc(k), _esc(v)] for k, v in params.items()]
     content = metrics
-    if rows:
-        content += '<h3 class="font-semibold text-gray-700 mb-2">Latest recommendation</h3>'
-        content += _table(['Parameter', 'Value'], rows)
+    if params:
+        stats = rec.get('train_stats') or {}
+        content += (f'<h3 class="font-semibold text-gray-700 mb-2">Latest pick '
+                    f'({_esc(rec["train"][0])} to {_esc(rec["train"][1])}, n={stats.get("n", 0)})</h3>')
+        content += _table(['Parameter', 'Value'], [[_esc(k), _esc(v)] for k, v in params.items()])
+    elif rec:
+        content += ('<p class="text-sm text-gray-500">Too few trades in the latest window to pick parameters '
+                    f'(need {report.get("min_train_trades")}).</p>')
     return _card(
         'Walk-Forward Study',
         content,
-        subtitle='Evidence-only rolling train/test optimizer; live config is not auto-mutated.',
+        subtitle=('Parameters picked on a trailing window and validated on the next one; '
+                  'windows without trades are left out. Live config is never changed.'),
     )
 
 

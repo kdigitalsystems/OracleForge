@@ -1,191 +1,233 @@
-﻿"""Unit tests for backtest helpers"""
+"""Unit tests for the live-rules backtest."""
+import json
+import os
+import tempfile
 import unittest
+from unittest.mock import patch
 
+import backtest
 from backtest import (
     MIN_ADEQUATE_SAMPLE,
-    _finalize_bucket,
     _grid_candidates,
-    _new_bucket,
     _stats,
-    _update_bucket,
-    simulate_range_outcome,
+    build_signal_days,
+    calibrate_against_journal,
+    consensus_source,
+    simulate_position,
+    simulate_strategy,
     summarize_trade_attribution,
+    summarize_trades,
     walk_forward_optimize,
 )
 
-
-RANGE_WIN = {'buy_high': 100.0, 'sell_low': 107.0}
-RANGE_STOP = {'buy_high': 100.0, 'sell_low': 110.0}
-RANGE_MISS = {'buy_high': 100.0, 'sell_low': 110.0}
-RANGE_NO_TRIGGER = {'buy_high': 95.0, 'sell_low': 105.0}
-
-
-class SimulateRangeTests(unittest.TestCase):
-    def test_win(self):
-        bar = {'open': 101, 'high': 108, 'low': 99, 'close': 106}  # low=99 > stop(95)
-        result = simulate_range_outcome(bar, RANGE_WIN)
-        self.assertEqual(result['outcome'], 'win')
-        self.assertTrue(result['triggered'])
-        self.assertGreater(result['return_pct'], 0)
-
-    def test_stop(self):
-        # Default stop is buy_high * 0.95 = 95; low must dip to/below it.
-        bar = {'open': 101, 'high': 101, 'low': 93, 'close': 96}
-        result = simulate_range_outcome(bar, RANGE_STOP)
-        self.assertEqual(result['outcome'], 'stop')
-        self.assertEqual(result['return_pct'], -5.0)
-        self.assertTrue(result['triggered'])
-
-    def test_stop_respects_custom_pct(self):
-        # With a 0.98 stop, a dip to 97 should stop out at -2%.
-        bar = {'open': 101, 'high': 101, 'low': 97, 'close': 99}
-        result = simulate_range_outcome(bar, RANGE_STOP, stop_loss_pct=0.98)
-        self.assertEqual(result['outcome'], 'stop')
-        self.assertEqual(result['return_pct'], -2.0)
-
-    def test_no_stop_above_threshold(self):
-        # low=97 is above the default 95 stop, so this is a miss, not a stop.
-        bar = {'open': 101, 'high': 101, 'low': 97, 'close': 99}
-        result = simulate_range_outcome(bar, RANGE_STOP)
-        self.assertEqual(result['outcome'], 'miss')
-
-    def test_miss(self):
-        bar = {'open': 101, 'high': 104, 'low': 99, 'close': 103}
-        result = simulate_range_outcome(bar, RANGE_MISS)
-        self.assertEqual(result['outcome'], 'miss')
-        self.assertTrue(result['triggered'])
-
-    def test_miss_is_valued_at_close_not_high(self):
-        # Regression: a miss used to be scored as an exit at the day's HIGH,
-        # booking nearly every unexited trade as a win at the best print of
-        # the day. Entry 100, high 104, close 103: the return must be +3%
-        # (close), not +4% (high).
-        bar = {'open': 101, 'high': 104, 'low': 99, 'close': 103}
-        result = simulate_range_outcome(bar, RANGE_MISS)
-        self.assertEqual(result['return_pct'], 3.0)
-
-    def test_no_trigger(self):
-        bar = {'open': 101, 'high': 108, 'low': 97, 'close': 105}
-        result = simulate_range_outcome(bar, RANGE_NO_TRIGGER)
-        self.assertEqual(result['outcome'], 'no_trigger')
-        self.assertFalse(result['triggered'])
+# Mon 2026-01-05 .. Fri 2026-01-16 (no holidays), so calendar-day max-hold
+# arithmetic is easy to follow.
+SESSIONS = ['2026-01-05', '2026-01-06', '2026-01-07', '2026-01-08', '2026-01-09',
+            '2026-01-12', '2026-01-13', '2026-01-14', '2026-01-15', '2026-01-16']
 
 
-class BucketTests(unittest.TestCase):
-    def test_update_and_finalize(self):
-        bucket = _new_bucket()
-        _update_bucket(bucket, simulate_range_outcome({'open': 101, 'high': 108, 'low': 99, 'close': 106}, RANGE_WIN))
-        _update_bucket(bucket, simulate_range_outcome({'open': 101, 'high': 101, 'low': 93, 'close': 96}, RANGE_STOP))
-        final = _finalize_bucket(bucket)
-        self.assertEqual(final['trades'], 2)
-        self.assertEqual(final['triggered'], 2)
-        self.assertEqual(final['wins'], 1)
-        self.assertEqual(final['stops'], 1)
-        self.assertAlmostEqual(final['win_rate'], 0.5)
+def _bars(*days):
+    """Bars for consecutive sessions from SESSIONS[0]: (open, high, low, close)."""
+    return {SESSIONS[i]: dict(zip(('open', 'high', 'low', 'close'), d)) for i, d in enumerate(days)}
 
-    def test_no_trigger_not_counted(self):
-        bucket = _new_bucket()
-        _update_bucket(bucket, simulate_range_outcome({'open': 101, 'high': 108, 'low': 97, 'close': 105}, RANGE_NO_TRIGGER))
-        final = _finalize_bucket(bucket)
-        self.assertEqual(final['trades'], 1)
-        self.assertEqual(final['triggered'], 0)
-        self.assertEqual(final['win_rate'], 0.0)
 
-    def test_finalize_empty(self):
-        final = _finalize_bucket(_new_bucket())
-        self.assertEqual(final['trades'], 0)
-        self.assertEqual(final['win_rate'], 0.0)
+FLAT = (100, 101, 99, 100)
 
-    # ----- Risk metric tests -----
 
-    def test_finalize_includes_risk_fields(self):
-        bucket = _new_bucket()
-        _update_bucket(bucket, simulate_range_outcome({'open': 101, 'high': 108, 'low': 99, 'close': 106}, RANGE_WIN))
-        final = _finalize_bucket(bucket)
-        for field in ('avg_win_pct', 'avg_loss_pct', 'profit_factor', 'max_consecutive_losses'):
-            self.assertIn(field, final, f"Missing risk field: {field}")
+def _sim(bars, buy_high=100.0, sell_low=105.0, stop=0.95, max_hold=15,
+         signal_date='2026-01-02', entry_idx=0, end_idx=None):
+    return simulate_position(bars, SESSIONS, entry_idx, signal_date, buy_high, sell_low,
+                             stop, max_hold, end_idx)
 
-    def test_profit_factor_one_win_one_stop(self):
-        bucket = _new_bucket()
-        # Win returns 7%, stop returns -5%
-        _update_bucket(bucket, simulate_range_outcome({'open': 101, 'high': 108, 'low': 99, 'close': 106}, RANGE_WIN))
-        _update_bucket(bucket, simulate_range_outcome({'open': 101, 'high': 101, 'low': 93, 'close': 96}, RANGE_STOP))
-        final = _finalize_bucket(bucket)
-        # gross_profit = ~7%, gross_loss = 5%  => pf = ~1.4
-        self.assertIsNotNone(final['profit_factor'])
-        self.assertGreater(final['profit_factor'], 1.0)
 
-    def test_profit_factor_none_when_no_losses(self):
-        bucket = _new_bucket()
-        _update_bucket(bucket, simulate_range_outcome({'open': 101, 'high': 108, 'low': 99, 'close': 106}, RANGE_WIN))
-        final = _finalize_bucket(bucket)
-        # No stops ? profit_factor undefined
-        self.assertIsNone(final['profit_factor'])
+class SimulatePositionTests(unittest.TestCase):
 
-    def test_avg_win_pct_positive(self):
-        bucket = _new_bucket()
-        _update_bucket(bucket, simulate_range_outcome({'open': 101, 'high': 108, 'low': 99, 'close': 106}, RANGE_WIN))
-        final = _finalize_bucket(bucket)
-        self.assertGreater(final['avg_win_pct'], 0)
+    def test_no_fill_when_session_stays_above_buy_high(self):
+        self.assertIsNone(_sim(_bars((102, 104, 100.5, 103))))
 
-    def test_avg_loss_pct_positive_for_stops(self):
-        bucket = _new_bucket()
-        _update_bucket(bucket, simulate_range_outcome({'open': 101, 'high': 101, 'low': 93, 'close': 96}, RANGE_STOP))
-        final = _finalize_bucket(bucket)
-        # avg_loss_pct is stored as a positive number (absolute loss)
-        self.assertGreater(final['avg_loss_pct'], 0)
+    def test_gap_down_fills_at_the_open_not_the_limit(self):
+        t = _sim(_bars((98, 99, 97, 98.5), (99, 106, 98, 104)))
+        self.assertEqual(t['entry_price'], 98)
 
-    def test_max_consecutive_losses_tracked(self):
-        bucket = _new_bucket()
-        stop_bar = {'open': 101, 'high': 101, 'low': 93, 'close': 96}
-        win_bar  = {'open': 101, 'high': 108, 'low': 99, 'close': 106}
-        _update_bucket(bucket, simulate_range_outcome(stop_bar, RANGE_STOP))
-        _update_bucket(bucket, simulate_range_outcome(stop_bar, RANGE_STOP))
-        _update_bucket(bucket, simulate_range_outcome(stop_bar, RANGE_STOP))
-        _update_bucket(bucket, simulate_range_outcome(win_bar, RANGE_WIN))
-        final = _finalize_bucket(bucket)
-        self.assertEqual(final['max_consecutive_losses'], 3)
+    def test_target_cannot_fill_on_the_entry_day(self):
+        # Live places the profit-target sell only after the entry day's close.
+        t = _sim(_bars((101, 107, 99.5, 106), (104, 106.5, 103, 105)))
+        self.assertEqual(t['exit_date'], SESSIONS[1])
+        self.assertEqual(t['exit_reason'], 'target')
+        self.assertEqual(t['exit_price'], 105)
 
-    def test_max_consecutive_losses_resets_after_win(self):
-        bucket = _new_bucket()
-        stop_bar = {'open': 101, 'high': 101, 'low': 93, 'close': 96}
-        win_bar  = {'open': 101, 'high': 108, 'low': 99, 'close': 106}
-        # 2 losses, win, 1 loss ? max should be 2
-        _update_bucket(bucket, simulate_range_outcome(stop_bar, RANGE_STOP))
-        _update_bucket(bucket, simulate_range_outcome(stop_bar, RANGE_STOP))
-        _update_bucket(bucket, simulate_range_outcome(win_bar, RANGE_WIN))
-        _update_bucket(bucket, simulate_range_outcome(stop_bar, RANGE_STOP))
-        final = _finalize_bucket(bucket)
-        self.assertEqual(final['max_consecutive_losses'], 2)
+    def test_gap_up_through_target_fills_at_the_open(self):
+        t = _sim(_bars(FLAT, (108, 109, 107, 108)))
+        self.assertEqual(t['exit_price'], 108)
 
-    def test_negative_miss_counts_as_loss(self):
-        # Triggered (low<=100), not stopped (low>95), not a win (high<110),
-        # but closed below entry -> negative return must count toward losses.
-        bucket = _new_bucket()
-        bar = {'open': 99, 'high': 99, 'low': 96, 'close': 97}
-        outcome = simulate_range_outcome(bar, RANGE_MISS)
-        self.assertEqual(outcome['outcome'], 'miss')
-        self.assertLess(outcome['return_pct'], 0)
-        _update_bucket(bucket, outcome)
-        final = _finalize_bucket(bucket)
-        # avg_loss_pct must reflect this losing miss even though stops == 0
-        self.assertEqual(final['stops'], 0)
-        self.assertGreater(final['avg_loss_pct'], 0)
-        self.assertEqual(final['profit_factor'], 0.0)  # loss present, zero profit
+    def test_stop_on_entry_day_close_fills_at_next_open(self):
+        t = _sim(_bars((100, 100.5, 94, 94.5), (93, 96, 92, 95)))
+        self.assertEqual(t['exit_reason'], 'stop')
+        self.assertEqual((t['exit_date'], t['exit_price']), (SESSIONS[1], 93))
+        # The live journal books the close the check saw instead.
+        self.assertEqual((t['booked_exit_date'], t['booked_exit_price']), (SESSIONS[0], 94.5))
+        self.assertAlmostEqual(t['return_pct'], -7.0)
+        self.assertAlmostEqual(t['booked_return_pct'], -5.5)
 
-    def test_avg_loss_pct_not_inflated_by_stop_only_divisor(self):
-        # One -5% stop and one -3% miss (valued at the close, 97 vs entry
-        # 100): avg loss must be 4%, not 8% (5+3)/1.
-        bucket = _new_bucket()
-        _update_bucket(bucket, simulate_range_outcome({'open': 101, 'high': 101, 'low': 93, 'close': 96}, RANGE_STOP))
-        _update_bucket(bucket, simulate_range_outcome({'open': 99, 'high': 99, 'low': 96, 'close': 97}, RANGE_MISS))
-        final = _finalize_bucket(bucket)
-        self.assertAlmostEqual(final['avg_loss_pct'], 4.0, places=2)
+    def test_intraday_dip_below_stop_does_not_stop_if_close_recovers(self):
+        t = _sim(_bars((100, 101, 93, 99), (99, 106, 98, 105)))
+        self.assertEqual(t['exit_reason'], 'target')
 
-    def test_internal_fields_not_in_output(self):
-        final = _finalize_bucket(_new_bucket())
-        for key in final:
-            self.assertFalse(key.startswith('_'), f"Internal field leaked to output: {key}")
+    def test_max_hold_counts_calendar_days_from_the_signal_date(self):
+        # Signal Fri 01-02, max 7 days: the Fri 01-09 close is day 7.
+        t = _sim(_bars(*[FLAT] * 6), max_hold=7)
+        self.assertEqual(t['exit_reason'], 'max_hold')
+        self.assertEqual(t['booked_exit_date'], '2026-01-09')
+        self.assertEqual(t['exit_date'], '2026-01-12')
+
+    def test_still_held_at_end_is_open_and_valued_at_last_close(self):
+        t = _sim(_bars(FLAT, (100, 102, 99, 101)))
+        self.assertEqual(t['exit_reason'], 'open')
+        self.assertEqual(t['exit_price'], 101)
+
+    def test_end_idx_truncates_the_replay(self):
+        bars = _bars(FLAT, FLAT, (104, 106, 103, 105))
+        self.assertEqual(_sim(bars, end_idx=1)['exit_reason'], 'open')
+        self.assertEqual(_sim(bars)['exit_reason'], 'target')
+
+
+def _day(signal_date, entry_session, **tickers):
+    return {'signal_date': signal_date, 'entry_session': entry_session, 'predictions': {
+        t: {'signal': sig, 'upside_pct': 5.0, 'consensus': {'buy_high': 100.0, 'sell_low': 105.0}}
+        for t, sig in tickers.items()
+    }}
+
+
+class SimulateStrategyTests(unittest.TestCase):
+
+    def test_held_ticker_is_not_bought_again(self):
+        bars = {'AAA': _bars(FLAT, FLAT, FLAT, (100, 106, 99, 105), FLAT)}
+        days = [_day('2026-01-02', SESSIONS[0], AAA='ACTIVE'),
+                _day('2026-01-05', SESSIONS[1], AAA='ACTIVE')]
+        out = simulate_strategy(days, bars, SESSIONS, consensus_source(), 0.95, 15)
+        self.assertEqual(len(out['trades']), 1)
+        self.assertEqual(out['skipped_already_held'], 1)
+
+    def test_rebuy_allowed_on_stop_exit_session_not_on_target_session(self):
+        stop = {'AAA': _bars((100, 100, 94, 94), (95, 99, 94, 98), FLAT)}
+        days = [_day('2026-01-02', SESSIONS[0], AAA='ACTIVE'),
+                _day('2026-01-05', SESSIONS[1], AAA='ACTIVE')]
+        # Stopped at the 01-05 close, sold at the 01-06 open: tracking was
+        # cleared that evening, so the 01-06 morning can buy again.
+        self.assertEqual(len(simulate_strategy(days, stop, SESSIONS, consensus_source(), 0.95, 15)['trades']), 2)
+        target = {'AAA': _bars(FLAT, (100, 106, 99, 105), FLAT)}
+        out = simulate_strategy(days, target, SESSIONS, consensus_source(), 0.95, 15)
+        # Target fills during 01-06, so the position is still tracked that morning.
+        self.assertEqual((len(out['trades']), out['skipped_already_held']), (1, 1))
+
+    def test_only_stored_active_signals_trade(self):
+        bars = {'AAA': _bars(FLAT, FLAT), 'BBB': _bars(FLAT, FLAT)}
+        days = [_day('2026-01-02', SESSIONS[0], AAA='ACTIVE', BBB='SKIP')]
+        trades = simulate_strategy(days, bars, SESSIONS, consensus_source(), 0.95, 15)['trades']
+        self.assertEqual([t['ticker'] for t in trades], ['AAA'])
+
+    def test_min_upside_can_only_tighten(self):
+        days = [_day('2026-01-02', SESSIONS[0], AAA='ACTIVE')]
+        days[0]['predictions']['AAA']['upside_pct'] = 2.0
+        bars = {'AAA': _bars(FLAT, FLAT)}
+        self.assertEqual(len(simulate_strategy(days, bars, SESSIONS, consensus_source(3.0), 0.95, 15)['trades']), 0)
+        self.assertEqual(len(simulate_strategy(days, bars, SESSIONS, consensus_source(1.5), 0.95, 15)['trades']), 1)
+
+
+class BuildSignalDaysTests(unittest.TestCase):
+
+    def _build(self, files):
+        with tempfile.TemporaryDirectory() as d:
+            os.makedirs(os.path.join(d, 'history'))
+            os.makedirs(os.path.join(d, 'reports'))
+            for date, generated in files.items():
+                with open(os.path.join(d, 'history', f'predictions_{date}.json'), 'w') as f:
+                    json.dump({}, f)
+                with open(os.path.join(d, 'reports', f'signals_{date}.json'), 'w') as f:
+                    json.dump({'generated_at': generated}, f)
+            with patch.object(backtest, 'HISTORY_DIR', os.path.join(d, 'history')), \
+                    patch.object(backtest, 'REPORTS_DIR', os.path.join(d, 'reports')):
+                return {x['signal_date']: x['entry_session'] for x in build_signal_days(sorted(files), SESSIONS)}
+
+    def test_evening_and_weekend_files_trade_the_next_session(self):
+        days = self._build({'2026-01-06': '2026-01-06T23:40:00', '2026-01-11': '2026-01-12T00:30:00'})
+        self.assertEqual(days, {'2026-01-06': '2026-01-07', '2026-01-11': '2026-01-12'})
+
+    def test_file_generated_early_on_its_own_date_trades_that_session(self):
+        # Pre-fix runs started after midnight dated themselves by the new day.
+        days = self._build({'2026-01-07': '2026-01-07T03:05:00'})
+        self.assertEqual(days, {'2026-01-07': '2026-01-07'})
+
+    def test_newest_file_wins_when_two_map_to_one_session(self):
+        days = self._build({'2026-01-09': '2026-01-09T23:00:00', '2026-01-11': '2026-01-11T23:00:00'})
+        self.assertEqual(days, {'2026-01-11': '2026-01-12'})
+
+
+def _trade(ret, reason='target', ticker='AAA', signal='2026-01-02', booked=None):
+    return {'ticker': ticker, 'signal_date': signal, 'exit_reason': reason, 'return_pct': ret,
+            'booked_return_pct': ret if booked is None else booked, 'sessions_held': 2}
+
+
+class SummarizeTradesTests(unittest.TestCase):
+
+    def test_stats_exclude_open_positions(self):
+        s = summarize_trades([_trade(4.0), _trade(-6.0, 'stop'), _trade(1.0, 'open')])
+        self.assertEqual((s['trades'], s['open_positions']), (2, 1))
+        self.assertEqual(s['win_rate'], 0.5)
+        self.assertAlmostEqual(s['profit_factor'], 4 / 6, places=3)
+        self.assertEqual(s['by_exit_reason']['stop']['trades'], 1)
+        self.assertAlmostEqual(s['total_pnl_usd'], 2.0 * (4 - 6) / 100, places=2)
+
+    def test_booked_key_scores_journal_prices(self):
+        s = summarize_trades([_trade(-7.0, 'stop', booked=-5.5)], key='booked_return_pct')
+        self.assertEqual(s['avg_return_pct'], -5.5)
+
+    def test_max_consecutive_losses(self):
+        s = summarize_trades([_trade(-1), _trade(-2), _trade(3), _trade(-1)])
+        self.assertEqual(s['max_consecutive_losses'], 2)
+
+
+class CalibrationTests(unittest.TestCase):
+
+    def test_matches_on_ticker_and_signal_date_and_skips_desync_rows(self):
+        sim = [_trade(3.0, ticker='AAA'), _trade(-5.5, 'stop', ticker='BBB'), _trade(2.0, ticker='CCC')]
+        journal = [
+            {'ticker': 'AAA', 'entry_date': '2026-01-02', 'pnl_pct': 4.0},
+            {'ticker': 'BBB', 'entry_date': '2026-01-02', 'pnl_pct': 1.0},
+            {'ticker': 'DDD', 'entry_date': '2026-01-02', 'pnl_pct': 1.0},
+            {'ticker': 'CCC', 'entry_date': '2026-01-02', 'pnl_pct': -60.0, 'qty_desync_corrected': True},
+        ]
+        c = calibrate_against_journal(sim, journal)
+        self.assertEqual((c['matched'], c['live_only'], c['simulated_only']), (2, 1, 1))
+        self.assertEqual(c['same_win_loss'], 1)
+
+
+class WalkForwardTests(unittest.TestCase):
+
+    def test_grid_candidates_expands_product(self):
+        self.assertEqual(len(_grid_candidates({'a': [1, 2], 'b': ['x', 'y']})), 4)
+
+    def test_empty_windows_are_excluded_not_counted_as_zero(self):
+        # Four signal days, no ACTIVE signals at all: nothing is rankable.
+        days = [_day(f'2026-01-0{i + 1}', SESSIONS[i], AAA='SKIP') for i in range(4)]
+        bars = {'AAA': _bars(*[FLAT] * 5)}
+        grid = {'stop_loss_pct': [0.95], 'max_hold_days': [15], 'min_upside_pct': [1.5]}
+        wf = walk_forward_optimize(days, bars, SESSIONS, train_window=2, test_window=1, grid=grid)
+        self.assertEqual(wf['summary']['windows'], 2)
+        self.assertEqual(wf['summary']['validation_windows'], 0)
+        self.assertIsNone(wf['windows'][0]['selected_params'])
+        self.assertIsNone(wf['latest_recommendation']['selected_params'])
+
+    def test_training_is_cut_off_before_the_test_window(self):
+        # A day-0 buy whose target only fills during the test window must be
+        # 'open' (excluded) in training, not a training win.
+        days = [_day('2026-01-02', SESSIONS[0], AAA='ACTIVE'), _day('2026-01-05', SESSIONS[1], BBB='SKIP'),
+                _day('2026-01-06', SESSIONS[2], BBB='SKIP')]
+        bars = {'AAA': _bars(FLAT, FLAT, (104, 106, 103, 105), FLAT), 'BBB': _bars(*[FLAT] * 4)}
+        grid = {'stop_loss_pct': [0.95], 'max_hold_days': [15], 'min_upside_pct': [1.5]}
+        wf = walk_forward_optimize(days, bars, SESSIONS, train_window=2, test_window=1, grid=grid,
+                                   min_train_trades=1)
+        self.assertEqual(wf['windows'][0]['train_stats']['n'], 0)
 
 
 class StatsTests(unittest.TestCase):
@@ -236,72 +278,6 @@ class StatsTests(unittest.TestCase):
         self.assertGreaterEqual(s['ci95_high'], s['mean'])
 
 
-class ExecutionModeTests(unittest.TestCase):
-    BAR = {'open': 100.0, 'high': 104.0, 'low': 96.0, 'close': 102.0}
-    PRED = {'buy_high': 98.0, 'sell_low': 110.0}  # entry 98, target unreached
-
-    def test_market_hold_ignores_range_and_uses_open_close(self):
-        out = simulate_range_outcome(self.BAR, self.PRED, execution='market_hold')
-        self.assertTrue(out['triggered'])  # always "in" under market_hold
-        # (close-open)/open = (102-100)/100 = 2%
-        self.assertAlmostEqual(out['return_pct'], 2.0, places=2)
-
-    def test_market_hold_triggers_even_when_limit_would_not(self):
-        # low (96) > buy_high (95) -> limit modes don't trigger, market_hold does
-        bar = {'open': 100.0, 'high': 104.0, 'low': 96.0, 'close': 101.0}
-        pred = {'buy_high': 95.0, 'sell_low': 110.0}
-        self.assertFalse(simulate_range_outcome(bar, pred, execution='limit_stop')['triggered'])
-        self.assertTrue(simulate_range_outcome(bar, pred, execution='market_hold')['triggered'])
-
-    def test_limit_hold_exits_at_close_no_stop(self):
-        # Dips to entry 98 (low 96 <= 98) but no stop; exit at close 102.
-        out = simulate_range_outcome(self.BAR, self.PRED, execution='limit_hold')
-        self.assertTrue(out['triggered'])
-        # (102-98)/98 ~ +4.08%
-        self.assertAlmostEqual(out['return_pct'], (102 - 98) / 98 * 100, places=2)
-
-    def test_limit_hold_no_trigger_when_price_stays_above_buy_high(self):
-        bar = {'open': 100.0, 'high': 104.0, 'low': 99.0, 'close': 103.0}
-        pred = {'buy_high': 98.0, 'sell_low': 110.0}
-        out = simulate_range_outcome(bar, pred, execution='limit_hold')
-        self.assertFalse(out['triggered'])
-
-    def test_default_execution_unchanged(self):
-        # Default path must still behave as the original limit_stop logic.
-        out = simulate_range_outcome({'open': 101, 'high': 108, 'low': 99, 'close': 106}, RANGE_WIN)
-        self.assertEqual(out['outcome'], 'win')
-
-
-class WalkForwardTests(unittest.TestCase):
-
-    def test_grid_candidates_expands_product(self):
-        grid = {'a': [1, 2], 'b': ['x', 'y']}
-        self.assertEqual(len(_grid_candidates(grid)), 4)
-
-    def test_walk_forward_selects_best_training_candidate(self):
-        dates = ['2026-01-01', '2026-01-02', '2026-01-03', '2026-01-04']
-        grid = {'min_upside_pct': [1.0, 2.0], 'execution': ['limit_stop']}
-
-        def runner(run_dates, candidate, scores=None):
-            edge = 1.0 if candidate['min_upside_pct'] == 2.0 else -1.0
-            return {
-                'benchmark': {
-                    'active_edge_vs_buy_hold': {'mean': edge, 'n': len(run_dates)},
-                    'active_strategy': {'mean': edge / 2, 'n': len(run_dates)},
-                }
-            }
-
-        report = walk_forward_optimize(
-            dates,
-            train_window=2,
-            test_window=1,
-            grid=grid,
-            runner=runner,
-        )
-        self.assertEqual(report['summary']['validation_windows'], 2)
-        self.assertEqual(report['windows'][0]['selected_params']['min_upside_pct'], 2.0)
-        self.assertEqual(report['latest_recommendation']['selected_params']['min_upside_pct'], 2.0)
-
 
 class AttributionTests(unittest.TestCase):
 
@@ -337,19 +313,6 @@ class AttributionTests(unittest.TestCase):
         self.assertEqual(report['execution_quality']['profit_target_count'], 1)
         self.assertEqual(report['execution_quality']['stop_loss_count'], 1)
 
-
-class SignificanceWiringTests(unittest.TestCase):
-
-    def test_finalize_bucket_includes_significance(self):
-        bucket = _new_bucket()
-        _update_bucket(bucket, simulate_range_outcome({'open': 101, 'high': 108, 'low': 99, 'close': 106}, RANGE_WIN))
-        final = _finalize_bucket(bucket)
-        self.assertIn('significance', final)
-        self.assertEqual(final['significance']['n'], 1)
-
-    def test_returns_list_excluded_from_output(self):
-        final = _finalize_bucket(_new_bucket())
-        self.assertNotIn('_returns', final)
 
 
 if __name__ == '__main__':
