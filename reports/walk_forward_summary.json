@@ -1,5 +1,5 @@
 {
-    "generated_at": "2026-09-29T08:28:04",
+    "generated_at": "2026-10-05T03:20:58",
     "train_window": 20,
     "test_window": 5,
     "min_train_trades": 30,
@@ -236,19 +236,54 @@
                 "significant": false,
                 "sample_adequate": false
             }
+        },
+        {
+            "train": [
+                "2026-07-28",
+                "2026-08-25"
+            ],
+            "test": [
+                "2026-09-28",
+                "2026-10-01"
+            ],
+            "selected_params": {
+                "stop_loss_pct": 0.93,
+                "max_hold_days": 15,
+                "min_upside_pct": 2.5
+            },
+            "train_stats": {
+                "n": 40,
+                "mean": 2.877,
+                "std": 3.8377,
+                "t_stat": 4.741,
+                "ci95_low": 1.6877,
+                "ci95_high": 4.0663,
+                "significant": true,
+                "sample_adequate": true
+            },
+            "test_stats": {
+                "n": 13,
+                "mean": 4.055,
+                "std": 1.2252,
+                "t_stat": 11.933,
+                "ci95_low": 3.3889,
+                "ci95_high": 4.721,
+                "significant": false,
+                "sample_adequate": false
+            }
         }
     ],
     "summary": {
-        "windows": 7,
-        "validation_windows": 4,
-        "validation_trades": 84,
-        "avg_validation_return_pct": 2.9629,
-        "positive_windows": 4
+        "windows": 8,
+        "validation_windows": 5,
+        "validation_trades": 97,
+        "avg_validation_return_pct": 3.1813,
+        "positive_windows": 5
     },
     "latest_recommendation": {
         "train": [
-            "2026-07-28",
-            "2026-08-25"
+            "2026-08-03",
+            "2026-10-01"
         ],
         "selected_params": {
             "stop_loss_pct": 0.93,
@@ -256,12 +291,12 @@
             "min_upside_pct": 2.5
         },
         "train_stats": {
-            "n": 40,
-            "mean": 2.877,
-            "std": 3.8377,
-            "t_stat": 4.741,
-            "ci95_low": 1.6877,
-            "ci95_high": 4.0663,
+            "n": 46,
+            "mean": 3.2445,
+            "std": 3.3622,
+            "t_stat": 6.545,
+            "ci95_low": 2.2729,
+            "ci95_high": 4.2162,
             "significant": true,
             "sample_adequate": true
         }

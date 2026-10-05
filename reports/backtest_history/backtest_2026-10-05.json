@@ -1,0 +1,430 @@
+{
+    "generated_at": "2026-10-05T03:20:58",
+    "method": "live-rules replay of stored ACTIVE signals",
+    "params": {
+        "stop_loss_pct": 0.95,
+        "max_hold_days": 15,
+        "order_usd": 2.0,
+        "stop_fill": "next session open"
+    },
+    "signal_dates": [
+        "2026-05-03",
+        "2026-05-21",
+        "2026-05-31",
+        "2026-06-02",
+        "2026-06-03",
+        "2026-06-04",
+        "2026-06-08",
+        "2026-06-09",
+        "2026-06-10",
+        "2026-06-11",
+        "2026-06-15",
+        "2026-06-17",
+        "2026-06-21",
+        "2026-06-23",
+        "2026-06-24",
+        "2026-06-25",
+        "2026-06-29",
+        "2026-06-30",
+        "2026-07-01",
+        "2026-07-05",
+        "2026-07-06",
+        "2026-07-07",
+        "2026-07-08",
+        "2026-07-09",
+        "2026-07-12",
+        "2026-07-13",
+        "2026-07-14",
+        "2026-07-15",
+        "2026-07-17",
+        "2026-07-20",
+        "2026-07-21",
+        "2026-07-23",
+        "2026-07-24",
+        "2026-07-26",
+        "2026-07-27",
+        "2026-07-28",
+        "2026-07-29",
+        "2026-07-30",
+        "2026-08-02",
+        "2026-08-03",
+        "2026-08-04",
+        "2026-08-06",
+        "2026-08-09",
+        "2026-08-10",
+        "2026-08-11",
+        "2026-08-12",
+        "2026-08-13",
+        "2026-08-16",
+        "2026-08-17",
+        "2026-08-18",
+        "2026-08-19",
+        "2026-08-21",
+        "2026-08-23",
+        "2026-08-24",
+        "2026-08-25",
+        "2026-09-28",
+        "2026-09-29",
+        "2026-09-30",
+        "2026-10-01"
+    ],
+    "days_in_history": 59,
+    "last_session": "2026-10-02",
+    "strategy": {
+        "trades": 533,
+        "open_positions": 50,
+        "win_rate": 0.6811,
+        "avg_return_pct": 0.7686,
+        "avg_win_pct": 3.7171,
+        "avg_loss_pct": 5.5273,
+        "profit_factor": 1.436,
+        "max_consecutive_losses": 5,
+        "avg_sessions_held": 4.0657,
+        "total_pnl_usd": 8.19,
+        "by_exit_reason": {
+            "max_hold": {
+                "trades": 54,
+                "avg_return_pct": -0.6943,
+                "total_pnl_usd": -0.75
+            },
+            "stop": {
+                "trades": 136,
+                "avg_return_pct": -6.3143,
+                "total_pnl_usd": -17.17
+            },
+            "target": {
+                "trades": 343,
+                "avg_return_pct": 3.8073,
+                "total_pnl_usd": 26.12
+            }
+        },
+        "significance": {
+            "n": 533,
+            "mean": 0.7686,
+            "std": 4.9124,
+            "t_stat": 3.612,
+            "ci95_low": 0.3516,
+            "ci95_high": 1.1857,
+            "significant": true,
+            "sample_adequate": true
+        }
+    },
+    "strategy_as_booked": {
+        "trades": 533,
+        "open_positions": 50,
+        "win_rate": 0.6735,
+        "avg_return_pct": 0.6983,
+        "avg_win_pct": 3.7564,
+        "avg_loss_pct": 5.611,
+        "profit_factor": 1.381,
+        "max_consecutive_losses": 5,
+        "avg_sessions_held": 4.0657,
+        "total_pnl_usd": 7.44,
+        "by_exit_reason": {
+            "max_hold": {
+                "trades": 54,
+                "avg_return_pct": -0.7017,
+                "total_pnl_usd": -0.76
+            },
+            "stop": {
+                "trades": 136,
+                "avg_return_pct": -6.5869,
+                "total_pnl_usd": -17.92
+            },
+            "target": {
+                "trades": 343,
+                "avg_return_pct": 3.8073,
+                "total_pnl_usd": 26.12
+            }
+        },
+        "significance": {
+            "n": 533,
+            "mean": 0.6983,
+            "std": 4.9691,
+            "t_stat": 3.244,
+            "ci95_low": 0.2765,
+            "ci95_high": 1.1202,
+            "significant": true,
+            "sample_adequate": true
+        }
+    },
+    "orders": {
+        "filled": 583,
+        "unfilled": 417,
+        "skipped_already_held": 314,
+        "missing_bars": 1
+    },
+    "benchmark": {
+        "strategy": {
+            "n": 533,
+            "mean": 0.7686,
+            "std": 4.9124,
+            "t_stat": 3.612,
+            "ci95_low": 0.3516,
+            "ci95_high": 1.1857,
+            "significant": true,
+            "sample_adequate": true
+        },
+        "buy_hold_same_window": {
+            "n": 533,
+            "mean": 0.3023,
+            "std": 5.1711,
+            "t_stat": 1.35,
+            "ci95_low": -0.1367,
+            "ci95_high": 0.7413,
+            "significant": false,
+            "sample_adequate": true
+        },
+        "edge_vs_buy_hold": {
+            "n": 533,
+            "mean": 0.4663,
+            "std": 2.2353,
+            "t_stat": 4.816,
+            "ci95_low": 0.2765,
+            "ci95_high": 0.6561,
+            "significant": true,
+            "sample_adequate": true
+        }
+    },
+    "by_model": {
+        "deepseek-r1:8b": {
+            "trades": 1713,
+            "open_positions": 130,
+            "win_rate": 0.6994,
+            "avg_return_pct": 0.4958,
+            "avg_win_pct": 2.9052,
+            "avg_loss_pct": 5.139,
+            "profit_factor": 1.323,
+            "max_consecutive_losses": 9,
+            "avg_sessions_held": 4.0531,
+            "total_pnl_usd": 16.99,
+            "by_exit_reason": {
+                "max_hold": {
+                    "trades": 228,
+                    "avg_return_pct": -0.7385,
+                    "total_pnl_usd": -3.37
+                },
+                "stop": {
+                    "trades": 369,
+                    "avg_return_pct": -6.3484,
+                    "total_pnl_usd": -46.85
+                },
+                "target": {
+                    "trades": 1116,
+                    "avg_return_pct": 3.011,
+                    "total_pnl_usd": 67.2
+                }
+            },
+            "significance": {
+                "n": 1713,
+                "mean": 0.4958,
+                "std": 4.3179,
+                "t_stat": 4.752,
+                "ci95_low": 0.2913,
+                "ci95_high": 0.7003,
+                "significant": true,
+                "sample_adequate": true
+            }
+        },
+        "gemma4": {
+            "trades": 253,
+            "open_positions": 0,
+            "win_rate": 0.8379,
+            "avg_return_pct": 0.8521,
+            "avg_win_pct": 2.1586,
+            "avg_loss_pct": 5.9039,
+            "profit_factor": 1.891,
+            "max_consecutive_losses": 4,
+            "avg_sessions_held": 2.2648,
+            "total_pnl_usd": 4.31,
+            "by_exit_reason": {
+                "max_hold": {
+                    "trades": 9,
+                    "avg_return_pct": -2.1675,
+                    "total_pnl_usd": -0.39
+                },
+                "stop": {
+                    "trades": 33,
+                    "avg_return_pct": -6.7374,
+                    "total_pnl_usd": -4.45
+                },
+                "target": {
+                    "trades": 211,
+                    "avg_return_pct": 2.1678,
+                    "total_pnl_usd": 9.15
+                }
+            },
+            "significance": {
+                "n": 253,
+                "mean": 0.8521,
+                "std": 3.3879,
+                "t_stat": 4.0,
+                "ci95_low": 0.4346,
+                "ci95_high": 1.2695,
+                "significant": true,
+                "sample_adequate": true
+            }
+        },
+        "llama3.1:8b-instruct-q8_0": {
+            "trades": 855,
+            "open_positions": 0,
+            "win_rate": 0.6889,
+            "avg_return_pct": 0.3515,
+            "avg_win_pct": 2.9731,
+            "avg_loss_pct": 5.4741,
+            "profit_factor": 1.207,
+            "max_consecutive_losses": 7,
+            "avg_sessions_held": 4.0854,
+            "total_pnl_usd": 6.01,
+            "by_exit_reason": {
+                "max_hold": {
+                    "trades": 111,
+                    "avg_return_pct": 0.0107,
+                    "total_pnl_usd": 0.02
+                },
+                "stop": {
+                    "trades": 210,
+                    "avg_return_pct": -6.4775,
+                    "total_pnl_usd": -27.21
+                },
+                "target": {
+                    "trades": 534,
+                    "avg_return_pct": 3.1079,
+                    "total_pnl_usd": 33.19
+                }
+            },
+            "significance": {
+                "n": 855,
+                "mean": 0.3515,
+                "std": 4.5751,
+                "t_stat": 2.246,
+                "ci95_low": 0.0448,
+                "ci95_high": 0.6582,
+                "significant": true,
+                "sample_adequate": true
+            }
+        },
+        "mistral-nemo": {
+            "trades": 261,
+            "open_positions": 0,
+            "win_rate": 0.7241,
+            "avg_return_pct": 0.756,
+            "avg_win_pct": 3.0184,
+            "avg_loss_pct": 5.1829,
+            "profit_factor": 1.529,
+            "max_consecutive_losses": 5,
+            "avg_sessions_held": 4.1149,
+            "total_pnl_usd": 3.95,
+            "by_exit_reason": {
+                "max_hold": {
+                    "trades": 31,
+                    "avg_return_pct": -0.4443,
+                    "total_pnl_usd": -0.28
+                },
+                "stop": {
+                    "trades": 55,
+                    "avg_return_pct": -6.2237,
+                    "total_pnl_usd": -6.85
+                },
+                "target": {
+                    "trades": 175,
+                    "avg_return_pct": 3.1622,
+                    "total_pnl_usd": 11.07
+                }
+            },
+            "significance": {
+                "n": 261,
+                "mean": 0.756,
+                "std": 4.1552,
+                "t_stat": 2.939,
+                "ci95_low": 0.2519,
+                "ci95_high": 1.2601,
+                "significant": true,
+                "sample_adequate": true
+            }
+        },
+        "qwen2.5:14b-instruct-q4_K_M": {
+            "trades": 1806,
+            "open_positions": 118,
+            "win_rate": 0.7254,
+            "avg_return_pct": 0.4405,
+            "avg_win_pct": 2.5583,
+            "avg_loss_pct": 5.1843,
+            "profit_factor": 1.311,
+            "max_consecutive_losses": 9,
+            "avg_sessions_held": 3.7132,
+            "total_pnl_usd": 15.91,
+            "by_exit_reason": {
+                "max_hold": {
+                    "trades": 198,
+                    "avg_return_pct": -0.7879,
+                    "total_pnl_usd": -3.12
+                },
+                "stop": {
+                    "trades": 363,
+                    "avg_return_pct": -6.3321,
+                    "total_pnl_usd": -45.97
+                },
+                "target": {
+                    "trades": 1245,
+                    "avg_return_pct": 2.6105,
+                    "total_pnl_usd": 65.0
+                }
+            },
+            "significance": {
+                "n": 1806,
+                "mean": 0.4405,
+                "std": 4.0376,
+                "t_stat": 4.636,
+                "ci95_low": 0.2543,
+                "ci95_high": 0.6267,
+                "significant": true,
+                "sample_adequate": true
+            }
+        }
+    },
+    "selection": {
+        "ACTIVE": {
+            "n": 1314,
+            "mean": 0.1755,
+            "std": 2.0253,
+            "t_stat": 3.141,
+            "ci95_low": 0.066,
+            "ci95_high": 0.285,
+            "significant": true,
+            "sample_adequate": true
+        },
+        "SKIP": {
+            "n": 7482,
+            "mean": 0.0686,
+            "std": 1.7788,
+            "t_stat": 3.334,
+            "ci95_low": 0.0282,
+            "ci95_high": 0.1089,
+            "significant": true,
+            "sample_adequate": true
+        },
+        "STALE": {
+            "n": 166,
+            "mean": -0.132,
+            "std": 1.5791,
+            "t_stat": -1.077,
+            "ci95_low": -0.3722,
+            "ci95_high": 0.1082,
+            "significant": false,
+            "sample_adequate": true
+        }
+    },
+    "calibration": {
+        "live_trades_in_window": 299,
+        "simulated_trades_in_window": 533,
+        "matched": 241,
+        "live_only": 58,
+        "simulated_only": 292,
+        "same_win_loss": 215,
+        "agreement_rate": 0.8921,
+        "avg_live_return_pct": 1.7138,
+        "avg_sim_booked_return_pct": 0.9471,
+        "mean_abs_return_gap_pct": 2.2053
+    }
+}
