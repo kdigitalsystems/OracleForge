@@ -1,5 +1,5 @@
 {
-    "generated_at": "2026-10-05T03:20:58",
+    "generated_at": "2026-10-06T04:27:17",
     "train_window": 20,
     "test_window": 5,
     "min_train_trades": 30,
@@ -244,7 +244,7 @@
             ],
             "test": [
                 "2026-09-28",
-                "2026-10-01"
+                "2026-10-02"
             ],
             "selected_params": {
                 "stop_loss_pct": 0.93,
@@ -262,12 +262,12 @@
                 "sample_adequate": true
             },
             "test_stats": {
-                "n": 13,
-                "mean": 4.055,
-                "std": 1.2252,
-                "t_stat": 11.933,
-                "ci95_low": 3.3889,
-                "ci95_high": 4.721,
+                "n": 18,
+                "mean": 4.5267,
+                "std": 1.8471,
+                "t_stat": 10.398,
+                "ci95_low": 3.6734,
+                "ci95_high": 5.38,
                 "significant": false,
                 "sample_adequate": false
             }
@@ -276,14 +276,14 @@
     "summary": {
         "windows": 8,
         "validation_windows": 5,
-        "validation_trades": 97,
-        "avg_validation_return_pct": 3.1813,
+        "validation_trades": 102,
+        "avg_validation_return_pct": 3.2757,
         "positive_windows": 5
     },
     "latest_recommendation": {
         "train": [
-            "2026-08-03",
-            "2026-10-01"
+            "2026-08-04",
+            "2026-10-02"
         ],
         "selected_params": {
             "stop_loss_pct": 0.93,
@@ -291,12 +291,12 @@
             "min_upside_pct": 2.5
         },
         "train_stats": {
-            "n": 46,
-            "mean": 3.2445,
-            "std": 3.3622,
-            "t_stat": 6.545,
-            "ci95_low": 2.2729,
-            "ci95_high": 4.2162,
+            "n": 44,
+            "mean": 3.4165,
+            "std": 3.3388,
+            "t_stat": 6.788,
+            "ci95_low": 2.4299,
+            "ci95_high": 4.403,
             "significant": true,
             "sample_adequate": true
         }
