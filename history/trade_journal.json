@@ -7138,5 +7138,41 @@
         ],
         "consensus_buy_high": 81.45,
         "consensus_sell_low": 83.33
+    },
+    {
+        "close_date": "2026-10-06",
+        "ticker": "XLE",
+        "entry_date": "2026-09-28",
+        "entry_price": 61.408,
+        "exit_price": 63.932,
+        "usd_invested": 1.9682,
+        "usd_returned": 2.0491,
+        "pnl_usd": 0.0809,
+        "pnl_pct": 4.11,
+        "outcome": "win",
+        "predicting_models": [
+            "qwen2.5:14b-instruct-q4_K_M",
+            "deepseek-r1:8b"
+        ],
+        "consensus_buy_high": 62.4,
+        "consensus_sell_low": 63.57
+    },
+    {
+        "close_date": "2026-10-06",
+        "ticker": "NEE",
+        "entry_date": "2026-09-28",
+        "entry_price": 75.77,
+        "exit_price": 77.562,
+        "usd_invested": 2.0,
+        "usd_returned": 2.0473,
+        "pnl_usd": 0.0473,
+        "pnl_pct": 2.37,
+        "outcome": "win",
+        "predicting_models": [
+            "qwen2.5:14b-instruct-q4_K_M",
+            "deepseek-r1:8b"
+        ],
+        "consensus_buy_high": 75.77,
+        "consensus_sell_low": 77.06
     }
 ]
