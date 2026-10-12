@@ -7516,5 +7516,41 @@
         ],
         "consensus_buy_high": 18.57,
         "consensus_sell_low": 18.88
+    },
+    {
+        "close_date": "2026-10-12",
+        "ticker": "KR",
+        "entry_date": "2026-09-29",
+        "entry_price": 58.958,
+        "exit_price": 61.82,
+        "usd_invested": 1.9999,
+        "usd_returned": 2.097,
+        "pnl_usd": 0.0971,
+        "pnl_pct": 4.86,
+        "outcome": "win",
+        "predicting_models": [
+            "qwen2.5:14b-instruct-q4_K_M",
+            "deepseek-r1:8b"
+        ],
+        "consensus_buy_high": 58.96,
+        "consensus_sell_low": 61.82
+    },
+    {
+        "close_date": "2026-10-12",
+        "ticker": "CORZ",
+        "entry_date": "2026-09-29",
+        "entry_price": 16.078,
+        "exit_price": 15.06,
+        "usd_invested": 1.95,
+        "usd_returned": 1.8265,
+        "pnl_usd": -0.1235,
+        "pnl_pct": -6.33,
+        "outcome": "loss",
+        "predicting_models": [
+            "qwen2.5:14b-instruct-q4_K_M",
+            "deepseek-r1:8b"
+        ],
+        "consensus_buy_high": 16.49,
+        "consensus_sell_low": 17.86
     }
 ]

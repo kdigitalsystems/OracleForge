@@ -1,26 +1,26 @@
 {
-    "generated_at": "2026-10-10T00:43:22",
-    "trades": 405,
+    "generated_at": "2026-10-12T22:53:02",
+    "trades": 407,
     "overall": {
-        "wins": 255,
-        "win_rate": 0.6296,
-        "avg_pnl_pct": -7.6538,
-        "total_pnl_pct": -3099.78
+        "wins": 256,
+        "win_rate": 0.629,
+        "avg_pnl_pct": -7.6198,
+        "total_pnl_pct": -3101.25
     },
     "by_model": {
         "deepseek-r1:8b": {
-            "trades": 254,
-            "wins": 199,
-            "win_rate": 0.7835,
-            "avg_pnl_pct": 2.1412,
-            "total_pnl_pct": 543.86
+            "trades": 256,
+            "wins": 200,
+            "win_rate": 0.7812,
+            "avg_pnl_pct": 2.1187,
+            "total_pnl_pct": 542.39
         },
         "qwen2.5:14b-instruct-q4_K_M": {
-            "trades": 346,
-            "wins": 254,
-            "win_rate": 0.7341,
-            "avg_pnl_pct": 1.4956,
-            "total_pnl_pct": 517.48
+            "trades": 348,
+            "wins": 255,
+            "win_rate": 0.7328,
+            "avg_pnl_pct": 1.4828,
+            "total_pnl_pct": 516.01
         },
         "llama3.1:8b-instruct-q8_0": {
             "trades": 242,
@@ -150,6 +150,13 @@
             "avg_pnl_pct": 6.595,
             "total_pnl_pct": 13.19
         },
+        "KR": {
+            "trades": 2,
+            "wins": 2,
+            "win_rate": 1.0,
+            "avg_pnl_pct": 6.43,
+            "total_pnl_pct": 12.86
+        },
         "HDB": {
             "trades": 5,
             "wins": 4,
@@ -234,26 +241,12 @@
             "avg_pnl_pct": 2.7333,
             "total_pnl_pct": 8.2
         },
-        "KR": {
-            "trades": 1,
-            "wins": 1,
-            "win_rate": 1.0,
-            "avg_pnl_pct": 8.0,
-            "total_pnl_pct": 8.0
-        },
         "S": {
             "trades": 4,
             "wins": 3,
             "win_rate": 0.75,
             "avg_pnl_pct": 1.98,
             "total_pnl_pct": 7.92
-        },
-        "CORZ": {
-            "trades": 2,
-            "wins": 2,
-            "win_rate": 1.0,
-            "avg_pnl_pct": 3.93,
-            "total_pnl_pct": 7.86
         },
         "SOFI": {
             "trades": 1,
@@ -709,6 +702,13 @@
             "win_rate": 1.0,
             "avg_pnl_pct": 1.75,
             "total_pnl_pct": 1.75
+        },
+        "CORZ": {
+            "trades": 3,
+            "wins": 2,
+            "win_rate": 0.6667,
+            "avg_pnl_pct": 0.51,
+            "total_pnl_pct": 1.53
         },
         "BAC": {
             "trades": 1,
@@ -1468,9 +1468,9 @@
         }
     },
     "execution_quality": {
-        "avg_price_improvement_pct": 1.1759,
-        "avg_target_capture_pct": -7.0722,
-        "profit_target_count": 269,
-        "stop_loss_count": 114
+        "avg_price_improvement_pct": 1.1763,
+        "avg_target_capture_pct": -7.0482,
+        "profit_target_count": 270,
+        "stop_loss_count": 115
     }
 }
