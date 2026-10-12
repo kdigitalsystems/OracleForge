@@ -4620,5 +4620,99 @@
         "consensus": null,
         "signal": "SKIP",
         "upside_pct": null
+    },
+    "XLY": {
+        "close": 112.87,
+        "models": {
+            "qwen2.5:14b-instruct-q4_K_M": {
+                "buy_low": 112.0,
+                "buy_high": 112.87,
+                "sell_low": 113.5,
+                "sell_high": 114.0,
+                "rationale": "Considering the current overbought condition and recent price action, a pullback to near support is likely before further upside."
+            },
+            "deepseek-r1:8b": {
+                "buy_low": 111.18,
+                "buy_high": 112.31,
+                "sell_low": 114.56,
+                "sell_high": 115.69,
+                "rationale": "Fallback range (model output unparseable)",
+                "fallback": true
+            }
+        },
+        "consensus": null,
+        "signal": "SKIP",
+        "upside_pct": null
+    },
+    "KLAR": {
+        "close": 14.06,
+        "models": {
+            "qwen2.5:14b-instruct-q4_K_M": {
+                "buy_low": 13.85,
+                "buy_high": 13.99,
+                "sell_low": 14.27,
+                "sell_high": 14.41,
+                "rationale": "Fallback range (model output unparseable)",
+                "fallback": true
+            },
+            "deepseek-r1:8b": {
+                "buy_low": 13.85,
+                "buy_high": 13.99,
+                "sell_low": 14.27,
+                "sell_high": 14.41,
+                "rationale": "Fallback range (model output unparseable)",
+                "fallback": true
+            }
+        },
+        "consensus": null,
+        "signal": "SKIP",
+        "upside_pct": null
+    },
+    "MMED": {
+        "close": 19.73,
+        "models": {
+            "qwen2.5:14b-instruct-q4_K_M": {
+                "buy_low": 19.43,
+                "buy_high": 19.63,
+                "sell_low": 20.03,
+                "sell_high": 20.22,
+                "rationale": "Fallback range (model output unparseable)",
+                "fallback": true
+            },
+            "deepseek-r1:8b": {
+                "buy_low": 19.43,
+                "buy_high": 19.63,
+                "sell_low": 20.03,
+                "sell_high": 20.22,
+                "rationale": "Fallback range (model output unparseable)",
+                "fallback": true
+            }
+        },
+        "consensus": null,
+        "signal": "SKIP",
+        "upside_pct": null
+    },
+    "MBB": {
+        "close": 89.75,
+        "models": {
+            "qwen2.5:14b-instruct-q4_K_M": {
+                "buy_low": 89.2,
+                "buy_high": 89.5,
+                "sell_low": 89.75,
+                "sell_high": 90.15,
+                "rationale": "Entering a long position near the support level and taking profit near resistance."
+            },
+            "deepseek-r1:8b": {
+                "buy_low": 88.41,
+                "buy_high": 89.31,
+                "sell_low": 91.1,
+                "sell_high": 92.0,
+                "rationale": "Fallback range (model output unparseable)",
+                "fallback": true
+            }
+        },
+        "consensus": null,
+        "signal": "SKIP",
+        "upside_pct": null
     }
 }
