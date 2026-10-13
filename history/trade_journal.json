@@ -7552,5 +7552,41 @@
         ],
         "consensus_buy_high": 16.49,
         "consensus_sell_low": 17.86
+    },
+    {
+        "close_date": "2026-10-12",
+        "ticker": "SOFI",
+        "entry_date": "2026-09-28",
+        "entry_price": 15.978,
+        "exit_price": 15.13,
+        "usd_invested": 1.9367,
+        "usd_returned": 1.8339,
+        "pnl_usd": -0.1028,
+        "pnl_pct": -5.31,
+        "outcome": "loss",
+        "predicting_models": [
+            "qwen2.5:14b-instruct-q4_K_M",
+            "deepseek-r1:8b"
+        ],
+        "consensus_buy_high": 16.5,
+        "consensus_sell_low": 17.04
+    },
+    {
+        "close_date": "2026-10-12",
+        "ticker": "AAL",
+        "entry_date": "2026-09-29",
+        "entry_price": 13.298,
+        "exit_price": 12.6,
+        "usd_invested": 1.9774,
+        "usd_returned": 1.8736,
+        "pnl_usd": -0.1038,
+        "pnl_pct": -5.25,
+        "outcome": "loss",
+        "predicting_models": [
+            "qwen2.5:14b-instruct-q4_K_M",
+            "deepseek-r1:8b"
+        ],
+        "consensus_buy_high": 13.45,
+        "consensus_sell_low": 13.78
     }
 ]
