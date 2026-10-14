@@ -1,5 +1,5 @@
 {
-    "generated_at": "2026-10-13T00:53:15",
+    "generated_at": "2026-10-14T08:22:28",
     "train_window": 20,
     "test_window": 5,
     "min_train_trades": 30,
@@ -262,12 +262,12 @@
                 "sample_adequate": true
             },
             "test_stats": {
-                "n": 30,
-                "mean": 3.18,
-                "std": 4.6222,
-                "t_stat": 3.768,
-                "ci95_low": 1.5259,
-                "ci95_high": 4.834,
+                "n": 31,
+                "mean": 2.7102,
+                "std": 5.2433,
+                "t_stat": 2.878,
+                "ci95_low": 0.8644,
+                "ci95_high": 4.556,
                 "significant": true,
                 "sample_adequate": true
             }
@@ -306,32 +306,67 @@
                 "significant": false,
                 "sample_adequate": false
             }
+        },
+        {
+            "train": [
+                "2026-08-12",
+                "2026-10-09"
+            ],
+            "test": [
+                "2026-10-12",
+                "2026-10-12"
+            ],
+            "selected_params": {
+                "stop_loss_pct": 0.93,
+                "max_hold_days": 15,
+                "min_upside_pct": 2.5
+            },
+            "train_stats": {
+                "n": 53,
+                "mean": 2.8022,
+                "std": 4.5058,
+                "t_stat": 4.527,
+                "ci95_low": 1.5891,
+                "ci95_high": 4.0153,
+                "significant": true,
+                "sample_adequate": true
+            },
+            "test_stats": {
+                "n": 0,
+                "mean": 0.0,
+                "std": 0.0,
+                "t_stat": null,
+                "ci95_low": null,
+                "ci95_high": null,
+                "significant": false,
+                "sample_adequate": false
+            }
         }
     ],
     "summary": {
-        "windows": 9,
+        "windows": 10,
         "validation_windows": 6,
-        "validation_trades": 115,
-        "avg_validation_return_pct": 1.2457,
+        "validation_trades": 116,
+        "avg_validation_return_pct": 1.1674,
         "positive_windows": 5
     },
     "latest_recommendation": {
         "train": [
-            "2026-08-12",
-            "2026-10-09"
+            "2026-08-13",
+            "2026-10-12"
         ],
         "selected_params": {
-            "stop_loss_pct": 0.93,
+            "stop_loss_pct": 0.95,
             "max_hold_days": 15,
             "min_upside_pct": 2.5
         },
         "train_stats": {
-            "n": 53,
-            "mean": 2.8022,
-            "std": 4.5058,
-            "t_stat": 4.527,
-            "ci95_low": 1.5891,
-            "ci95_high": 4.0153,
+            "n": 42,
+            "mean": 2.5503,
+            "std": 4.6684,
+            "t_stat": 3.54,
+            "ci95_low": 1.1384,
+            "ci95_high": 3.9622,
             "significant": true,
             "sample_adequate": true
         }
