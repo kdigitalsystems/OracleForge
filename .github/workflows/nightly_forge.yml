@@ -28,7 +28,15 @@ jobs:
     # this job manages the host Ollama systemd service (sudo systemctl
     # restart, a self-heal that has fired in production) and pulls models
     # with the host ollama binary. Neither works inside a job container.
-    runs-on: [self-hosted, gpu]
+    #
+    # Pinned to runners labelled largeVRAM (the desktop). server1 also has the
+    # gpu label, but deepseek-r1:8b returns garbage there under the real
+    # prompts (155 gibberish + 32 empty/prose replies of 195 on 2026-10-09,
+    # while qwen2.5 on the same server is fine), which leaves a handful of
+    # ACTIVE signals a night instead of ~70. Drop this label once that is
+    # fixed. If no largeVRAM runner is online the job queues rather than
+    # forecasting badly; the morning job then runs protect-only.
+    runs-on: [self-hosted, gpu, largeVRAM]
     timeout-minutes: 720
 
     permissions:

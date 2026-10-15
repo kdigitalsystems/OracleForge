@@ -178,6 +178,21 @@ jobs:
               const ageHours = latest
                 ? (now - new Date(latest.created_at)) / 36e5
                 : Infinity;
+              // A run that is queued or already running is not missing.
+              // (Age alone treats a queued run as current only because its
+              // created_at is fresh; this also covers a long-running one.)
+              const active = await Promise.all(['queued', 'in_progress'].map(status =>
+                github.rest.actions.listWorkflowRuns({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  workflow_id: s.wf,
+                  status,
+                  per_page: 1,
+                })));
+              if (active.some(r => r.data.total_count > 0)) {
+                console.log(`${s.wf}: a run is queued or in progress; no action.`);
+                continue;
+              }
               console.log(`${s.wf}: latest run ${latest ? latest.created_at : 'none'} (${ageHours.toFixed(1)}h ago)`);
               if (ageHours <= s.maxAgeH) {
                 console.log(`${s.wf}: current; no action.`);

@@ -139,21 +139,26 @@ Keys are never stored in GitHub Secrets.
 
 | Workflow | Schedule | What it does |
 |---|---|---|
-| [Nightly Forge](.github/workflows/nightly_forge.yml) | 23:00 UTC weekdays | Runs unit tests → `update_tickers.py` → `forge_loop.py` → validates outputs → refreshes backtest and walk-forward study → regenerates dashboard → commits state |
+| [Nightly Forge](.github/workflows/nightly_forge.yml) | 23:00 UTC Sunday to Thursday (prepares the next trading day) | Pinned to the `largeVRAM` runner (the desktop). Runs unit tests → `update_tickers.py` → `forge_loop.py` → validates outputs → refreshes backtest and walk-forward study → regenerates dashboard → commits state |
 | [Morning Orders](.github/workflows/morning_orders.yml) | 13:30 UTC weekdays (9:30 AM EDT / 8:30 AM EST) | Places DAY limit buy orders for ACTIVE tickers; re-places the DAY profit-target sell for held positions |
 | [Evening Cleanup](.github/workflows/evening_cleanup.yml) | 21:05 UTC weekdays (5:05 PM EDT / 4:05 PM EST) | Detects fills, records P&L, runs the end-of-day stop check, clears expired orders, refreshes trade attribution, regenerates dashboard |
 | [Rebuild Dashboard](.github/workflows/regenerate_report.yml) | Manual (via Rebuild button) | Regenerates `docs/index.html` from existing data files and commits |
+| [Retry Failed Workflows](.github/workflows/retry_failed.yml) | Every 15 minutes | Watchdog: re-runs failed runs (up to twice) and dispatches a trading workflow whose schedule was missed, unless one is already queued or running |
+| [Cleanup old Actions artifacts](.github/workflows/cleanup-artifacts.yml) | 04:17 UTC daily | Deletes old artifacts and the runner's old diagnostic logs |
+| [Runner Health Probe](.github/workflows/runner_health.yml) | Manual | Reports what the picking-up runner provides (Docker, Ollama, keys, disk) |
+
+The morning, evening and rebuild jobs check out `main` explicitly, so a re-run never replays stale state. GitHub often starts scheduled runs hours late; the trading jobs are idempotent, so a late scheduled run after a watchdog dispatch is a harmless no-op.
 
 ### Runner registration
 
-The self-hosted runner must be registered to this repository. To register:
+The self-hosted runners are registered at the organization level (shared with other projects). To register one:
 
-1. Go to **Settings → Actions → Runners → New self-hosted runner** on GitHub.
+1. Go to the **organization's Settings → Actions → Runners → New self-hosted runner** on GitHub.
 2. Copy the registration token.
 3. On the runner machine (WSL):
    ```bash
    cd ~/github/actions-runner
-   ./config.sh --url https://github.com/kdigitalsystems/OracleForge --token <TOKEN> --replace
+   ./config.sh --url https://github.com/kdigitalsystems --token <TOKEN> --replace
    ```
 
 ---

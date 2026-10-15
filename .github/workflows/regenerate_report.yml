@@ -19,6 +19,12 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
+        with:
+          # A re-run (retry_failed.yml, or the manual button) otherwise checks
+          # out the original commit, whose state/ and history/ predate what
+          # the first attempt already pushed: the job would act on stale
+          # orders and its push would conflict. Always start from main.
+          ref: main
 
       - name: Generate HTML report
         # No pip install needed — generate_html_report.py uses stdlib only

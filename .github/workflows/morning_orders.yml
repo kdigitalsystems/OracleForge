@@ -43,6 +43,12 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
+        with:
+          # A re-run (retry_failed.yml, or the manual button) otherwise checks
+          # out the original commit, whose state/ and history/ predate what
+          # the first attempt already pushed: the job would act on stale
+          # orders and its push would conflict. Always start from main.
+          ref: main
 
       - name: Install Dependencies
         run: pip install -r requirements.txt
