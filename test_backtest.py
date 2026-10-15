@@ -315,5 +315,20 @@ class AttributionTests(unittest.TestCase):
 
 
 
+class AttributionExclusionTests(unittest.TestCase):
+
+    def test_unreliable_rows_are_excluded_and_reported(self):
+        good = {'ticker': 'AAA', 'outcome': 'win', 'pnl_pct': 2.0, 'pnl_usd': 0.04, 'usd_invested': 2.0,
+                'entry_price': 100.0, 'exit_price': 102.0, 'consensus_buy_high': 100.0,
+                'consensus_sell_low': 102.0, 'predicting_models': ['m']}
+        desync = {**good, 'ticker': 'BBB', 'outcome': 'loss', 'pnl_pct': -48.0, 'pnl_usd': -1.9,
+                  'qty_desync_corrected': True}
+        report = summarize_trade_attribution([good, desync])
+        self.assertEqual(report['trades'], 1)
+        self.assertEqual(report['overall']['win_rate'], 1.0)
+        self.assertNotIn('BBB', report['by_ticker'])
+        self.assertEqual(report['excluded'], {'count': 1, 'recorded_pnl_usd': -1.9, 'reasons': {'qty_desync': 1}})
+
+
 if __name__ == '__main__':
     unittest.main()

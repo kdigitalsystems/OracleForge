@@ -26,6 +26,7 @@ from alpaca.data.requests import StockBarsRequest
 from alpaca.data.timeframe import TimeFrame
 
 import alpaca_client
+from journal_quality import flagged_summary, journal_row_issue, split_journal
 from signals import (
     HISTORY_DIR,
     REPORTS_DIR,
@@ -99,7 +100,13 @@ def _avg(values: list[float]) -> float:
 
 
 def summarize_trade_attribution(journal: list[dict]) -> dict:
-    """Break actual closed trades into model/ticker/execution-quality buckets."""
+    """Break actual closed trades into model/ticker/execution-quality buckets.
+
+    Rows whose recorded P&L cannot be trusted (see journal_quality) are left
+    out and reported under 'excluded', so one bad row cannot put a model at
+    -61% average.
+    """
+    journal, flagged = split_journal(journal)
     model: dict[str, dict] = defaultdict(lambda: {'trades': 0, 'wins': 0, 'pnl': []})
     ticker: dict[str, dict] = defaultdict(lambda: {'trades': 0, 'wins': 0, 'pnl': []})
     execution = {
@@ -157,6 +164,7 @@ def summarize_trade_attribution(journal: list[dict]) -> dict:
     return {
         'generated_at': datetime.now().isoformat(timespec='seconds'),
         'trades': len(journal),
+        'excluded': flagged_summary(flagged),
         'overall': {
             'wins': wins,
             'win_rate': round(wins / len(journal), 4) if journal else 0.0,
@@ -467,15 +475,15 @@ def calibrate_against_journal(trades: list[dict], journal: list[dict]) -> dict:
     """Match simulated trades to live ones on (ticker, signal date).
 
     The live journal records the signal date as entry_date. Live exits are
-    booked at the close for stop/max-hold, so compare booked returns. Trades
-    flagged qty_desync_corrected are excluded: their P&L reflects a share-
-    count bug, not the strategy.
+    booked at the close for stop/max-hold, so compare booked returns. Rows
+    journal_quality flags as unreliable (qty_desync_corrected and the like)
+    are excluded: their P&L reflects a share-count bug, not the strategy.
     """
     first = min((t['signal_date'] for t in trades), default=None)
     last = max((t['signal_date'] for t in trades), default=None)
     live = {
         (t.get('ticker'), t.get('entry_date')): t for t in journal
-        if not t.get('qty_desync_corrected') and first and first <= (t.get('entry_date') or '') <= last
+        if not journal_row_issue(t) and first and first <= (t.get('entry_date') or '') <= last
     }
     sim = {(t['ticker'], t['signal_date']): t for t in trades if t['exit_reason'] != 'open'}
     matched = sorted(set(live) & set(sim))

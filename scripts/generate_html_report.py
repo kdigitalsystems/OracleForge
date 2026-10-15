@@ -13,9 +13,13 @@ Writes:
 from __future__ import annotations
 
 import json
+import math
 import os
 import sys
 from datetime import datetime, timezone
+
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
+from journal_quality import flagged_summary, split_journal  # noqa: E402
 
 REPORTS_DIR = 'reports'
 HISTORY_DIR = 'history'
@@ -36,10 +40,19 @@ GH_BRANCH = 'main'
 # ---------------------------------------------------------------------------
 
 def load_json(path: str, default):
-    if os.path.exists(path):
-        with open(path) as f:
-            return json.load(f)
-    return default
+    """Load JSON; a missing, empty or malformed file yields the default."""
+    if not os.path.exists(path):
+        return default
+    try:
+        with open(path, encoding='utf-8') as f:
+            text = f.read()
+        if not text.strip():
+            print(f'WARNING: {path} is empty; using default.', file=sys.stderr)
+            return default
+        return json.loads(text)
+    except (OSError, ValueError) as exc:
+        print(f'WARNING: could not read {path} ({exc}); using default.', file=sys.stderr)
+        return default
 
 
 def find_latest_signals() -> tuple[str | None, dict | None]:
@@ -59,6 +72,45 @@ def find_latest_signals() -> tuple[str | None, dict | None]:
 # HTML helpers
 # ---------------------------------------------------------------------------
 
+def _js_json(v) -> str:
+    """json.dumps that is safe inside an inline <script> block."""
+    return (json.dumps(v).replace('<', '\\u003c').replace('>', '\\u003e')
+            .replace('&', '\\u0026'))
+
+
+def _num(v, default: float = 0.0) -> float:
+    """Float from anything; None, junk, NaN and inf give the default."""
+    try:
+        f = float(v)
+    except (TypeError, ValueError):
+        return default
+    return f if math.isfinite(f) else default
+
+
+def _num_or_none(v):
+    f = _num(v, float('nan'))
+    return None if math.isnan(f) else f
+
+
+def _str(v, default: str = '') -> str:
+    return default if v is None else str(v)
+
+
+def _dict(v) -> dict:
+    return v if isinstance(v, dict) else {}
+
+
+def _rows(v) -> list[dict]:
+    return [r for r in v if isinstance(r, dict)] if isinstance(v, list) else []
+
+
+def _money(v: float, digits: int = 2, signed: bool = False) -> str:
+    """Dollar amount with the sign in front: -$196.84, never $-196.84."""
+    v = _num(v)
+    sign = '-' if v < 0 else ('+' if signed else '')
+    return f'{sign}${abs(v):.{digits}f}'
+
+
 def _esc(v) -> str:
     if v is None:
         return '-'
@@ -72,16 +124,16 @@ def _fmt_pct(v) -> str:
     try:
         return f'{float(v):+.2f}%'
     except (ValueError, TypeError):
-        return str(v)
+        return _esc(v)
 
 
 def _fmt_usd(v) -> str:
     if v is None:
         return '-'
     try:
-        return f'${float(v):.4f}'
+        return _money(float(v), 4)
     except (ValueError, TypeError):
-        return str(v)
+        return _esc(v)
 
 
 def _signal_badge(sig: str) -> str:
@@ -101,7 +153,7 @@ def _outcome_badge(outcome: str) -> str:
 
 def _table(headers: list[str], rows: list[list[str]], extra_cls: str = '') -> str:
     th = ''.join(
-        f'<th class="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">{h}</th>'
+        f'<th scope="col" class="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">{h}</th>'
         for h in headers
     )
     body_rows = []
@@ -140,18 +192,63 @@ def _metric(label: str, value: str, color: str = 'text-gray-900') -> str:
 # Section builders
 # ---------------------------------------------------------------------------
 
+def _generated_text(raw) -> str:
+    """Readable 'Generated ...' text with an explicit timezone note."""
+    if raw is None:
+        return 'Generated at unknown time'
+    try:
+        dt = datetime.fromisoformat(str(raw).strip().replace('Z', '+00:00'))
+    except ValueError:
+        return f'Generated {_esc(raw)}'
+    if dt.tzinfo is None:
+        return f'Generated {dt.strftime("%b %d, %Y %H:%M")} (runner clock, timezone not recorded)'
+    return f'Generated {dt.astimezone(timezone.utc).strftime("%b %d, %Y %H:%M")} UTC'
+
+
+def build_forecast_banner(date_str: str | None) -> str:
+    """Amber banner when at least half the model predictions used the fallback range."""
+    if not date_str:
+        return ''
+    path = os.path.join(HISTORY_DIR, f'predictions_{os.path.basename(str(date_str))}.json')
+    if not os.path.exists(path):
+        return ''
+    preds = load_json(path, None)
+    if not isinstance(preds, dict):
+        return ''
+    total = fallback = 0
+    for entry in preds.values():
+        models = entry.get('models') if isinstance(entry, dict) else None
+        if not isinstance(models, dict):
+            continue
+        for m in models.values():
+            # Only fallback predictions carry a 'fallback' key (set to True);
+            # real ones have none, so count every non-skipped prediction.
+            if not isinstance(m, dict) or m.get('skipped'):
+                continue
+            total += 1
+            if m.get('fallback') is True:
+                fallback += 1
+    if total == 0 or fallback * 2 < total:
+        return ''
+    return (
+        '<div role="alert" class="bg-amber-50 border border-amber-300 text-amber-900 rounded-lg px-4 py-3 mb-5 text-sm">'
+        f'<span class="font-semibold">Forecast degraded: {fallback} of {total} model predictions used the '
+        'fallback range, so few signals are shown.</span></div>'
+    )
+
+
 def build_signals_section(report: dict, date_str: str) -> str:
-    summary = report.get('summary', {})
-    active_rows = report.get('active', [])
-    skip_rows = report.get('skip', [])
-    stale_rows = report.get('stale', [])
+    summary = _dict(report.get('summary'))
+    active_rows = _rows(report.get('active'))
+    skip_rows = _rows(report.get('skip'))
+    stale_rows = _rows(report.get('stale'))
 
     metrics = f'''
 <div class="grid grid-cols-4 gap-3 mb-5">
-  {_metric("Total", str(summary.get("total", 0)))}
-  {_metric("ACTIVE", str(summary.get("active", 0)), "text-green-600")}
-  {_metric("SKIP", str(summary.get("skip", 0)), "text-gray-500")}
-  {_metric("STALE", str(summary.get("stale", 0)), "text-yellow-600")}
+  {_metric("Total", _esc(summary.get("total", 0)))}
+  {_metric("ACTIVE", _esc(summary.get("active", 0)), "text-green-600")}
+  {_metric("SKIP", _esc(summary.get("skip", 0)), "text-gray-500")}
+  {_metric("STALE", _esc(summary.get("stale", 0)), "text-yellow-600")}
 </div>'''
 
     # ACTIVE table
@@ -160,8 +257,8 @@ def build_signals_section(report: dict, date_str: str) -> str:
         tbl_rows = []
         for r in active_rows:
             upside = r.get('upside_pct')
-            upside_str = f'<span class="font-semibold text-green-600">{_fmt_pct(upside)}</span>' if upside else '-'
-            cv = r.get('consensus_cv')
+            upside_str = f'<span class="font-semibold text-green-600">{_fmt_pct(upside)}</span>' if upside is not None else '-'
+            cv = _num_or_none(r.get('consensus_cv'))
             # Coefficient of variation as a %; higher = models disagree more.
             if cv is None:
                 cv_str = '-'
@@ -182,8 +279,8 @@ def build_signals_section(report: dict, date_str: str) -> str:
         active_section += _table(hdrs, tbl_rows)
 
         # Upside bar chart data
-        chart_labels = json.dumps([r.get('ticker', '') for r in active_rows[:20]])
-        chart_data = json.dumps([round(float(r.get('upside_pct') or 0), 2) for r in active_rows[:20]])
+        chart_labels = _js_json([_str(r.get('ticker')) for r in active_rows[:20]])
+        chart_data = _js_json([round(_num(r.get('upside_pct')), 2) for r in active_rows[:20]])
         active_section += f'''
 <canvas id="upsideChart" class="mt-5" height="80"></canvas>
 <script>
@@ -211,7 +308,7 @@ new Chart(document.getElementById("upsideChart"), {{
         for r in all_other:
             other_rows.append([
                 f'<span class="font-medium">{_esc(r.get("ticker"))}</span>',
-                _signal_badge(r.get('signal', '')),
+                _signal_badge(_str(r.get('signal'))),
                 _esc(r.get('close')),
                 _esc(r.get('buy_high')),
                 _esc(r.get('sell_low')),
@@ -227,19 +324,22 @@ new Chart(document.getElementById("upsideChart"), {{
 
     content = metrics + active_section + other_html
     return _card(f'Signals: {date_str}', content,
-                 subtitle=f'Generated at {report.get("generated_at", "-")}')
+                 subtitle=_generated_text(report.get('generated_at')))
+
+
+def _bar_pct(score) -> float:
+    return max(0.0, min(100.0, _num(score) / 10.0 * 100))
 
 
 def build_scores_section(scores: dict) -> str:
     if not scores:
         return _card('Model Scores', '<p class="text-gray-500 text-sm">No scores found.</p>')
 
-    sorted_scores = sorted(scores.items(), key=lambda x: x[1], reverse=True)
-    max_score = max(v for _, v in sorted_scores) or 10.0
+    sorted_scores = sorted(((m, _num(v)) for m, v in scores.items()), key=lambda x: x[1], reverse=True)
 
     bars_html = ''
     for model, score in sorted_scores:
-        pct = (score / 10.0) * 100
+        pct = _bar_pct(score)
         color = 'bg-green-500' if score >= 7 else 'bg-yellow-400' if score >= 4 else 'bg-red-400'
         bars_html += f'''
 <div class="flex items-center gap-3 mb-2">
@@ -254,33 +354,66 @@ def build_scores_section(scores: dict) -> str:
                  subtitle='Scores range 0 to 10. Updated nightly by OHLC feedback loop.')
 
 
-def build_pnl_section(journal: list[dict]) -> str:
-    if not journal:
-        return _card('P&amp;L Trade Journal',
-                     '<p class="text-gray-500 text-sm">No closed trades yet.</p>')
+def _pnl_note(flagged: list[dict]) -> str:
+    if not flagged:
+        return ''
+    info = flagged_summary(flagged)
+    count = int(info.get('count') or 0)
+    if count <= 0:
+        return ''
+    names = {
+        'qty_desync': 'share-count desync',
+        'near_zero_invested': 'near-zero cost basis',
+        'sign_mismatch': 'sign mismatch',
+        'unparseable': 'unreadable fields',
+    }
+    reasons = ', '.join(names.get(k, _esc(k).replace('_', ' ')) for k in _dict(info.get('reasons')))
+    reasons = f' ({reasons})' if reasons else ''
+    noun, verb = ('trade', 'is') if count == 1 else ('trades', 'are')
+    return (f'<p class="text-sm text-gray-500 mb-5">{count} earlier {noun} with unreliable accounting'
+            f'{reasons} {verb} left out. As recorded they sum to '
+            f'{_esc(_money(info.get("recorded_pnl_usd"), 2))}.</p>')
 
-    total_pnl = sum(t.get('pnl_usd', 0) for t in journal)
-    wins = sum(1 for t in journal if t.get('outcome') == 'win')
-    losses = len(journal) - wins
-    win_rate = (wins / len(journal) * 100) if journal else 0
-    avg_pct = sum(t.get('pnl_pct', 0) for t in journal) / len(journal)
+
+def build_pnl_section(journal: list[dict]) -> str:
+    journal = _rows(journal)
+    reliable, flagged = split_journal(journal)
+    note = _pnl_note(flagged)
+    if not reliable:
+        msg = 'No trades with reliable accounting yet.' if flagged else 'No closed trades yet.'
+        return _card('P&amp;L Trade Journal', f'<p class="text-gray-500 text-sm">{msg}</p>{note}')
+
+    n = len(reliable)
+    total_pnl = sum(_num(t.get('pnl_usd')) for t in reliable)
+    wins = sum(1 for t in reliable if t.get('outcome') == 'win')
+    win_rate = wins / n * 100
+    avg_pct = sum(_num(t.get('pnl_pct')) for t in reliable) / n
+    best = max(reliable, key=lambda t: _num(t.get('pnl_usd')))
+    worst = min(reliable, key=lambda t: _num(t.get('pnl_usd')))
 
     pnl_color = 'text-green-600' if total_pnl >= 0 else 'text-red-600'
     avg_color = 'text-green-600' if avg_pct >= 0 else 'text-red-600'
 
+    def _trade_metric(label: str, t: dict) -> str:
+        v = _num(t.get('pnl_usd'))
+        return _metric(f'{label} ({_esc(t.get("ticker"))})', _esc(_money(v, 2, True)),
+                       'text-green-600' if v >= 0 else 'text-red-600')
+
     metrics = f'''
-<div class="grid grid-cols-4 gap-3 mb-5">
-  {_metric("Total trades", str(len(journal)))}
+<div class="grid grid-cols-2 md:grid-cols-6 gap-3 mb-5">
+  {_metric("Total trades", str(n))}
   {_metric("Win rate", f"{win_rate:.0f}%", "text-green-600" if win_rate >= 50 else "text-red-600")}
-  {_metric("Total P&amp;L", f"${total_pnl:+.4f}", pnl_color)}
+  {_metric("Total P&amp;L", _esc(_money(total_pnl, 4, True)), pnl_color)}
   {_metric("Avg P&amp;L %", f"{avg_pct:+.2f}%", avg_color)}
-</div>'''
+  {_trade_metric("Best trade", best)}
+  {_trade_metric("Worst trade", worst)}
+</div>{note}'''
 
     # Cumulative P&L chart
     by_date: dict[str, float] = {}
-    for t in sorted(journal, key=lambda x: x.get('close_date', '')):
-        d = t.get('close_date', 'unknown')
-        by_date[d] = by_date.get(d, 0) + t.get('pnl_usd', 0)
+    for t in sorted(reliable, key=lambda x: _str(x.get('close_date'), 'unknown')):
+        d = _str(t.get('close_date'), 'unknown')
+        by_date[d] = by_date.get(d, 0) + _num(t.get('pnl_usd'))
     dates_sorted = sorted(by_date)
     cum_pnl = []
     running = 0.0
@@ -296,8 +429,8 @@ def build_pnl_section(journal: list[dict]) -> str:
 new Chart(document.getElementById("pnlChart"), {{
   type: "line",
   data: {{
-    labels: {json.dumps(dates_sorted)},
-    datasets: [{{ label: "Cumulative P&L ($)", data: {json.dumps(cum_pnl)},
+    labels: {_js_json(dates_sorted)},
+    datasets: [{{ label: "Cumulative P&L ($)", data: {_js_json(cum_pnl)},
       borderColor: "rgba(59,130,246,1)", backgroundColor: "rgba(59,130,246,0.1)",
       fill: true, tension: 0.3 }}]
   }},
@@ -308,12 +441,12 @@ new Chart(document.getElementById("pnlChart"), {{
 </script>'''
 
     # Recent trades table
-    recent = sorted(journal, key=lambda x: x.get('close_date', ''), reverse=True)[:20]
+    recent = sorted(reliable, key=lambda x: _str(x.get('close_date')), reverse=True)[:20]
     hdrs = ['Date', 'Ticker', 'Entry', 'Exit', 'P&L $', 'P&L %', 'Outcome']
     tbl_rows = []
     for t in recent:
-        pnl_usd = t.get('pnl_usd', 0)
-        pnl_pct = t.get('pnl_pct', 0)
+        pnl_usd = _num(t.get('pnl_usd'))
+        pnl_pct = _num(t.get('pnl_pct'))
         pnl_usd_str = f'<span class="{"text-green-600" if pnl_usd >= 0 else "text-red-600"} font-medium">{_fmt_usd(pnl_usd)}</span>'
         pnl_pct_str = f'<span class="{"text-green-600" if pnl_pct >= 0 else "text-red-600"}">{_fmt_pct(pnl_pct)}</span>'
         tbl_rows.append([
@@ -323,9 +456,9 @@ new Chart(document.getElementById("pnlChart"), {{
             _esc(t.get('exit_price')),
             pnl_usd_str,
             pnl_pct_str,
-            _outcome_badge(t.get('outcome', '')),
+            _outcome_badge(_str(t.get('outcome'))),
         ])
-    trades_table = f'<h3 class="font-semibold text-gray-700 mb-2">Recent trades</h3>' + _table(hdrs, tbl_rows)
+    trades_table = '<h3 class="font-semibold text-gray-700 mb-2">Recent trades</h3>' + _table(hdrs, tbl_rows)
 
     content = metrics + chart_html + trades_table
     return _card('P&amp;L Trade Journal', content)
@@ -334,43 +467,46 @@ new Chart(document.getElementById("pnlChart"), {{
 def build_backtest_section(report: dict) -> str:
     if not report or 'strategy' not in report:
         return ''
-    strat = report['strategy']
-    params = report.get('params', {})
-    edge = (report.get('benchmark') or {}).get('edge_vs_buy_hold') or {}
-    calib = report.get('calibration') or {}
+    strat = _dict(report['strategy'])
+    params = _dict(report.get('params'))
+    edge = _dict(_dict(report.get('benchmark')).get('edge_vs_buy_hold'))
+    calib = _dict(report.get('calibration'))
 
     def _pf(v) -> str:
+        v = _num_or_none(v)
         if v is None:
             return 'N/A'
         color = 'text-green-600' if v >= 1.0 else 'text-red-600'
         return f'<span class="{color} font-medium">{v:.2f}</span>'
 
     def _ret(v) -> str:
-        color = 'text-green-600' if (v or 0) > 0 else 'text-red-600'
-        return f'<span class="{color} font-medium">{(v or 0):+.2f}%</span>'
+        v = _num(v)
+        color = 'text-green-600' if v > 0 else 'text-red-600'
+        return f'<span class="{color} font-medium">{v:+.2f}%</span>'
 
     edge_txt = _fmt_pct(edge.get('mean')) if edge.get('n') else '-'
     if edge.get('n'):
         edge_note = 'significant' if edge.get('significant') else 'not significant'
-        edge_txt += f'<div class="text-xs text-gray-500 font-normal">{edge_note}, n={edge["n"]}</div>'
+        edge_txt += f'<div class="text-xs text-gray-500 font-normal">{edge_note}, n={_esc(edge.get("n"))}</div>'
     metrics = f'''
 <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-5">
-  {_metric("Closed Trades", str(strat.get("trades", 0)))}
-  {_metric("Win Rate", f'{strat.get("win_rate", 0) * 100:.1f}%')}
+  {_metric("Closed Trades", _esc(strat.get("trades", 0)))}
+  {_metric("Win Rate", f'{_num(strat.get("win_rate")) * 100:.1f}%')}
   {_metric("Avg Return", _fmt_pct(strat.get("avg_return_pct")))}
-  {_metric("Profit Factor", "N/A" if strat.get("profit_factor") is None else f'{strat["profit_factor"]:.2f}')}
+  {_metric("Profit Factor", "N/A" if _num_or_none(strat.get("profit_factor")) is None else f'{_num(strat.get("profit_factor")):.2f}')}
   {_metric("Edge vs Hold", edge_txt)}
 </div>'''
 
     reason_rows = [
-        [_esc(reason), str(r.get('trades', 0)), _ret(r.get('avg_return_pct')), f'${r.get("total_pnl_usd", 0):+.2f}']
-        for reason, r in (strat.get('by_exit_reason') or {}).items()
+        [_esc(reason), _esc(r.get('trades', 0)), _ret(r.get('avg_return_pct')),
+         _esc(_money(r.get('total_pnl_usd'), 2, True))]
+        for reason, r in _dict(strat.get('by_exit_reason')).items() if isinstance(r, dict)
     ]
     model_rows = [
-        [_esc(model), str(m.get('trades', 0)), f'{m.get("win_rate", 0) * 100:.1f}%',
-         _ret(m.get('avg_return_pct')), _pf(m.get('profit_factor')), str(m.get('max_consecutive_losses', 0))]
-        for model, m in sorted((report.get('by_model') or {}).items(),
-                               key=lambda x: x[1].get('avg_return_pct', 0), reverse=True)
+        [_esc(model), _esc(m.get('trades', 0)), f'{_num(m.get("win_rate")) * 100:.1f}%',
+         _ret(m.get('avg_return_pct')), _pf(m.get('profit_factor')), _esc(m.get('max_consecutive_losses', 0))]
+        for model, m in sorted(((k, v) for k, v in _dict(report.get('by_model')).items() if isinstance(v, dict)),
+                               key=lambda x: _num(x[1].get('avg_return_pct')), reverse=True)
     ]
     content = metrics
     if reason_rows:
@@ -382,43 +518,47 @@ def build_backtest_section(report: dict) -> str:
     if calib.get('matched'):
         content += (
             '<p class="text-sm text-gray-500 mt-4">Calibration against the live journal: '
-            f'{calib["matched"]} matched trades agree on win or loss '
-            f'{(calib.get("agreement_rate") or 0) * 100:.0f}% of the time '
-            f'(live avg {calib.get("avg_live_return_pct", 0):+.2f}%, '
-            f'simulated {calib.get("avg_sim_booked_return_pct", 0):+.2f}%).</p>'
+            f'{_esc(calib["matched"])} matched trades agree on win or loss '
+            f'{_num(calib.get("agreement_rate")) * 100:.0f}% of the time '
+            f'(live avg {_num(calib.get("avg_live_return_pct")):+.2f}%, '
+            f'simulated {_num(calib.get("avg_sim_booked_return_pct")):+.2f}%).</p>'
         )
 
-    days = report.get('days_in_history', 0)
+    days = _esc(report.get('days_in_history', 0))
     subtitle = (f'Replay of stored ACTIVE signals under the live trading rules: {days} signal day(s), '
-                f'${params.get("order_usd", 0):.2f} per order')
-    if params.get('stop_loss_pct') is not None:
-        subtitle += (f', stop {(1 - params["stop_loss_pct"]) * 100:.0f}% below entry, '
-                     f'max hold {params.get("max_hold_days")}d')
+                f'${_num(params.get("order_usd")):.2f} per order')
+    stop = _num_or_none(params.get('stop_loss_pct'))
+    if stop is not None:
+        subtitle += (f', stop {(1 - stop) * 100:.0f}% below entry, '
+                     f'max hold {_esc(params.get("max_hold_days"))}d')
     return _card('Backtest', content, subtitle=subtitle)
 
 
 def build_walk_forward_section(report: dict) -> str:
     if not report or 'summary' not in report:
         return ''
-    summary = report['summary']
-    rec = report.get('latest_recommendation') or {}
-    params = rec.get('selected_params') or {}
+    summary = _dict(report['summary'])
+    rec = _dict(report.get('latest_recommendation'))
+    params = _dict(rec.get('selected_params'))
     metrics = f'''
 <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
-  {_metric("Windows", f'{summary.get("validation_windows", 0)} of {summary.get("windows", 0)}')}
-  {_metric("Validation Trades", str(summary.get("validation_trades", 0)))}
+  {_metric("Windows", f'{_esc(summary.get("validation_windows", 0))} of {_esc(summary.get("windows", 0))}')}
+  {_metric("Validation Trades", _esc(summary.get("validation_trades", 0)))}
   {_metric("Avg Validation Return", _fmt_pct(summary.get("avg_validation_return_pct")))}
-  {_metric("Positive Windows", str(summary.get("positive_windows", 0)))}
+  {_metric("Positive Windows", _esc(summary.get("positive_windows", 0)))}
 </div>'''
     content = metrics
     if params:
-        stats = rec.get('train_stats') or {}
+        stats = _dict(rec.get('train_stats'))
+        train = rec.get('train')
+        span = (f'{_esc(train[0])} to {_esc(train[1])}, '
+                if isinstance(train, (list, tuple)) and len(train) >= 2 else '')
         content += (f'<h3 class="font-semibold text-gray-700 mb-2">Latest pick '
-                    f'({_esc(rec["train"][0])} to {_esc(rec["train"][1])}, n={stats.get("n", 0)})</h3>')
+                    f'({span}n={_esc(stats.get("n", 0))})</h3>')
         content += _table(['Parameter', 'Value'], [[_esc(k), _esc(v)] for k, v in params.items()])
     elif rec:
         content += ('<p class="text-sm text-gray-500">Too few trades in the latest window to pick parameters '
-                    f'(need {report.get("min_train_trades")}).</p>')
+                    f'(need {_esc(report.get("min_train_trades"))}).</p>')
     return _card(
         'Walk-Forward Study',
         content,
@@ -430,21 +570,21 @@ def build_walk_forward_section(report: dict) -> str:
 def build_attribution_section(report: dict) -> str:
     if not report:
         return ''
-    overall = report.get('overall', {})
-    eq = report.get('execution_quality', {})
+    overall = _dict(report.get('overall'))
+    eq = _dict(report.get('execution_quality'))
     metrics = f'''
 <div class="grid grid-cols-4 gap-3 mb-5">
-  {_metric("Trades", str(report.get("trades", 0)))}
-  {_metric("Win Rate", f'{overall.get("win_rate", 0) * 100:.1f}%')}
+  {_metric("Trades", _esc(report.get("trades", 0)))}
+  {_metric("Win Rate", f'{_num(overall.get("win_rate")) * 100:.1f}%')}
   {_metric("Avg P&L", _fmt_pct(overall.get("avg_pnl_pct")))}
   {_metric("Entry Improvement", _fmt_pct(eq.get("avg_price_improvement_pct")))}
 </div>'''
     rows = []
-    for model, stats in list((report.get('by_model') or {}).items())[:8]:
+    for model, stats in [(k, v) for k, v in _dict(report.get('by_model')).items() if isinstance(v, dict)][:8]:
         rows.append([
             _esc(model),
-            str(stats.get('trades', 0)),
-            f'{stats.get("win_rate", 0) * 100:.1f}%',
+            _esc(stats.get('trades', 0)),
+            f'{_num(stats.get("win_rate")) * 100:.1f}%',
             _fmt_pct(stats.get('avg_pnl_pct')),
             _fmt_pct(stats.get('total_pnl_pct')),
         ])
@@ -452,7 +592,12 @@ def build_attribution_section(report: dict) -> str:
     if rows:
         content += '<h3 class="font-semibold text-gray-700 mb-2">Model attribution</h3>'
         content += _table(['Model', 'Trades', 'Win %', 'Avg P&L', 'Total P&L'], rows)
-    return _card('Trade Attribution', content)
+    subtitle = ''
+    excluded_n = int(_num(_dict(report.get('excluded')).get('count')))
+    if excluded_n > 0:
+        noun = 'trade' if excluded_n == 1 else 'trades'
+        subtitle = f'{excluded_n} {noun} with unreliable accounting excluded'
+    return _card('Trade Attribution', content, subtitle=subtitle)
 
 
 # ---------------------------------------------------------------------------
@@ -468,6 +613,12 @@ def generate() -> None:
     backtest = load_json(BACKTEST_FILE, None)
     walk_forward = load_json(WALK_FORWARD_FILE, None)
     attribution = load_json(ATTRIBUTION_FILE, None)
+    report = report if isinstance(report, dict) else None
+    journal = journal if isinstance(journal, list) else []
+    scores = scores if isinstance(scores, dict) else {}
+    backtest = backtest if isinstance(backtest, dict) else None
+    walk_forward = walk_forward if isinstance(walk_forward, dict) else None
+    attribution = attribution if isinstance(attribution, dict) else None
 
     if not report and not journal and not scores:
         print('WARNING: No data found. Generating empty placeholder page.')
@@ -477,15 +628,26 @@ def generate() -> None:
     generated_display = now.strftime('%b %d, %Y  %H:%M UTC')
     generated_iso = now.strftime('%Y-%m-%dT%H:%M:%SZ')
 
-    signals_html = build_signals_section(report, date_str) if report else _card(
+    def _safe(fn, *args) -> str:
+        # One bad section must not abort the whole page (the atomic write
+        # would then leave a stale page behind while the nightly fails).
+        try:
+            return fn(*args)
+        except Exception as exc:  # noqa: BLE001
+            print(f'WARNING: {fn.__name__} failed: {exc!r}', file=sys.stderr)
+            return _card('Section unavailable', '<p class="text-gray-500 text-sm">This section could not be rendered.</p>')
+
+    signals_html = (
+        _safe(build_forecast_banner, date_str) + _safe(build_signals_section, report, date_str)
+    ) if report else _card(
         'Signals', '<p class="text-gray-500 text-sm">No signals report found. Run forge_loop.py first.</p>'
     )
-    scores_html = build_scores_section(scores)
-    pnl_html = build_pnl_section(journal)
+    scores_html = _safe(build_scores_section, scores)
+    pnl_html = _safe(build_pnl_section, journal)
     backtest_html = (
-        build_backtest_section(backtest)
-        + build_walk_forward_section(walk_forward)
-        + build_attribution_section(attribution)
+        _safe(build_backtest_section, backtest)
+        + _safe(build_walk_forward_section, walk_forward)
+        + _safe(build_attribution_section, attribution)
     )
 
     html = f'''<!DOCTYPE html>
@@ -508,9 +670,9 @@ def generate() -> None:
 <body class="bg-gray-50 min-h-screen">
 
   <!-- Token modal -->
-  <div id="token-modal" class="hidden fixed inset-0 bg-black bg-opacity-40 z-50 flex items-center justify-center">
+  <div id="token-modal" role="dialog" aria-modal="true" aria-labelledby="token-modal-title" class="hidden fixed inset-0 bg-black bg-opacity-40 z-50 flex items-center justify-center">
     <div class="bg-white rounded-xl shadow-xl p-6 w-full max-w-md mx-4">
-      <h3 class="text-lg font-semibold text-gray-900 mb-1">GitHub Personal Access Token</h3>
+      <h3 id="token-modal-title" class="text-lg font-semibold text-gray-900 mb-1">GitHub Personal Access Token</h3>
       <p class="text-sm text-gray-500 mb-3">
         Required once to trigger workflow rebuilds. Stored only in your browser's localStorage;
         never sent anywhere except GitHub's API.<br><br>
@@ -544,7 +706,7 @@ def generate() -> None:
 
       <!-- Build time + Rebuild button -->
       <div class="flex items-center gap-3 shrink-0">
-        <div class="text-right hidden sm:block">
+        <div class="text-right">
           <div class="text-xs font-medium text-gray-700">Last built</div>
           <div class="text-xs text-gray-400" id="build-time-rel" title="{generated_display}">{generated_display}</div>
         </div>
@@ -555,29 +717,29 @@ def generate() -> None:
           </svg>
           Rebuild
         </button>
-        <button onclick="clearToken()" title="Clear saved GitHub token"
-          class="text-gray-300 hover:text-gray-500 transition-colors text-lg leading-none">⚙</button>
+        <button onclick="clearToken()" title="Clear saved GitHub token" aria-label="Clear saved GitHub token"
+          class="text-gray-600 hover:text-gray-900 transition-colors text-lg leading-none">⚙</button>
       </div>
     </div>
   </header>
 
   <!-- Nav tabs -->
   <div class="max-w-6xl mx-auto px-4 mt-4">
-    <div class="flex gap-2 mb-5 border-b border-gray-200">
-      <button onclick="showTab('signals')" id="tab-signals"
+    <div role="tablist" class="flex gap-2 mb-5 border-b border-gray-200">
+      <button onclick="showTab('signals')" id="tab-signals" role="tab" aria-selected="true" aria-controls="pane-signals"
         class="tab-btn px-4 py-2 text-sm font-medium text-blue-600 border-b-2 border-blue-600">Signals</button>
-      <button onclick="showTab('pnl')" id="tab-pnl"
+      <button onclick="showTab('pnl')" id="tab-pnl" role="tab" aria-selected="false" aria-controls="pane-pnl"
         class="tab-btn px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 border-b-2 border-transparent">P&amp;L</button>
-      <button onclick="showTab('backtest')" id="tab-backtest"
+      <button onclick="showTab('backtest')" id="tab-backtest" role="tab" aria-selected="false" aria-controls="pane-backtest"
         class="tab-btn px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 border-b-2 border-transparent">Backtest</button>
-      <button onclick="showTab('models')" id="tab-models"
+      <button onclick="showTab('models')" id="tab-models" role="tab" aria-selected="false" aria-controls="pane-models"
         class="tab-btn px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 border-b-2 border-transparent">Models</button>
     </div>
 
-    <div id="pane-signals">{signals_html}</div>
-    <div id="pane-pnl" class="hidden">{pnl_html}</div>
-    <div id="pane-backtest" class="hidden">{backtest_html if backtest_html else _card("Backtest", '<p class="text-gray-500 text-sm">No backtest report found. Run python backtest.py to generate one.</p>')}</div>
-    <div id="pane-models" class="hidden">{scores_html}</div>
+    <div id="pane-signals" role="tabpanel" aria-labelledby="tab-signals">{signals_html}</div>
+    <div id="pane-pnl" role="tabpanel" aria-labelledby="tab-pnl" class="hidden">{pnl_html}</div>
+    <div id="pane-backtest" role="tabpanel" aria-labelledby="tab-backtest" class="hidden">{backtest_html if backtest_html else _card("Backtest", '<p class="text-gray-500 text-sm">No backtest report found. Run python backtest.py to generate one.</p>')}</div>
+    <div id="pane-models" role="tabpanel" aria-labelledby="tab-models" class="hidden">{scores_html}</div>
   </div>
 
   <script>
@@ -586,6 +748,7 @@ def generate() -> None:
       ['signals','pnl','backtest','models'].forEach(t => {{
         document.getElementById('pane-' + t).classList.toggle('hidden', t !== name);
         const btn = document.getElementById('tab-' + t);
+        btn.setAttribute('aria-selected', t === name ? 'true' : 'false');
         if (t === name) {{
           btn.classList.replace('text-gray-500','text-blue-600');
           btn.classList.replace('border-transparent','border-blue-600');
@@ -621,6 +784,7 @@ def generate() -> None:
       alert('GitHub token cleared. You will be prompted again on the next rebuild.');
     }}
     function closeModal() {{ document.getElementById('token-modal').classList.add('hidden'); }}
+    document.addEventListener('keydown', e => {{ if (e.key === 'Escape') closeModal(); }});
     function saveToken() {{
       const t = document.getElementById('token-input').value.trim();
       if (!t) {{ alert('Please enter a token.'); return; }}
