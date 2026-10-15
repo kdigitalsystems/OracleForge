@@ -17,6 +17,7 @@ from forge_loop import (
     fetch_all_bars,
     format_recent_ohlc,
     parse_llm_range,
+    previous_prediction_date,
     score_deltas_from_journal,
 )
 
@@ -234,15 +235,71 @@ class ScoreDeltasFromJournalTests(unittest.TestCase):
         )
         self.assertEqual(deltas['model_a'], [0.03])
 
-    def test_wrong_date_not_counted(self):
-        journal = [self._trade('win', '2026-05-19', ['model_a'])]
-        deltas = score_deltas_from_journal(journal, '2026-05-20', self.SCORES)
+    def test_trade_closed_after_the_window_is_not_counted(self):
+        journal = [self._trade('win', '2026-05-21', ['model_a'])]
+        deltas = score_deltas_from_journal(journal, '2026-05-20', self.SCORES, after_date='2026-05-19')
         self.assertNotIn('model_a', deltas)
+
+    def test_window_covers_days_without_a_predictions_file(self):
+        # Previous scored file 05-21, this one 05-31: trades closed 05-22 and
+        # 05-26 have no file of their own and used to be skipped for good.
+        journal = [self._trade('win', '2026-05-22', ['model_a']),
+                   self._trade('win', '2026-05-26', ['model_a']),
+                   self._trade('win', '2026-05-31', ['model_a'])]
+        deltas = score_deltas_from_journal(journal, '2026-05-31', self.SCORES, after_date='2026-05-21')
+        self.assertEqual(deltas['model_a'], [0.02, 0.02, 0.02])
+
+    def test_window_start_is_exclusive_so_each_trade_is_scored_once(self):
+        # A trade closed on the previous window's end date was already scored.
+        journal = [self._trade('win', '2026-05-21', ['model_a'])]
+        deltas = score_deltas_from_journal(journal, '2026-05-31', self.SCORES, after_date='2026-05-21')
+        self.assertNotIn('model_a', deltas)
+
+    def test_adjacent_windows_tile_without_gaps_or_overlap(self):
+        journal = [self._trade('win', f'2026-05-{d:02d}', ['model_a']) for d in range(18, 29)]
+        seen = []
+        for after, through in [('2026-05-17', '2026-05-20'), ('2026-05-20', '2026-05-26'), ('2026-05-26', '2026-05-28')]:
+            seen += score_deltas_from_journal(journal, through, self.SCORES, after_date=after).get('model_a', [])
+        self.assertEqual(len(seen), len(journal))
+
+    def test_no_lower_bound_when_after_date_is_none(self):
+        journal = [self._trade('win', '2026-05-01', ['model_a']), self._trade('win', '2026-05-20', ['model_a'])]
+        deltas = score_deltas_from_journal(journal, '2026-05-20', self.SCORES)
+        self.assertEqual(len(deltas['model_a']), 2)
+
+    def test_unreliable_journal_rows_are_not_scored(self):
+        # A qty-desync row records -48% for what was really a winning trade;
+        # a capped -0.10 would punish the models for a bookkeeping bug.
+        bad = {**self._trade('loss', '2026-05-20', ['model_a'], pnl_pct=-48.0), 'qty_desync_corrected': True}
+        good = self._trade('win', '2026-05-20', ['model_a'])
+        deltas = score_deltas_from_journal([bad, good], '2026-05-20', self.SCORES)
+        self.assertEqual(deltas['model_a'], [0.02])
 
     def test_model_not_in_scores_ignored(self):
         journal = [self._trade('win', '2026-05-20', ['unknown_model'])]
         deltas = score_deltas_from_journal(journal, '2026-05-20', self.SCORES)
         self.assertNotIn('unknown_model', deltas)
+
+
+class PreviousPredictionDateTests(unittest.TestCase):
+
+    def _prev(self, files, before):
+        import forge_loop
+        with tempfile.TemporaryDirectory() as d:
+            for day in files:
+                open(os.path.join(d, f'predictions_{day}.json'), 'w').close()
+            with patch.object(forge_loop, 'HISTORY_DIR', d):
+                return previous_prediction_date(before)
+
+    def test_newest_file_strictly_before_the_date(self):
+        self.assertEqual(self._prev(['2026-05-21', '2026-05-31', '2026-06-02'], '2026-05-31'), '2026-05-21')
+
+    def test_ignores_files_on_or_after_the_date(self):
+        self.assertEqual(self._prev(['2026-06-02', '2026-06-03'], '2026-06-02'), '2026-06-01')
+
+    def test_no_earlier_file_falls_back_to_the_day_before_not_everything(self):
+        # An unbounded window would rescore every old trade on every run.
+        self.assertEqual(self._prev([], '2026-05-31'), '2026-05-30')
 
 
 class TradeScoreDeltaTests(unittest.TestCase):
@@ -291,14 +348,58 @@ class ApplyScoreDeltasTests(unittest.TestCase):
         apply_score_deltas(scores, {'model_a': [0.0, 0.0]})
         self.assertEqual(scores['model_a'], 5.0)
 
-    def test_score_decay_reduces_score_before_adjustment(self):
-        # With decay=0.9: new_score = 5.0 * 0.9 + 0.01 = 4.51
-        # Without decay:  new_score = 5.0 * 1.0 + 0.01 = 5.01
-        scores_decayed = {'model_a': 5.0}
-        scores_nodecay = {'model_a': 5.0}
-        apply_score_deltas(scores_decayed, {'model_a': [0.01]}, decay=0.9)
-        apply_score_deltas(scores_nodecay, {'model_a': [0.01]}, decay=1.0)
-        self.assertLess(scores_decayed['model_a'], scores_nodecay['model_a'])
+    def test_score_decay_shrinks_the_evidence_before_adjustment(self):
+        # decay=0.9 from 8.0: 5 + (8 - 5) * 0.9 + 0.01 = 7.71; no decay: 8.01
+        decayed, nodecay = {'model_a': 8.0}, {'model_a': 8.0}
+        apply_score_deltas(decayed, {'model_a': [0.01]}, decay=0.9)
+        apply_score_deltas(nodecay, {'model_a': [0.01]}, decay=1.0)
+        self.assertAlmostEqual(decayed['model_a'], 7.71, places=3)
+        self.assertAlmostEqual(nodecay['model_a'], 8.01, places=3)
+
+    def test_decay_pulls_toward_neutral_from_both_sides_not_toward_zero(self):
+        scores = {'above': 8.0, 'below': 2.0, 'neutral': 5.0}
+        apply_score_deltas(scores, {}, decay=0.9)
+        self.assertAlmostEqual(scores['above'], 7.7, places=3)
+        self.assertAlmostEqual(scores['below'], 2.3, places=3)
+        self.assertEqual(scores['neutral'], 5.0)
+
+    def test_model_with_nothing_scored_today_still_decays(self):
+        # It used to be skipped, so an idle model kept its score forever.
+        scores = {'idle': 8.0, 'active': 8.0}
+        apply_score_deltas(scores, {'active': [0.01], 'idle': [0.0, 0.0]}, decay=0.9)
+        self.assertAlmostEqual(scores['idle'], 7.7, places=3)
+        self.assertAlmostEqual(scores['active'], 7.71, places=3)
+
+    def test_steady_evidence_settles_near_neutral_plus_adjustment_over_one_minus_decay(self):
+        # +0.01 a day with decay 0.99 settles at 5 + 0.01 / 0.01 = 6.0. The old
+        # formula settled at 0.01 / 0.01 = 1.0, below where it started.
+        scores = {'model_a': 5.0}
+        for _ in range(2000):
+            apply_score_deltas(scores, {'model_a': [0.01]}, decay=0.99)
+        self.assertAlmostEqual(scores['model_a'], 6.0, places=1)
+        scores = {'model_a': 5.0}
+        for _ in range(2000):
+            apply_score_deltas(scores, {'model_a': [-0.01]}, decay=0.99)
+        self.assertAlmostEqual(scores['model_a'], 4.0, places=1)
+
+    def test_a_real_loss_is_not_diluted_by_many_small_checks(self):
+        # 50 price checks at +0.01 and one stopped trade at -0.10. Averaged
+        # together (the old behavior) this was a net gain; separately the
+        # real loss counts in full.
+        scores = {'model_a': 5.0}
+        apply_score_deltas(scores, {'model_a': [0.01] * 50}, trade_deltas_by_model={'model_a': [-0.10]})
+        self.assertAlmostEqual(scores['model_a'], 5.0 + 0.01 - 0.10, places=3)
+
+    def test_trade_deltas_are_averaged_not_summed(self):
+        scores = {'model_a': 5.0}
+        apply_score_deltas(scores, {}, trade_deltas_by_model={'model_a': [0.02, 0.04, -0.03]})
+        self.assertAlmostEqual(scores['model_a'], 5.0 + (0.02 + 0.04 - 0.03) / 3, places=3)
+
+    def test_model_only_present_in_deltas_is_created_at_neutral(self):
+        scores = {'model_a': 5.0}
+        apply_score_deltas(scores, {'model_b': [0.01]}, decay=0.5)
+        self.assertAlmostEqual(scores['model_b'], 5.01, places=3)
+        self.assertEqual(list(scores), ['model_a', 'model_b'])
 
     def test_score_decay_default_is_no_decay(self):
         # Default decay=1.0 should produce same result as explicit 1.0

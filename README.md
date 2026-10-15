@@ -31,7 +31,7 @@ Each night, local Ollama models independently analyse every ticker on the watchl
 1. **Fetch market data** — latest daily OHLC bars pulled from Alpaca for all tickers in one batch.
 2. **Evaluate prior predictions** — compare yesterday's predicted buy/sell ranges against today's realized prices:
    - OHLC check: did price touch the buy range? Did it then reach the sell range (win), or breach `buy_high × 0.95` (stop)? → ±0.01 score delta per model.
-   - Trade journal check: for any positions closed yesterday, contributing models are adjusted by actual realized P&L (`pnl_pct × trade_score_scale`, capped by `trade_score_cap`). By default, a +1% trade gives +0.02, while a −5% stopped trade gives −0.10.
+   - Trade journal check: for positions closed since the previous scored date, contributing models are adjusted by actual realized P&L (`pnl_pct × trade_score_scale`, capped by `trade_score_cap`). By default, a +1% trade gives +0.02, while a −5% stopped trade gives −0.10.
    - **Fallback predictions are excluded** from both consensus and scoring — they are tagged `fallback: true` and skipped.
 3. **AI inference** — each model receives the closing price, recent news headlines, its own historical win rate, and the last 5 actual trade results for that ticker. It responds with:
    ```json
@@ -49,7 +49,7 @@ Each night, local Ollama models independently analyse every ticker on the watchl
    - **SKIP** — setup exists but upside is too small or buy range is too wide.
    - **STALE** — price has already moved above the sell range (missed opportunity). `upside_pct` is `null` for stale signals.
 6. **Technical context** provided to each model: a table of the **last ~10 daily OHLC+volume bars** (so the model sees real recent price action, not just summary stats), plus close price, RSI(14) via Wilder's smoothing, volume ratio, 10d high/low distance, SMA20 distance, Bollinger Band %B, and 5-day price momentum.
-7. **Score decay** — model scores decay by 0.99× per day before each update, so recent performance carries more weight than distant history.
+7. **Score update** — every model's score moves as `5 + (old − 5) × 0.99 + adjustment` on each nightly update. The 0.99 decay applies to every model and shrinks accumulated evidence back toward the neutral 5.0, so recent performance carries more weight than distant history. The adjustment is the mean of that night's ±0.01 OHLC checks plus, separately, the mean of the realized-trade deltas, so a real fill counts up to ten times more than a price check. Each trade is scored once: trades closed since the previous scored date are included, even across nights with no predictions file, and journal rows with untrustworthy P&L are skipped.
 8. **Persist** — saves enriched predictions to `history/predictions_YYYY-MM-DD.json`, signals report to `reports/signals_YYYY-MM-DD.json`, updated model scores to `state/analyst_scores.json`.
 
 > **Staged & resumable:** a full run is long (one LLM call per model per ticker; hours for ~150 tickers × N models in `config/models.json` — that total is inherent to serial local-LLM inference and staging chunks it, it doesn't parallelize it). `forge_loop.py` checkpoints predictions/signals to disk every `--batch-size` tickers (default 25; resume granularity) and, with `--push`, commits + pushes every `--push-every` tickers (a "stage"). The CI nightly uses `--batch-size 10 --push-every 100`: it saves every 10 tickers but pushes after ~100, so it processes ~100 tickers, pushes, processes the next ~100, and so on — few commits, yet a crash only re-runs the unfinished tickers. The model-score update is computed once per day (first batch); resumed invocations skip it.
@@ -101,7 +101,7 @@ Alpaca handles execution during the day. No process stays alive between the two 
 ### Feedback loop
 
 Every closed trade feeds back into the next night's run:
-- Model scores update based on actual P&L percentage, not just win/loss labels. Real fills are weighted higher than theoretical OHLC checks, capped to avoid overreacting to one outlier, and decayed by 0.99× daily to emphasise recent accuracy.
+- Model scores update based on actual P&L percentage, not just win/loss labels. Real fills are averaged separately from the theoretical OHLC checks and added on top (up to ±0.10 versus ±0.01), capped to avoid overreacting to one outlier, and the accumulated evidence decays by 0.99× per update toward neutral to emphasise recent accuracy.
 - Each model's LLM prompt includes its own win rate and recent P&L, so it receives direct feedback on its performance.
 - Over time, the consensus naturally shifts toward models that make accurate predictions.
 
@@ -362,7 +362,7 @@ Discovery picks up every `test_*.py`; CI runs the same command before each night
 |---|---|
 | `test_signals` | Consensus weighting, CV disagreement gate, fallback exclusion, signal classification, STALE upside handling |
 | `test_backtest` | Win/stop/miss simulation, profit factor, avg win/loss %, max consecutive losses, internal field cleanup |
-| `test_forge` | LLM output parsing (incl. inline reasoning blocks), fallback tagging, bar fetch window, prior-predictions lookup, RSI/Bollinger/%B/momentum technicals, score delta feedback, recency decay, stop-threshold evaluation |
+| `test_forge` | LLM output parsing (incl. inline reasoning blocks), fallback tagging, bar fetch window, prior-predictions lookup, RSI/Bollinger/%B/momentum technicals, score updates (decay toward neutral, separate real-trade stream, journal windows), stop-threshold evaluation |
 | `test_trader` | `record_buy` / `record_sell`, P&L and qty-desync capping, partial vs full exits, EOD stop and max-hold, Alpaca read failures, market-session gate |
 | `test_alpaca_client` | Order request construction, qty flooring, market calendar and last closed session, order lookup (404 vs error), position parsing |
 | `test_update_tickers` | Leveraged/inverse/VIX fund exclusion |

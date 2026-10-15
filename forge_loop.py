@@ -18,6 +18,7 @@ from alpaca.data.requests import StockBarsRequest
 from alpaca.data.timeframe import TimeFrame
 
 import alpaca_client
+from journal_quality import journal_row_issue
 from signals import (
     build_enriched_predictions,
     build_signals_report,
@@ -312,22 +313,50 @@ def _trade_score_delta(trade: dict, scale: float = 0.02, cap: float = 0.10) -> f
     return round(min(cap, max(-cap, delta)), 4)
 
 
+def previous_prediction_date(before_date: str) -> str:
+    """Start (exclusive) of the journal window that ends at ``before_date``.
+
+    The newest predictions file dated before ``before_date``. Consecutive
+    runs then score the windows (previous file, this file], which tile the
+    timeline: every closed trade is scored exactly once, even when a night
+    produced no file (trades closed on such days used to be skipped for
+    good). With no earlier file the window falls back to the single day
+    before ``before_date``, never to "everything", which would rescore old
+    trades on every run.
+    """
+    earlier = []
+    if os.path.isdir(HISTORY_DIR):
+        for name in os.listdir(HISTORY_DIR):
+            if name.startswith('predictions_') and name.endswith('.json'):
+                date = name[len('predictions_'):-len('.json')]
+                if date < before_date:
+                    earlier.append(date)
+    if earlier:
+        return max(earlier)
+    return (datetime.strptime(before_date, '%Y-%m-%d') - timedelta(days=1)).strftime('%Y-%m-%d')
+
+
 def score_deltas_from_journal(
     journal: list,
     prior_date: str,
     scores: dict,
     scale: float = 0.02,
     cap: float = 0.10,
+    after_date: str | None = None,
 ) -> dict:
     """
-    Build score deltas from actual closed trades on prior_date.
-    Models that predicted a trade are adjusted by realized P&L, capped so
-    actual fills carry more weight than theoretical OHLC checks without letting
-    a single outlier swamp the ensemble.
+    Build score deltas from actual trades closed in (after_date, prior_date].
+    With after_date None the window has no lower bound. Models that predicted
+    a trade are adjusted by realized P&L, capped so a single outlier cannot
+    swamp the ensemble. Rows whose recorded P&L cannot be trusted (see
+    journal_quality) are skipped.
     """
     deltas: dict[str, list] = defaultdict(list)
     for trade in journal:
-        if trade.get('close_date') != prior_date:
+        close_date = trade.get('close_date') or ''
+        if close_date > prior_date or (after_date is not None and close_date <= after_date):
+            continue
+        if journal_row_issue(trade):
             continue
         delta = _trade_score_delta(trade, scale=scale, cap=cap)
         if delta == 0.0:
@@ -338,20 +367,37 @@ def score_deltas_from_journal(
     return deltas
 
 
-def apply_score_deltas(scores: dict, deltas_by_model: dict, decay: float = 1.0) -> None:
-    """Apply score adjustments with optional exponential decay.
+NEUTRAL_SCORE = 5.0
 
-    decay < 1.0 gradually down-weights stale historical accuracy so recent
-    performance carries more influence. decay=1.0 (default) disables decay.
+
+def apply_score_deltas(scores: dict, deltas_by_model: dict, decay: float = 1.0,
+                       trade_deltas_by_model: dict | None = None,
+                       neutral: float = NEUTRAL_SCORE) -> None:
+    """Update every model's score from one day of evidence.
+
+    new = neutral + (old - neutral) * decay + adjustment
+
+    - Decay applies to EVERY model on every update, shrinking the evidence
+      accumulated so far (the distance from ``neutral``) so recent results
+      count more. It used to be skipped for a model with no scored
+      predictions that day, and it pulled the raw score toward 0 instead of
+      toward neutral: a model scoring a steady +0.01 sank to ~1.0 while an
+      unscored one sat untouched at 5.0 and out-weighted it.
+    - ``deltas_by_model`` are the +-0.01 OHLC checks (mean of the non-zero
+      ones). ``trade_deltas_by_model`` are realized-trade deltas (each up to
+      +-trade_score_cap), averaged separately and added on top, so a real
+      fill is not diluted by hundreds of tiny checks.
+    decay=1.0 (default) disables decay. Scores are clamped to [0, 10].
     """
-    for model_name, deltas in deltas_by_model.items():
-        non_zero = [d for d in deltas if d != 0.0]
-        if not non_zero:
-            continue
-        current = scores.get(model_name, 5.0)
-        adjustment = sum(non_zero) / len(non_zero)
-        # Apply decay before adding the new adjustment
-        new_score = current * decay + adjustment
+    trade_deltas_by_model = trade_deltas_by_model or {}
+    models = list(scores)
+    models += [m for m in list(deltas_by_model) + list(trade_deltas_by_model) if m not in scores and m not in models]
+    for model_name in models:
+        ohlc = [d for d in deltas_by_model.get(model_name, []) if d != 0.0]
+        trades = [d for d in trade_deltas_by_model.get(model_name, []) if d != 0.0]
+        adjustment = (sum(ohlc) / len(ohlc) if ohlc else 0.0) + (sum(trades) / len(trades) if trades else 0.0)
+        current = scores.get(model_name, neutral)
+        new_score = neutral + (current - neutral) * decay + adjustment
         scores[model_name] = round(min(10.0, max(0.0, new_score)), 3)
 
 
@@ -745,20 +791,22 @@ def main():
                     pred=past_pred,
                     stop_threshold=stop_loss_pct,
                 ))
+        journal_deltas: dict = {}
         if prior_date:
+            window_start = previous_prediction_date(prior_date)
             journal_deltas = score_deltas_from_journal(
                 journal,
                 prior_date,
                 scores,
                 scale=trade_score_scale,
                 cap=trade_score_cap,
+                after_date=window_start,
             )
             if journal_deltas:
                 closed = sum(len(v) for v in journal_deltas.values())
-                print(f"  Applying score updates from {closed} actual closed trade(s) on {prior_date}.")
-                for model, deltas in journal_deltas.items():
-                    score_deltas[model].extend(deltas)
-        apply_score_deltas(scores, score_deltas, decay=score_decay)
+                print(f"  Applying score updates from {closed} model-trade result(s) closed "
+                      f"after {window_start} through {prior_date}.")
+        apply_score_deltas(scores, score_deltas, decay=score_decay, trade_deltas_by_model=journal_deltas)
         save_json(SCORES_FILE, scores)
         # Persist an (initially empty) predictions file as a "scoring done"
         # marker so a crash before the first batch does not re-apply deltas.
