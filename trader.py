@@ -52,7 +52,11 @@ DEFAULT_TRADING_CONFIG = {
 }
 
 FILLED_STATUSES = {'filled', 'partially_filled'}
-DEAD_STATUSES = {'cancelled', 'expired', 'done_for_day', 'rejected', 'suspended'}
+# Alpaca spells it 'canceled' (one l); 'cancelled' is kept in case an older SDK
+# or a hand-edited state file uses the British spelling. Missing 'canceled'
+# left a canceled sell reading as "still pending" forever, so --open never
+# re-placed the profit target.
+DEAD_STATUSES = {'canceled', 'cancelled', 'expired', 'done_for_day', 'rejected', 'suspended'}
 
 
 def load_json(filepath: str, default):
@@ -430,8 +434,11 @@ def run_close(dry_run: bool = False) -> None:
     positions_meta = load_json(POSITIONS_META_FILE, {})
     journal = load_json(TRADE_JOURNAL_FILE, [])
 
-    if not open_orders:
-        print(f"[{now_et()}] No open orders on record. Nothing to settle.")
+    # Held positions still need the end-of-day stop / max-hold checks below
+    # even when no orders are tracked (e.g. open_orders.json was emptied or
+    # lost an entry while open_positions_meta.json still has the position).
+    if not open_orders and not positions_meta:
+        print(f"[{now_et()}] No open orders or positions on record. Nothing to settle.")
         return
 
     print(f"[{now_et()}] OracleForge --close | settling {len(open_orders)} tracked ticker(s)")

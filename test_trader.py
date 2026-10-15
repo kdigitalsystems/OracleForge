@@ -1013,6 +1013,47 @@ class RunCloseAlpacaFailureTests(unittest.TestCase):
         self.assertIn('NVDA', self.open_orders)
         trader.alpaca_client.place_market_sell.assert_not_called()
 
+    def test_canceled_sell_is_cleared_so_open_can_replace_it(self):
+        # Alpaca's status is 'canceled' (one l). It used to read as "still
+        # pending" forever, so the profit target was never re-placed.
+        from alpaca.trading.enums import OrderStatus
+        self._state(sell_order_id='sell-1', entry_date='2026-01-15')
+        order = MagicMock(id='sell-1', status=OrderStatus.CANCELED, filled_qty=0)
+        trader.alpaca_client.get_all_recent_orders.return_value = [order]
+        trader.alpaca_client.get_position_details.return_value = {
+            'NVDA': {'qty': 0.02, 'current_price': 101.0},
+        }
+
+        trader.run_close(dry_run=False)
+
+        self.assertIsNone(self.open_orders['NVDA']['sell_order_id'])
+        self.assertEqual(self.journal, [])
+
+    def test_stop_is_enforced_even_when_no_orders_are_tracked(self):
+        # open_orders emptied while positions_meta still holds the position:
+        # run_close used to return early and never stop or time it out.
+        self._state(entry_date='2026-01-15')
+        self.open_orders.clear()
+        trader.alpaca_client.get_all_recent_orders.return_value = []
+        trader.alpaca_client.get_position_details.return_value = {
+            'NVDA': {'qty': 0.02, 'current_price': 90.0},
+        }
+
+        trader.run_close(dry_run=False)
+
+        trader.alpaca_client.place_market_sell.assert_called_once()
+        self.assertEqual(len(self.journal), 1)
+        self.assertNotIn('NVDA', self.meta)
+
+    def test_nothing_to_settle_still_returns_early_when_both_are_empty(self):
+        self._state()
+        self.open_orders.clear()
+        self.meta.clear()
+
+        trader.run_close(dry_run=False)
+
+        trader.alpaca_client.get_all_recent_orders.assert_not_called()
+
 
 if __name__ == '__main__':
     unittest.main()
