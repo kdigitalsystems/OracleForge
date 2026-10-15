@@ -330,5 +330,36 @@ class AttributionExclusionTests(unittest.TestCase):
         self.assertEqual(report['excluded'], {'count': 1, 'recorded_pnl_usd': -1.9, 'reasons': {'qty_desync': 1}})
 
 
+class ConsensusSourceCapTests(unittest.TestCase):
+
+    LEGACY = {'signal': 'ACTIVE', 'close': 100.0, 'upside_pct': 3.96,
+              'consensus': {'buy_low': 99.0, 'buy_high': 101.0, 'sell_low': 105.0, 'sell_high': 108.0}}
+
+    def _source(self, cap):
+        with patch.object(backtest, 'load_signal_config', return_value={'cap_buy_at_close': cap}):
+            return consensus_source()
+
+    def test_legacy_rows_replay_with_the_buy_limit_capped_at_the_stored_close(self):
+        rng = self._source(True)(self.LEGACY)
+        self.assertEqual((rng['buy_high'], rng['sell_low']), (100.0, 105.0))
+
+    def test_already_capped_rows_are_unchanged(self):
+        capped = {**self.LEGACY, 'consensus': {**self.LEGACY['consensus'], 'buy_high': 100.0, 'buy_high_model': 101.0}}
+        self.assertEqual(self._source(True)(capped), capped['consensus'])
+
+    def test_switch_off_replays_the_stored_range(self):
+        self.assertEqual(self._source(False)(self.LEGACY), self.LEGACY['consensus'])
+
+    def test_non_active_rows_and_missing_close_are_handled(self):
+        self.assertIsNone(self._source(True)({**self.LEGACY, 'signal': 'SKIP'}))
+        no_close = {k: v for k, v in self.LEGACY.items() if k != 'close'}
+        self.assertEqual(self._source(True)(no_close), self.LEGACY['consensus'])
+
+    def test_min_upside_filter_still_uses_the_stored_upside(self):
+        with patch.object(backtest, 'load_signal_config', return_value={'cap_buy_at_close': True}):
+            self.assertIsNone(consensus_source(5.0)(self.LEGACY))
+            self.assertIsNotNone(consensus_source(3.0)(self.LEGACY))
+
+
 if __name__ == '__main__':
     unittest.main()

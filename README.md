@@ -45,8 +45,8 @@ Each night, local Ollama models independently analyse every ticker on the watchl
    ```
 4. **Consensus** — predictions are combined via a score-weighted average. Models with better historical accuracy carry more weight. At least 2 models must agree for a signal to be emitted. A **model disagreement gate** (CV > 10% on `buy_high` or `sell_low`) suppresses signals where models are too far apart.
 5. **Signal classification**:
-   - **ACTIVE** — consensus buy range is reachable with >1% upside to sell range. Valid setup.
-   - **SKIP** — setup exists but upside is too small or buy range is too wide.
+   - **ACTIVE** — upside from `buy_high` to `sell_low` is at least `min_upside_pct` (1.5%). The model's `buy_high` is measured as-is, so that upside is a conservative floor, but the order uses the buy level **capped at the last close** (`cap_buy_at_close`, on by default): about a fifth of ACTIVE ranges put `buy_high` above the close (median 0.45%, worst 4.4%), and an uncapped DAY limit would buy a gap-up at the open. The model's own level is kept as `buy_high_model`. A backtest of both rules found the same average return per trade and total return within 2%, so the cap is risk control rather than an edge; rejecting those signals outright cut total return by about 45% and is not done.
+   - **SKIP** — setup exists but upside is too small, the buy range is too wide (`max_spread_pct`), or the models disagree too much (`max_consensus_cv`).
    - **STALE** — price has already moved above the sell range (missed opportunity). `upside_pct` is `null` for stale signals.
 6. **Technical context** provided to each model: a table of the **last ~10 daily OHLC+volume bars** (so the model sees real recent price action, not just summary stats), plus close price, RSI(14) via Wilder's smoothing, volume ratio, 10d high/low distance, SMA20 distance, Bollinger Band %B, and 5-day price momentum.
 7. **Score update** — every model's score moves as `5 + (old − 5) × 0.99 + adjustment` on each nightly update. The 0.99 decay applies to every model and shrinks accumulated evidence back toward the neutral 5.0, so recent performance carries more weight than distant history. The adjustment is the mean of that night's ±0.01 OHLC checks plus, separately, the mean of the realized-trade deltas, so a real fill counts up to ten times more than a price check. Each trade is scored once: trades closed since the previous scored date are included, even across nights with no predictions file, and journal rows with untrustworthy P&L are skipped.
@@ -244,7 +244,7 @@ still-forming bar is always left out.
 | `config/tickers.json` | Active watchlist (built by `update_tickers.py`) | — |
 | `config/universe.json` | Ticker filter thresholds | `min_price`, `min_avg_daily_volume`, `max_daily_volatility_pct`, `max_tickers` |
 | `config/trading.json` | Position limits and risk settings | `max_per_trade_usd` (2.0), `max_position_usd` (8.0), `stop_loss_pct` (0.95), `max_hold_days` (15), `score_decay_per_day` (0.99), `trade_score_scale` (0.02), `trade_score_cap` (0.10) |
-| `config/signals.json` | Signal classification thresholds | `min_upside_pct` (1.5), `max_spread_pct` (3.0), `min_agreeing_models` (2), `max_consensus_cv` (0.10) |
+| `config/signals.json` | Signal classification thresholds | `min_upside_pct` (1.5), `max_spread_pct` (3.0), `min_agreeing_models` (2), `max_consensus_cv` (0.10), `cap_buy_at_close` (true) |
 | `config/models.json` | Model list (Ollama model IDs) | Never overwritten by automation |
 | `state/analyst_scores.json` | Model scores — add/remove models here | 0.0–10.0 per model, initialised at 5.0 |
 
@@ -269,7 +269,8 @@ still-forming bar is always left out.
     "min_upside_pct": 1.5,
     "max_spread_pct": 3.0,
     "min_agreeing_models": 2,
-    "max_consensus_cv": 0.10
+    "max_consensus_cv": 0.10,
+    "cap_buy_at_close": true
 }
 ```
 
@@ -360,7 +361,7 @@ Discovery picks up every `test_*.py`; CI runs the same command before each night
 
 | Module | Areas |
 |---|---|
-| `test_signals` | Consensus weighting, CV disagreement gate, fallback exclusion, signal classification, STALE upside handling |
+| `test_signals` | Consensus weighting, CV disagreement gate, fallback exclusion, signal classification, STALE upside handling, buy limit capped at the close |
 | `test_backtest` | Win/stop/miss simulation, profit factor, avg win/loss %, max consecutive losses, internal field cleanup |
 | `test_forge` | LLM output parsing (incl. inline reasoning blocks), fallback tagging, bar fetch window, prior-predictions lookup, RSI/Bollinger/%B/momentum technicals, score updates (decay toward neutral, separate real-trade stream, journal windows), stop-threshold evaluation |
 | `test_trader` | `record_buy` / `record_sell`, P&L and qty-desync capping, partial vs full exits, EOD stop and max-hold, Alpaca read failures, market-session gate |

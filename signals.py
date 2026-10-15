@@ -19,6 +19,7 @@ DEFAULT_SIGNAL_CONFIG = {
     'min_upside_pct': 1.0,
     'min_range_width_pct': 0.5,
     'min_agreeing_models': 2,
+    'cap_buy_at_close': True,
 }
 
 
@@ -148,6 +149,32 @@ def weighted_consensus_ranges(
     return consensus
 
 
+def cap_buy_at_close(consensus: dict, close: float) -> dict:
+    """Limit the buy range to the last close.
+
+    The prompt asks for a buy range "at or below current price", but about a
+    fifth of ACTIVE consensus ranges put buy_high above the close (median
+    0.45%, worst 4.4%). A DAY limit buy at such a level fills at whatever the
+    open is, gap-ups included. Capping buy_high at the close makes the order
+    wait for a pullback instead. buy_low is pulled down with it if the whole
+    range sat above the close, and the model's own level is kept as
+    buy_high_model. Returns the input unchanged when no cap is needed, and is
+    idempotent.
+    """
+    buy_high = consensus.get('buy_high') or 0
+    if close <= 0 or buy_high <= close:
+        return consensus
+    capped = round(close, 2)
+    if capped > close:           # largest cent not above the close
+        capped = round(capped - 0.01, 2)
+    return {
+        **consensus,
+        'buy_high': capped,
+        'buy_low': min(consensus.get('buy_low') or capped, capped),
+        'buy_high_model': buy_high,
+    }
+
+
 def classify_opportunity(
     close: float,
     consensus: dict[str, float] | None,
@@ -184,6 +211,11 @@ def classify_opportunity(
         signal = 'SKIP'
     else:
         signal = 'ACTIVE'
+        # Membership and upside_pct above come from the model's own buy_high
+        # (a conservative floor: a limit fills at or below it). Only the
+        # level the order will use is capped.
+        if config.get('cap_buy_at_close', True):
+            consensus = cap_buy_at_close(consensus, close)
 
     return {
         'signal': signal,
@@ -217,7 +249,7 @@ def build_enriched_predictions(
         enriched[ticker] = {
             'close': round(float(close), 2),
             'models': model_preds,
-            'consensus': consensus,
+            'consensus': opp['consensus'],
             'signal': opp['signal'],
             'upside_pct': opp['upside_pct'],
         }

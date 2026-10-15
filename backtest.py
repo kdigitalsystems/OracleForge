@@ -30,6 +30,8 @@ from journal_quality import flagged_summary, journal_row_issue, split_journal
 from signals import (
     HISTORY_DIR,
     REPORTS_DIR,
+    cap_buy_at_close,
+    load_signal_config,
     extract_model_predictions,
     list_prediction_dates,
     load_json,
@@ -291,13 +293,21 @@ def build_signal_days(dates: list[str], sessions: list[str]) -> list[dict]:
 def consensus_source(min_upside_pct: float | None = None):
     """Ranges the live trader bought: stored ACTIVE signals, as classified at
     the time (no recomputation with today's model scores). An optional
-    min_upside_pct can only tighten that set."""
+    min_upside_pct can only tighten that set. When signals.json enables
+    cap_buy_at_close, the buy limit is capped at the stored close exactly as
+    classify_opportunity does today, so days stored before the cap existed
+    replay under the current rule (the cap is idempotent on newer rows)."""
+    cap = load_signal_config().get('cap_buy_at_close', True)
+
     def source(entry: dict):
         if not isinstance(entry, dict) or entry.get('signal') != 'ACTIVE':
             return None
         if min_upside_pct is not None and float(entry.get('upside_pct') or 0) < min_upside_pct:
             return None
-        return entry.get('consensus')
+        consensus = entry.get('consensus')
+        if cap and consensus and entry.get('close'):
+            consensus = cap_buy_at_close(consensus, float(entry['close']))
+        return consensus
     return source
 
 

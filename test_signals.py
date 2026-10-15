@@ -3,6 +3,7 @@ import unittest
 
 from signals import (
     build_enriched_predictions,
+    cap_buy_at_close,
     classify_opportunity,
     extract_model_predictions,
     parse_ticker_list,
@@ -201,6 +202,83 @@ class ClassifyTests(unittest.TestCase):
             config={'min_upside_pct': 1.0, 'max_spread_pct': 3.0},
         )
         self.assertEqual(result['signal'], 'SKIP')
+
+
+class CapBuyAtCloseTests(unittest.TestCase):
+    ABOVE = {'buy_low': 99.0, 'buy_high': 101.0, 'sell_low': 105.0, 'sell_high': 108.0}
+
+    def test_buy_high_above_close_is_capped_and_keeps_the_model_level(self):
+        out = cap_buy_at_close(self.ABOVE, 100.0)
+        self.assertEqual((out['buy_low'], out['buy_high'], out['buy_high_model']), (99.0, 100.0, 101.0))
+        self.assertEqual((out['sell_low'], out['sell_high']), (105.0, 108.0))
+
+    def test_buy_low_is_pulled_down_when_the_whole_range_is_above_the_close(self):
+        out = cap_buy_at_close({**self.ABOVE, 'buy_low': 100.5}, 100.0)
+        self.assertEqual((out['buy_low'], out['buy_high']), (100.0, 100.0))
+
+    def test_unchanged_when_buy_high_is_at_or_below_the_close(self):
+        for close in (101.0, 102.5):
+            self.assertIs(cap_buy_at_close(self.ABOVE, close), self.ABOVE)
+
+    def test_cap_is_never_above_the_close_and_is_idempotent(self):
+        for close in (11.956, 11.95, 11.954, 0.37):
+            out = cap_buy_at_close({'buy_low': 0.3, 'buy_high': 99.0, 'sell_low': 120.0, 'sell_high': 125.0}, close)
+            self.assertLessEqual(out['buy_high'], close)
+            self.assertGreater(out['buy_high'], close - 0.0100001)
+            self.assertEqual(cap_buy_at_close(out, close), out)
+
+    def test_input_is_not_mutated(self):
+        original = dict(self.ABOVE)
+        cap_buy_at_close(self.ABOVE, 100.0)
+        self.assertEqual(self.ABOVE, original)
+
+
+class ClassifyCapTests(unittest.TestCase):
+    ABOVE = {'buy_low': 99.0, 'buy_high': 101.0, 'sell_low': 105.0, 'sell_high': 108.0}
+
+    def test_active_signal_orders_at_the_close_not_above_it(self):
+        result = classify_opportunity(100.0, self.ABOVE, {'min_upside_pct': 1.5})
+        self.assertEqual(result['signal'], 'ACTIVE')
+        self.assertEqual(result['consensus']['buy_high'], 100.0)
+        self.assertEqual(result['consensus']['buy_high_model'], 101.0)
+
+    def test_membership_and_upside_still_come_from_the_models_buy_high(self):
+        # (105 - 101) / 101 = 3.96%; the cap must not change either the
+        # ACTIVE decision or the reported upside.
+        result = classify_opportunity(100.0, self.ABOVE, {'min_upside_pct': 1.5})
+        self.assertEqual(result['upside_pct'], 3.96)
+        thin = {'buy_low': 99.0, 'buy_high': 101.0, 'sell_low': 102.0, 'sell_high': 103.0}
+        self.assertEqual(classify_opportunity(100.0, thin, {'min_upside_pct': 1.5})['signal'], 'SKIP')
+
+    def test_buy_high_below_close_is_left_alone(self):
+        consensus = {'buy_low': 95.0, 'buy_high': 97.0, 'sell_low': 105.0, 'sell_high': 108.0}
+        result = classify_opportunity(100.0, consensus, {'min_upside_pct': 1.5})
+        self.assertEqual(result['consensus'], consensus)
+        self.assertNotIn('buy_high_model', result['consensus'])
+
+    def test_switch_off_leaves_the_consensus_alone(self):
+        result = classify_opportunity(100.0, self.ABOVE, {'min_upside_pct': 1.5, 'cap_buy_at_close': False})
+        self.assertEqual(result['signal'], 'ACTIVE')
+        self.assertEqual(result['consensus'], self.ABOVE)
+
+    def test_only_active_rows_are_capped(self):
+        stale = {'buy_low': 95.0, 'buy_high': 97.0, 'sell_low': 99.0, 'sell_high': 101.0}
+        self.assertEqual(classify_opportunity(102.0, stale)['consensus'], stale)
+        thin = {'buy_low': 99.0, 'buy_high': 101.0, 'sell_low': 102.0, 'sell_high': 103.0}
+        self.assertEqual(classify_opportunity(100.0, thin, {'min_upside_pct': 1.5})['consensus'], thin)
+
+    def test_wide_spread_is_still_judged_on_the_models_range(self):
+        wide = {'buy_low': 95.0, 'buy_high': 101.0, 'sell_low': 110.0, 'sell_high': 115.0}
+        result = classify_opportunity(100.0, wide, {'min_upside_pct': 1.0, 'max_spread_pct': 3.0})
+        self.assertEqual(result['signal'], 'SKIP')
+
+    def test_enriched_predictions_store_the_capped_consensus(self):
+        raw = {'AAA': {'m1': {**self.ABOVE, 'rationale': ''}, 'm2': {**self.ABOVE, 'rationale': ''}}}
+        out = build_enriched_predictions(raw, {'AAA': 100.0}, {'m1': 5.0, 'm2': 5.0},
+                                         {'min_upside_pct': 1.5, 'min_agreeing_models': 2})
+        self.assertEqual(out['AAA']['signal'], 'ACTIVE')
+        self.assertEqual(out['AAA']['consensus']['buy_high'], 100.0)
+        self.assertEqual(out['AAA']['consensus']['buy_high_model'], 101.0)
 
 
 class BuildEnrichedTests(unittest.TestCase):
