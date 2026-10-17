@@ -48,7 +48,7 @@ DEFAULT_TRADING_CONFIG = {
     'max_per_trade_usd': 2.0,
     'max_position_usd': 8.0,
     'stop_loss_pct': 0.95,
-    'max_hold_days': 15,
+    'max_hold_days': 20,
 }
 
 FILLED_STATUSES = {'filled', 'partially_filled'}
@@ -425,7 +425,7 @@ def run_open(dry_run: bool = False, protect_only: bool = False) -> None:
 def run_close(dry_run: bool = False) -> None:
     cfg = load_trading_config()
     stop_loss_pct = float(cfg.get('stop_loss_pct', 0.95))
-    max_hold_days = int(cfg.get('max_hold_days', 15))
+    max_hold_days = int(cfg.get('max_hold_days', 20))
 
     client = None if dry_run else alpaca_client.get_trading_client()
     today = today_str()

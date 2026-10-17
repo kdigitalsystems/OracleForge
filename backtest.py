@@ -48,14 +48,14 @@ JOURNAL_FILE = 'history/trade_journal.json'
 BENCHMARK_TICKER = 'SPY'
 ET = ZoneInfo('America/New_York')
 DEFAULT_ORDER_USD = 2.0
-DEFAULT_TRADING_CONFIG = {'stop_loss_pct': 0.95, 'max_hold_days': 15, 'max_per_trade_usd': DEFAULT_ORDER_USD}
+DEFAULT_TRADING_CONFIG = {'stop_loss_pct': 0.95, 'max_hold_days': 20, 'max_per_trade_usd': DEFAULT_ORDER_USD}
 MIN_ADEQUATE_SAMPLE = 30   # trades below this -> treat metrics as not yet trustworthy
 T_CRIT_95 = 1.96           # ~95% two-sided (normal approx; conservative for small n)
 # Execution parameters plus a tighter upside filter: all applicable to the
 # stored signals without re-deriving them from model scores.
 DEFAULT_WALK_FORWARD_GRID = {
     'stop_loss_pct': [0.93, 0.95, 0.97],
-    'max_hold_days': [5, 10, 15],
+    'max_hold_days': [10, 15, 20, 30],
     'min_upside_pct': [1.5, 2.5, 4.0],
 }
 

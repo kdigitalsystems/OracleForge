@@ -96,7 +96,7 @@ Alpaca handles execution during the day. No process stays alive between the two 
 - Max $8 total position per ticker
 - Fractional shares via Alpaca limit orders (qty-based)
 - Stop-loss at `entry_price × stop_loss_pct` (default 0.95 = 5% below cost), enforced as an end-of-day market sell
-- Max hold time of `max_hold_days` (default 15 trading-calendar days); positions that hit neither the profit target nor the stop are force-closed at market to free up capital for fresh setups
+- Max hold time of `max_hold_days` (default 20, counted in calendar days from the signal date); positions that hit neither the profit target nor the stop are force-closed at market to free up capital for fresh setups
 
 ### Feedback loop
 
@@ -228,6 +228,13 @@ Training is cut off before the test window starts, and windows without enough tr
 reported but left out of the averages. Evidence only: live config is never changed. The
 nightly forge refreshes both reports.
 
+**What the replay says about tuning** (Oct 2026 history: about 590 trades on 26 entry dates, so only large effects are visible):
+- Tighter stops lose money steadily (0.97 and 0.98 cost 70 to 160 pp of total return), and stopping out sells at the next open, averaging -6.3%. Wider or no stops looked better on total return but have a deeper drawdown (no stop: worst trade -24%, drawdown 70% deeper), so the 5% stop stays.
+- Max hold: short holds (3 to 7 days) are clearly worse; 10 to 30 days are about equal within noise. 20 is used: the worst trade and drawdown match the shorter holds.
+- The model's own `sell_low` beats every fixed target (+1% to +5% from entry), and the current entry level is at the plateau (bidding lower or higher trades worse).
+- No single signal feature (upside, model disagreement, range width, buy spread, gap, model count) predicts returns consistently across both halves of the history.
+- None of the stop or hold differences is statistically significant (paired by entry date, 90% intervals include zero). Revisit as history accumulates; the nightly walk-forward tracks it.
+
 **Trade attribution** (`reports/trade_attribution.json`): actual closed trades by model and
 ticker, plus execution quality (entry improvement versus `buy_high`, target capture).
 
@@ -243,7 +250,7 @@ still-forming bar is always left out.
 |---|---|---|
 | `config/tickers.json` | Active watchlist (built by `update_tickers.py`) | — |
 | `config/universe.json` | Ticker filter thresholds | `min_price`, `min_avg_daily_volume`, `max_daily_volatility_pct`, `max_tickers` |
-| `config/trading.json` | Position limits and risk settings | `max_per_trade_usd` (2.0), `max_position_usd` (8.0), `stop_loss_pct` (0.95), `max_hold_days` (15), `score_decay_per_day` (0.99), `trade_score_scale` (0.02), `trade_score_cap` (0.10) |
+| `config/trading.json` | Position limits and risk settings | `max_per_trade_usd` (2.0), `max_position_usd` (8.0), `stop_loss_pct` (0.95), `max_hold_days` (20), `score_decay_per_day` (0.99), `trade_score_scale` (0.02), `trade_score_cap` (0.10) |
 | `config/signals.json` | Signal classification thresholds | `min_upside_pct` (1.5), `max_spread_pct` (3.0), `min_agreeing_models` (2), `max_consensus_cv` (0.10), `cap_buy_at_close` (true) |
 | `config/models.json` | Model list (Ollama model IDs) | Never overwritten by automation |
 | `state/analyst_scores.json` | Model scores — add/remove models here | 0.0–10.0 per model, initialised at 5.0 |
@@ -255,7 +262,7 @@ still-forming bar is always left out.
     "max_per_trade_usd": 2.0,
     "max_position_usd": 8.0,
     "stop_loss_pct": 0.95,
-    "max_hold_days": 15,
+    "max_hold_days": 20,
     "score_decay_per_day": 0.99,
     "trade_score_scale": 0.02,
     "trade_score_cap": 0.10
