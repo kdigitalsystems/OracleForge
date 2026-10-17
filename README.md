@@ -145,7 +145,7 @@ Keys are never stored in GitHub Secrets.
 | [Rebuild Dashboard](.github/workflows/regenerate_report.yml) | Manual (via Rebuild button) | Regenerates `docs/index.html` from existing data files and commits |
 | [Retry Failed Workflows](.github/workflows/retry_failed.yml) | Every 15 minutes | Watchdog: re-runs failed runs (up to twice) and dispatches a trading workflow whose schedule was missed, unless one is already queued or running |
 | [Cleanup old Actions artifacts](.github/workflows/cleanup-artifacts.yml) | 04:17 UTC daily | Deletes old artifacts and the runner's old diagnostic logs |
-| [Runner Health Probe](.github/workflows/runner_health.yml) | Manual | Reports what the picking-up runner provides (Docker, Ollama, keys, disk) |
+| [Runner Health Probe](.github/workflows/runner_health.yml) | Manual | Reports what a runner provides (Docker, GPU, Ollama and models, keys, disk). Inputs: `runner_labels` to target one machine (e.g. `["self-hosted","amd-gpu"]` for server2), and `canary` to run the real forecast on 6 tickers in a throwaway checkout and fail if a model falls back on more than half of them |
 
 The morning, evening and rebuild jobs check out `main` explicitly, so a re-run never replays stale state. GitHub often starts scheduled runs hours late; the trading jobs are idempotent, so a late scheduled run after a watchdog dispatch is a harmless no-op.
 

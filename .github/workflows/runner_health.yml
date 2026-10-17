@@ -1,23 +1,47 @@
 name: Runner Health Probe
 
-# Dispatch-only diagnostic: reports what this heterogeneous self-hosted pool
-# actually provides on whichever machine picks the job up (Docker, Ollama,
-# Alpaca keys, disk). Dispatch it a couple of times back to back to sample
-# multiple runners. Used to verify capability assumptions before pinning
-# workflows to features like Docker container jobs.
+# Dispatch-only diagnostic: reports what a self-hosted runner actually provides
+# (Docker, Ollama and its models, GPU, Alpaca keys, disk), and optionally runs
+# a forecast canary to answer "can this machine host the nightly?".
+#
+# Target one machine with runner_labels, e.g. ["self-hosted","amd-gpu"] for
+# server2 or ["self-hosted","largeVRAM"] for the desktop. Without it the job
+# lands on whichever gpu runner is free; dispatch it a couple of times back to
+# back to sample several.
+#
+# canary=true runs the REAL forecast (both models, the production prompt) on 6
+# tickers in this job's throwaway checkout. Nothing is committed or pushed and
+# no model is pulled; it fails if a configured model is missing or if a model
+# falls back on more than half the tickers (the failure mode that made
+# deepseek-r1 return gibberish on server1).
 
 on:
   workflow_dispatch:
+    inputs:
+      runner_labels:
+        description: 'JSON array of runner labels to target'
+        required: false
+        default: '["self-hosted","gpu"]'
+      canary:
+        description: 'Also run the forecast canary (about 10 to 30 minutes)'
+        type: boolean
+        required: false
+        default: false
+
+permissions:
+  contents: read
 
 jobs:
   probe:
-    runs-on: [self-hosted, gpu]
+    runs-on: ${{ fromJSON(inputs.runner_labels) }}
     timeout-minutes: 5
     steps:
       - name: Report runner capabilities
         shell: bash
         run: |
           echo "runner: $RUNNER_NAME"
+          echo "--- python ---"
+          python3 --version || echo "python3: NOT INSTALLED"
           echo "--- docker ---"
           if command -v docker >/dev/null 2>&1; then
             docker --version || true
@@ -26,10 +50,113 @@ jobs:
           else
             echo "docker: NOT INSTALLED"
           fi
+          echo "--- gpu ---"
+          if command -v nvidia-smi >/dev/null 2>&1; then
+            nvidia-smi --query-gpu=name,driver_version,memory.total --format=csv,noheader || true
+          elif command -v rocm-smi >/dev/null 2>&1; then
+            rocm-smi --showproductname --showmeminfo vram 2>/dev/null | head -12 || true
+          else
+            echo "no nvidia-smi or rocm-smi on PATH"
+            (lspci 2>/dev/null | grep -iE 'vga|3d|display' | head -3) || true
+          fi
           echo "--- ollama ---"
-          curl -sf -m 5 http://localhost:11434/api/tags >/dev/null 2>&1 \
-            && echo "ollama API: serving" || echo "ollama API: not reachable"
+          command -v ollama >/dev/null 2>&1 && ollama --version 2>&1 | head -2 || echo "ollama binary: NOT FOUND"
+          if curl -sf -m 5 http://localhost:11434/api/tags -o /tmp/ollama_tags.json 2>/dev/null; then
+            echo "ollama API: serving"
+            python3 -c "import json; print('models:', ', '.join(m['name'] for m in json.load(open('/tmp/ollama_tags.json'))['models']) or '(none)')"
+          else
+            echo "ollama API: not reachable (the nightly starts it itself)"
+          fi
           echo "--- alpaca keys ---"
           [ -f "$HOME/.ssh/alpaca_paper_keys" ] && echo "keys: present" || echo "keys: MISSING"
           echo "--- disk ---"
           df -h / | tail -1
+
+  canary:
+    if: ${{ inputs.canary }}
+    needs: probe
+    runs-on: ${{ fromJSON(inputs.runner_labels) }}
+    timeout-minutes: 60
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4
+        with:
+          ref: main
+
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Dependencies
+        run: |
+          python3 -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Make sure Ollama is serving (same logic as the nightly; never pulls)
+        shell: bash
+        run: |
+          check() { curl -sf http://localhost:11434/api/tags > /dev/null 2>&1; }
+          wait_up() {
+            for _ in $(seq 1 "$(( $1 / 5 ))"); do check && return 0; sleep 5; done
+            check
+          }
+          if check; then
+            echo "Ollama already serving on :11434."
+          else
+            echo "Ollama not reachable; restarting the systemd service..."
+            sudo -n systemctl restart ollama 2>/dev/null || systemctl --user restart ollama 2>/dev/null || true
+            if ! wait_up 120; then
+              OLLAMA=$(command -v ollama 2>/dev/null || ls /usr/local/bin/ollama /usr/bin/ollama 2>/dev/null | head -1)
+              [ -n "$OLLAMA" ] && { echo "Launching $OLLAMA serve ..."; "$OLLAMA" serve > /tmp/ollama_canary.log 2>&1 & wait_up 120 || true; }
+            fi
+          fi
+          check || { echo "ERROR: Ollama is not serving."; exit 1; }
+          ollama --version 2>&1 | head -2 || true
+          python3 - <<'PY'
+          import json, urllib.request
+          have = {m['name'] for m in json.load(urllib.request.urlopen('http://localhost:11434/api/tags'))['models']}
+          need = json.load(open('config/models.json'))
+          missing = [m for m in need if m not in have]
+          print('configured models:', need)
+          print('installed models :', sorted(have))
+          if missing:
+              raise SystemExit(f'ERROR: missing models {missing}; this canary never pulls. Pull them on the runner first.')
+          PY
+
+      - name: Forecast 6 tickers with the production prompt (nothing is committed)
+        shell: bash
+        run: |
+          # Start from a clean slate for the run date so forge_loop does real
+          # work instead of resuming the committed nightly output.
+          D=$(python3 -c "import alpaca_client as a; print(a.last_closed_session(a.get_trading_client()))")
+          echo "run date: $D"
+          rm -f "history/predictions_$D.json" "reports/signals_$D.json"
+          echo "$D" > /tmp/canary_date
+          python3 forge_loop.py --tickers KO,NVDA,F,XLE,PFE,AAPL --batch-size 6 2>&1 | tee /tmp/canary_forge.log
+
+      - name: Fallback report
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json, collections
+          d = open('/tmp/canary_date').read().strip()
+          preds = json.load(open(f'history/predictions_{d}.json'))
+          tot, fb = collections.Counter(), collections.Counter()
+          for t, e in preds.items():
+              for model, m in (e.get('models') or {}).items():
+                  if isinstance(m, dict) and not m.get('skipped'):
+                      tot[model] += 1; fb[model] += bool(m.get('fallback'))
+          print(f"canary tickers: {len(preds)}")
+          bad = []
+          for model in sorted(tot):
+              rate = fb[model] / tot[model]
+              print(f"  {model}: {fb[model]}/{tot[model]} fell back ({100 * rate:.0f}%)")
+              if rate > 0.5: bad.append(model)
+          log = open('/tmp/canary_forge.log', errors='replace').read().splitlines()
+          for line in [l for l in log if 'unparseable' in l][:6]:
+              print('  ' + line.strip()[:260])
+          if bad:
+              raise SystemExit(f'UNHEALTHY: {bad} fell back on more than half the tickers on this runner.')
+          print('HEALTHY: every model produced usable ranges on this runner.')
+          PY
