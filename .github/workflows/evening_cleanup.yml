@@ -39,7 +39,7 @@ jobs:
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4
         with:
           # A re-run (retry_failed.yml, or the manual button) otherwise checks
           # out the original commit, whose state/ and history/ predate what

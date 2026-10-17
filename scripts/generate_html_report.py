@@ -658,7 +658,8 @@ def generate() -> None:
   <title>OracleForge</title>
   <link rel="icon" type="image/svg+xml" href="favicon.svg" />
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"
+    integrity="sha384-e6nUZLBkQ86NJ6TVVKAeSaK8jWa3NhkYWZFomE39AvDbQWeie9PlQqM3pmYW5d1g" crossorigin="anonymous"></script>
   <style>
     body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }}
     details summary {{ list-style: none; }}
@@ -674,13 +675,16 @@ def generate() -> None:
     <div class="bg-white rounded-xl shadow-xl p-6 w-full max-w-md mx-4">
       <h3 id="token-modal-title" class="text-lg font-semibold text-gray-900 mb-1">GitHub Personal Access Token</h3>
       <p class="text-sm text-gray-500 mb-3">
-        Required once to trigger workflow rebuilds. Stored only in your browser's localStorage;
+        Required once to trigger workflow rebuilds. Stored only in this browser's localStorage;
         never sent anywhere except GitHub's API.<br><br>
-        Create one at <a href="https://github.com/settings/tokens/new?scopes=workflow&description=OracleForge+rebuild"
-          target="_blank" class="text-blue-600 underline">github.com → Settings → Tokens</a>
-        with the <code class="bg-gray-100 px-1 rounded">workflow</code> scope.
+        Create a <strong>fine-grained</strong> token at
+        <a href="https://github.com/settings/personal-access-tokens/new?name=OracleForge+rebuild&amp;target_name=kdigitalsystems&amp;expires_in=90&amp;actions=write"
+          target="_blank" rel="noopener" class="text-blue-600 underline">github.com Settings, Fine-grained tokens</a>:
+        choose <em>Only select repositories</em>, pick OracleForge, and grant only
+        <code class="bg-gray-100 px-1 rounded">Actions: Read and write</code>.
+        Do not use a classic token; it cannot be limited to one repository.
       </p>
-      <input id="token-input" type="password" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
+      <input id="token-input" type="password" placeholder="github_pat_xxxxxxxxxxxxxxxx"
         class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-mono mb-4 focus:outline-none focus:ring-2 focus:ring-blue-400" />
       <div class="flex gap-2 justify-end">
         <button onclick="closeModal()" class="px-4 py-2 text-sm text-gray-600 hover:text-gray-800">Cancel</button>

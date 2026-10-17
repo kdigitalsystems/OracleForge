@@ -259,5 +259,29 @@ class GenerateTests(unittest.TestCase):
             self.assertTrue(os.path.exists('docs/index.html'))
 
 
+class PageSecurityTests(unittest.TestCase):
+
+    def _page(self):
+        with tempcwd():
+            with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+                gen.generate()
+            with open('docs/index.html', encoding='utf-8') as f:
+                return f.read()
+
+    def test_rebuild_button_asks_for_a_fine_grained_actions_only_token(self):
+        html = self._page()
+        self.assertIn('settings/personal-access-tokens/new', html)
+        self.assertIn('Actions: Read and write', html)
+        self.assertNotIn('settings/tokens/new', html)
+        self.assertNotIn('scopes=workflow', html)
+        self.assertNotIn('ghp_', html)
+
+    def test_third_party_script_with_a_stable_url_has_an_integrity_hash(self):
+        html = self._page()
+        tag = [t for t in html.split('<script') if 'chart.umd.min.js' in t][0]
+        self.assertIn('integrity="sha384-', tag)
+        self.assertIn('crossorigin="anonymous"', tag)
+
+
 if __name__ == '__main__':
     unittest.main()
