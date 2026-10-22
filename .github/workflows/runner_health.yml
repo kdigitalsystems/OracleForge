@@ -5,7 +5,8 @@ name: Runner Health Probe
 # a forecast canary to answer "can this machine host the nightly?".
 #
 # Target one machine with runner_labels, e.g. ["self-hosted","amd-gpu"] for
-# server2 or ["self-hosted","largeVRAM"] for the desktop. Without it the job
+# server2, ["self-hosted","wsl"] for the desktop, or
+# ["self-hosted","nvidia-gpu","hephaestus"] for server1. Without it the job
 # lands on whichever gpu runner is free; dispatch it a couple of times back to
 # back to sample several.
 #

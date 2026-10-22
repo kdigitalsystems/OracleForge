@@ -29,14 +29,12 @@ jobs:
     # restart, a self-heal that has fired in production) and pulls models
     # with the host ollama binary. Neither works inside a job container.
     #
-    # Pinned to runners labelled largeVRAM (the desktop). server1 also has the
-    # gpu label, but deepseek-r1:8b returns garbage there under the real
-    # prompts (155 gibberish + 32 empty/prose replies of 195 on 2026-10-09,
-    # while qwen2.5 on the same server is fine), which leaves a handful of
-    # ACTIVE signals a night instead of ~70. Drop this label once that is
-    # fixed. If no largeVRAM runner is online the job queues rather than
-    # forecasting badly; the morning job then runs protect-only.
-    runs-on: [self-hosted, gpu, largeVRAM]
+    # Any gpu runner will do, but it must have the Alpaca key file and Ollama
+    # with the configured models. Known issue: deepseek-r1:8b returned gibberish
+    # on server1 (Ollama 0.30.11) under the real prompts, leaving a handful of
+    # ACTIVE signals a night instead of ~70. Check a machine before trusting
+    # it with the nightly: dispatch runner_health.yml with canary=true.
+    runs-on: [self-hosted, gpu]
     timeout-minutes: 720
 
     permissions:
