@@ -190,7 +190,11 @@ jobs:
           echo "All required models confirmed present."
 
       - name: Build ticker universe from Alpaca
-        run: python3 update_tickers.py
+        run: |
+          # The watchlist is refreshed opportunistically: if this fails (an
+          # Alpaca API change broke it on 2026-10-20 and took three nightlies
+          # down), forecast the committed universe instead of nothing.
+          python3 update_tickers.py || echo "::warning::update_tickers.py failed; continuing with the committed config/tickers.json"
 
       - name: Verify ticker list
         run: |

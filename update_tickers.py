@@ -24,8 +24,6 @@ from datetime import datetime, timedelta, timezone
 from alpaca.data.enums import DataFeed
 from alpaca.data.requests import StockBarsRequest
 from alpaca.data.timeframe import TimeFrame
-from alpaca.trading.enums import AssetClass, AssetStatus
-from alpaca.trading.requests import GetAssetsRequest
 
 import alpaca_client
 
@@ -82,16 +80,25 @@ def load_universe_config() -> dict:
     return DEFAULT_CONFIG.copy()
 
 
+# A new universe smaller than this fraction of the previous one is treated as a
+# data problem (a failed bar batch, an API hiccup), not a real change: the old
+# list is kept. 70% is far below normal day-to-day drift.
+MIN_UNIVERSE_FRACTION = 0.7
+
+
+def universe_shrunk_too_far(new_count: int, previous_count: int) -> bool:
+    return previous_count > 0 and new_count < previous_count * MIN_UNIVERSE_FRACTION
+
+
 def get_tradable_symbols(trading_client) -> list[str]:
     print('Fetching Alpaca asset universe...')
-    assets = trading_client.get_all_assets(
-        GetAssetsRequest(
-            asset_class=AssetClass.US_EQUITY,
-            status=AssetStatus.ACTIVE,
-        )
-    )
-    tradable = [a for a in assets if a.tradable and a.fractionable]
-    symbols = [a.symbol for a in tradable if not is_leveraged_or_inverse(getattr(a, 'name', ''))]
+    # Plain JSON, not trading_client.get_all_assets(): that parses every asset
+    # into a strict enum, so a single new exchange code (TXSE appeared on
+    # 2026-10-20) raised a validation error and took the whole nightly down.
+    # Only four fields are needed here and none of them is an enum.
+    assets = trading_client.get('/assets', {'status': 'active', 'asset_class': 'us_equity'})
+    tradable = [a for a in assets if a.get('tradable') and a.get('fractionable')]
+    symbols = [a['symbol'] for a in tradable if not is_leveraged_or_inverse(a.get('name') or '')]
     excluded = len(tradable) - len(symbols)
     print(f'  {len(tradable):,} active tradable fractionable US equity assets found '
           f'({excluded:,} excluded as leveraged/inverse/VIX-futures)')
@@ -219,6 +226,19 @@ def main() -> None:
     # Step 4: Sort by avg volume (most liquid first), take top N
     scored.sort(key=lambda x: x['avg_volume'], reverse=True)
     final = [s['ticker'] for s in scored[:max_tickers]]
+
+    previous = []
+    try:
+        with open(TICKERS_FILE) as f:
+            previous = json.load(f)
+        previous = previous if isinstance(previous, list) else []
+    except (OSError, ValueError):
+        pass
+    if universe_shrunk_too_far(len(final), min(len(previous), max_tickers)):
+        print(f'\n[!] New universe has {len(final)} tickers, under {MIN_UNIVERSE_FRACTION:.0%} of the '
+              f'previous {min(len(previous), max_tickers)}. Probably a data problem (failed bar batch?); '
+              f'keeping the existing {TICKERS_FILE}.')
+        return
 
     os.makedirs('config', exist_ok=True)
     # Write-then-rename: os.replace is atomic on POSIX and Windows (same
