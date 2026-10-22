@@ -139,13 +139,13 @@ Keys are never stored in GitHub Secrets.
 
 | Workflow | Schedule | What it does |
 |---|---|---|
-| [Nightly Forge](.github/workflows/nightly_forge.yml) | 23:00 UTC Sunday to Thursday (prepares the next trading day) | Runs unit tests → `update_tickers.py` → `forge_loop.py` → validates outputs → refreshes backtest and walk-forward study → regenerates dashboard → commits state |
+| [Nightly Forge](.github/workflows/nightly_forge.yml) | 23:00 UTC Sunday to Thursday (prepares the next trading day) | Runs on an `nvidia-gpu` runner. Runs unit tests → **preflight** (`scripts/model_canary.py`: forecasts 4 tickers with both models in a throwaway sandbox and fails the job early if a model falls back on more than half, so a misbehaving runner cannot commit gibberish forecasts) → `update_tickers.py` → `forge_loop.py` → validates outputs → refreshes backtest and walk-forward study → regenerates dashboard → commits state |
 | [Morning Orders](.github/workflows/morning_orders.yml) | 13:30 UTC weekdays (9:30 AM EDT / 8:30 AM EST) | Places DAY limit buy orders for ACTIVE tickers; re-places the DAY profit-target sell for held positions |
 | [Evening Cleanup](.github/workflows/evening_cleanup.yml) | 21:05 UTC weekdays (5:05 PM EDT / 4:05 PM EST) | Detects fills, records P&L, runs the end-of-day stop check, clears expired orders, refreshes trade attribution, regenerates dashboard |
 | [Rebuild Dashboard](.github/workflows/regenerate_report.yml) | Manual (via Rebuild button) | Regenerates `docs/index.html` from existing data files and commits |
 | [Retry Failed Workflows](.github/workflows/retry_failed.yml) | Every 15 minutes | Watchdog: re-runs failed runs (up to twice) and dispatches a trading workflow whose schedule was missed, unless one is already queued or running |
 | [Cleanup old Actions artifacts](.github/workflows/cleanup-artifacts.yml) | 04:17 UTC daily | Deletes old artifacts and the runner's old diagnostic logs |
-| [Runner Health Probe](.github/workflows/runner_health.yml) | Manual | Reports what a runner provides (Docker, GPU, Ollama and models, keys, disk). Inputs: `runner_labels` to target one machine (e.g. `["self-hosted","amd-gpu"]` for server2), and `canary` to run the real forecast on 6 tickers in a throwaway checkout and fail if a model falls back on more than half of them |
+| [Runner Health Probe](.github/workflows/runner_health.yml) | Manual | Reports what a runner provides (Docker, GPU, Ollama and models, keys, disk). Inputs: `runner_labels` to target one machine (e.g. `["self-hosted","amd-gpu"]` for server2), and `canary` to run `scripts/model_canary.py` (the real forecast on 6 tickers in a throwaway sandbox) and fail if a model falls back on more than half of them |
 
 The morning, evening and rebuild jobs check out `main` explicitly, so a re-run never replays stale state. GitHub often starts scheduled runs hours late; the trading jobs are idempotent, so a late scheduled run after a watchdog dispatch is a harmless no-op.
 
@@ -373,7 +373,8 @@ Discovery picks up every `test_*.py`; CI runs the same command before each night
 | `test_forge` | LLM output parsing (incl. inline reasoning blocks), fallback tagging, bar fetch window, prior-predictions lookup, RSI/Bollinger/%B/momentum technicals, score updates (decay toward neutral, separate real-trade stream, journal windows), stop-threshold evaluation |
 | `test_trader` | `record_buy` / `record_sell`, P&L and qty-desync capping, partial vs full exits, EOD stop and max-hold, Alpaca read failures, market-session gate |
 | `test_alpaca_client` | Order request construction, qty flooring, market calendar and last closed session, order lookup (404 vs error), position parsing |
-| `test_update_tickers` | Leveraged/inverse/VIX fund exclusion |
+| `test_update_tickers` | Leveraged/inverse/VIX fund exclusion, plain-JSON asset fetch (unknown exchange codes), universe shrink guard |
+| `test_model_canary` | Pre-flight model check: fallback judgment on the real prediction shape, sandbox isolation, every failure path |
 | `test_no_banned_punctuation` | Site copy punctuation guard |
 
 ---

@@ -29,12 +29,14 @@ jobs:
     # restart, a self-heal that has fired in production) and pulls models
     # with the host ollama binary. Neither works inside a job container.
     #
-    # Any gpu runner will do, but it must have the Alpaca key file and Ollama
-    # with the configured models. Known issue: deepseek-r1:8b returned gibberish
-    # on server1 (Ollama 0.30.11) under the real prompts, leaving a handful of
-    # ACTIVE signals a night instead of ~70. Check a machine before trusting
-    # it with the nightly: dispatch runner_health.yml with canary=true.
-    runs-on: [self-hosted, gpu]
+    # Needs the Alpaca key file and Ollama with the configured models. nvidia-gpu
+    # keeps it off server2 (AMD), which has neither yet; drop the label once
+    # runner_health.yml canary=true passes there. Known issue: deepseek-r1:8b
+    # returned gibberish on server1 under the real prompts, leaving a handful
+    # of ACTIVE signals a night instead of ~70 and its runner dropped mid-job
+    # on 2026-10-22. The "Preflight" step below fails the job early on any
+    # runner whose models misbehave, so the retry can land elsewhere.
+    runs-on: [self-hosted, nvidia-gpu]
     timeout-minutes: 720
 
     permissions:
@@ -186,6 +188,15 @@ jobs:
             exit 1
           fi
           echo "All required models confirmed present."
+
+      - name: Preflight, both models must forecast sanely on this runner
+        timeout-minutes: 30
+        run: |
+          # Forecasts 4 tickers with the production prompt in a throwaway
+          # sandbox (nothing in this checkout changes) and fails if a model
+          # falls back on more than half. A bad runner used to commit ~95%
+          # fallback forecasts for weeks without any step failing.
+          python3 scripts/model_canary.py
 
       - name: Build ticker universe from Alpaca
         run: |

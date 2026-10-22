@@ -641,6 +641,18 @@ def bar_session_date(bar) -> str:
     return bar.timestamp.astimezone(ET).strftime('%Y-%m-%d')
 
 
+def bar_is_after_prior(bar, prior_date: str | None) -> bool:
+    """True if ``bar`` is a session after the one the prior predictions came from.
+
+    With no prior predictions file there is nothing to grade, and that must
+    not crash the run: the lookup only goes back 10 days, so a long outage
+    (or a fresh checkout, or the model canary's empty sandbox) leaves
+    prior_date as None. Comparing a date string with None raised a TypeError
+    that would have failed every nightly once the newest forecast got old.
+    """
+    return prior_date is None or bar_session_date(bar) > prior_date
+
+
 def git_checkpoint(message: str, paths: list[str]) -> bool:
     """Stage paths, commit if anything changed, and push with rebase+retry.
 
@@ -779,7 +791,7 @@ def main():
             latest = bar_list[-1]
             # Grade only against a session after the one the prediction was
             # made from; otherwise the model is scored on a bar it was shown.
-            if bar_session_date(latest) <= prior_date:
+            if not bar_is_after_prior(latest, prior_date):
                 continue
             prior_models = extract_model_predictions(prior_predictions.get(ticker, {}))
             for model_name, past_pred in prior_models.items():

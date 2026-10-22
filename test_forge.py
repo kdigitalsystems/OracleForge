@@ -12,6 +12,7 @@ from forge_loop import (
     _trade_score_delta,
     _with_timeout,
     apply_score_deltas,
+    bar_is_after_prior,
     compute_technicals,
     evaluate_range_prediction,
     fetch_all_bars,
@@ -279,6 +280,28 @@ class ScoreDeltasFromJournalTests(unittest.TestCase):
         journal = [self._trade('win', '2026-05-20', ['unknown_model'])]
         deltas = score_deltas_from_journal(journal, '2026-05-20', self.SCORES)
         self.assertNotIn('unknown_model', deltas)
+
+
+class BarIsAfterPriorTests(unittest.TestCase):
+
+    @staticmethod
+    def _bar(day):
+        # Alpaca stamps daily bars at midnight ET: 04:00 UTC in summer.
+        return MagicMock(timestamp=datetime(2026, 10, day, 4, 0, tzinfo=timezone.utc))
+
+    def test_a_later_session_is_gradable(self):
+        self.assertTrue(bar_is_after_prior(self._bar(22), '2026-10-21'))
+
+    def test_the_same_or_an_earlier_session_is_not(self):
+        # Grading a prediction against the bar it was made from would score
+        # the model on data it was shown.
+        self.assertFalse(bar_is_after_prior(self._bar(21), '2026-10-21'))
+        self.assertFalse(bar_is_after_prior(self._bar(20), '2026-10-21'))
+
+    def test_no_prior_predictions_does_not_crash(self):
+        # prior_date is None after a gap over 10 days or in a fresh sandbox:
+        # `str <= None` raised a TypeError that would fail every nightly.
+        self.assertTrue(bar_is_after_prior(self._bar(22), None))
 
 
 class PreviousPredictionDateTests(unittest.TestCase):

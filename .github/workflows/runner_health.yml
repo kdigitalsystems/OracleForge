@@ -10,11 +10,12 @@ name: Runner Health Probe
 # lands on whichever gpu runner is free; dispatch it a couple of times back to
 # back to sample several.
 #
-# canary=true runs the REAL forecast (both models, the production prompt) on 6
-# tickers in this job's throwaway checkout. Nothing is committed or pushed and
-# no model is pulled; it fails if a configured model is missing or if a model
+# canary=true runs scripts/model_canary.py: the REAL forecast (both models, the
+# production prompt) on 6 tickers in a throwaway sandbox. Nothing is committed,
+# pushed or pulled; it fails if a configured model is missing or if a model
 # falls back on more than half the tickers (the failure mode that made
-# deepseek-r1 return gibberish on server1).
+# deepseek-r1 return gibberish on server1). The nightly runs the same script
+# as its Preflight step.
 
 on:
   workflow_dispatch:
@@ -125,39 +126,5 @@ jobs:
               raise SystemExit(f'ERROR: missing models {missing}; this canary never pulls. Pull them on the runner first.')
           PY
 
-      - name: Forecast 6 tickers with the production prompt (nothing is committed)
-        shell: bash
-        run: |
-          # Start from a clean slate for the run date so forge_loop does real
-          # work instead of resuming the committed nightly output.
-          D=$(python3 -c "import alpaca_client as a; print(a.last_closed_session(a.get_trading_client()))")
-          echo "run date: $D"
-          rm -f "history/predictions_$D.json" "reports/signals_$D.json"
-          echo "$D" > /tmp/canary_date
-          python3 forge_loop.py --tickers KO,NVDA,F,XLE,PFE,AAPL --batch-size 6 2>&1 | tee /tmp/canary_forge.log
-
-      - name: Fallback report
-        shell: bash
-        run: |
-          python3 - <<'PY'
-          import json, collections
-          d = open('/tmp/canary_date').read().strip()
-          preds = json.load(open(f'history/predictions_{d}.json'))
-          tot, fb = collections.Counter(), collections.Counter()
-          for t, e in preds.items():
-              for model, m in (e.get('models') or {}).items():
-                  if isinstance(m, dict) and not m.get('skipped'):
-                      tot[model] += 1; fb[model] += bool(m.get('fallback'))
-          print(f"canary tickers: {len(preds)}")
-          bad = []
-          for model in sorted(tot):
-              rate = fb[model] / tot[model]
-              print(f"  {model}: {fb[model]}/{tot[model]} fell back ({100 * rate:.0f}%)")
-              if rate > 0.5: bad.append(model)
-          log = open('/tmp/canary_forge.log', errors='replace').read().splitlines()
-          for line in [l for l in log if 'unparseable' in l][:6]:
-              print('  ' + line.strip()[:260])
-          if bad:
-              raise SystemExit(f'UNHEALTHY: {bad} fell back on more than half the tickers on this runner.')
-          print('HEALTHY: every model produced usable ranges on this runner.')
-          PY
+      - name: Forecast canary (throwaway sandbox, nothing is committed)
+        run: python3 scripts/model_canary.py --tickers KO,NVDA,F,XLE,PFE,AAPL
