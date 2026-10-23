@@ -8956,5 +8956,59 @@
         ],
         "consensus_buy_high": 709.42,
         "consensus_sell_low": 724.86
+    },
+    {
+        "close_date": "2026-10-23",
+        "ticker": "ET",
+        "entry_date": "2026-10-16",
+        "entry_price": 20.058,
+        "exit_price": 20.46,
+        "usd_invested": 1.9968,
+        "usd_returned": 2.0368,
+        "pnl_usd": 0.04,
+        "pnl_pct": 2.0,
+        "outcome": "win",
+        "predicting_models": [
+            "qwen2.5:14b-instruct-q4_K_M",
+            "deepseek-r1:8b"
+        ],
+        "consensus_buy_high": 20.09,
+        "consensus_sell_low": 20.46
+    },
+    {
+        "close_date": "2026-10-23",
+        "ticker": "SLV",
+        "entry_date": "2026-10-15",
+        "entry_price": 51.48,
+        "exit_price": 48.55,
+        "usd_invested": 1.9992,
+        "usd_returned": 1.8854,
+        "pnl_usd": -0.1138,
+        "pnl_pct": -5.69,
+        "outcome": "loss",
+        "predicting_models": [
+            "qwen2.5:14b-instruct-q4_K_M",
+            "deepseek-r1:8b"
+        ],
+        "consensus_buy_high": 51.5,
+        "consensus_sell_low": 53.75
+    },
+    {
+        "close_date": "2026-10-23",
+        "ticker": "F",
+        "entry_date": "2026-10-16",
+        "entry_price": 12.31,
+        "exit_price": 11.5896,
+        "usd_invested": 2.0,
+        "usd_returned": 1.883,
+        "pnl_usd": -0.117,
+        "pnl_pct": -5.85,
+        "outcome": "loss",
+        "predicting_models": [
+            "qwen2.5:14b-instruct-q4_K_M",
+            "deepseek-r1:8b"
+        ],
+        "consensus_buy_high": 12.31,
+        "consensus_sell_low": 12.5
     }
 ]
