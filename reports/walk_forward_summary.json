@@ -1,5 +1,5 @@
 {
-    "generated_at": "2026-10-25T22:18:32",
+    "generated_at": "2026-10-27T09:40:48",
     "train_window": 20,
     "test_window": 5,
     "min_train_trades": 30,
@@ -341,10 +341,45 @@
                 "significant": false,
                 "sample_adequate": true
             }
+        },
+        {
+            "train": [
+                "2026-08-19",
+                "2026-10-16"
+            ],
+            "test": [
+                "2026-10-23",
+                "2026-10-23"
+            ],
+            "selected_params": {
+                "stop_loss_pct": 0.95,
+                "max_hold_days": 10,
+                "min_upside_pct": 2.5
+            },
+            "train_stats": {
+                "n": 96,
+                "mean": 0.7845,
+                "std": 6.3591,
+                "t_stat": 1.209,
+                "ci95_low": -0.4876,
+                "ci95_high": 2.0566,
+                "significant": false,
+                "sample_adequate": true
+            },
+            "test_stats": {
+                "n": 0,
+                "mean": 0.0,
+                "std": 0.0,
+                "t_stat": null,
+                "ci95_low": null,
+                "ci95_high": null,
+                "significant": false,
+                "sample_adequate": false
+            }
         }
     ],
     "summary": {
-        "windows": 10,
+        "windows": 11,
         "validation_windows": 7,
         "validation_trades": 175,
         "avg_validation_return_pct": 1.8636,
@@ -352,8 +387,8 @@
     },
     "latest_recommendation": {
         "train": [
-            "2026-08-19",
-            "2026-10-16"
+            "2026-08-21",
+            "2026-10-23"
         ],
         "selected_params": {
             "stop_loss_pct": 0.95,
@@ -361,12 +396,12 @@
             "min_upside_pct": 2.5
         },
         "train_stats": {
-            "n": 96,
-            "mean": 0.7845,
-            "std": 6.3591,
-            "t_stat": 1.209,
-            "ci95_low": -0.4876,
-            "ci95_high": 2.0566,
+            "n": 98,
+            "mean": 0.6992,
+            "std": 6.3303,
+            "t_stat": 1.093,
+            "ci95_low": -0.5541,
+            "ci95_high": 1.9526,
             "significant": false,
             "sample_adequate": true
         }
