@@ -1,0 +1,39 @@
+name: CI
+
+# Runs the unit tests on pull requests (Dependabot's included) and on demand.
+# On a GitHub-hosted runner on purpose: pull requests, including ones from
+# forks, run here, and the self-hosted runners hold the Alpaca keys. No secrets
+# are needed: the suite uses mocks and temporary directories only. Pushes to
+# main are not tested here because the bots commit data there many times a day.
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0  # v7.1.0
+        with:
+          python-version: '3.12'
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run Unit Tests
+        run: python -m unittest discover -p 'test_*.py'
