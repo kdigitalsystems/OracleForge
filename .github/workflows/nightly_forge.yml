@@ -307,3 +307,11 @@ jobs:
           done
           echo "ERROR: could not push dashboard after 5 attempts."
           exit 1
+
+      - name: Clean up this job's footprint on the runner
+        # Runs even when an earlier step failed. Removes only OracleForge's own
+        # leftovers (workspace outputs, our temp files, pip cache entries unused
+        # for 30 days); the runner is shared, so other projects' workspaces,
+        # the tool cache, docker and the Ollama models are left alone.
+        if: always()
+        run: bash scripts/runner_cleanup.sh

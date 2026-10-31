@@ -139,7 +139,7 @@ Keys are never stored in GitHub Secrets.
 
 | Workflow | Schedule | What it does |
 |---|---|---|
-| [Nightly Forge](.github/workflows/nightly_forge.yml) | 23:00 UTC Sunday to Thursday (prepares the next trading day) | Runs on an `nvidia-gpu` runner. Runs unit tests → **preflight** (`scripts/model_canary.py`: forecasts 4 tickers with both models in a throwaway sandbox and fails the job early if a model falls back on more than half, so a misbehaving runner cannot commit gibberish forecasts) → `update_tickers.py` → `forge_loop.py` → validates outputs → refreshes backtest and walk-forward study → regenerates dashboard → commits state |
+| [Nightly Forge](.github/workflows/nightly_forge.yml) | 23:00 UTC Sunday to Thursday (prepares the next trading day) | Runs on an `nvidia-gpu` runner. Runs unit tests → **preflight** (`scripts/model_canary.py`: forecasts 4 tickers with both models in a throwaway sandbox and fails the job early if a model falls back on more than half, so a misbehaving runner cannot commit gibberish forecasts) → `update_tickers.py` → `forge_loop.py` → validates outputs → refreshes backtest and walk-forward study → regenerates dashboard → commits state → **cleans up its footprint on the runner** (`scripts/runner_cleanup.sh`, always runs: workspace outputs, our temp files, pip cache entries unused for 30 days; never other projects' files, docker or the models) |
 | [Morning Orders](.github/workflows/morning_orders.yml) | 13:30 UTC weekdays (9:30 AM EDT / 8:30 AM EST) | Places DAY limit buy orders for ACTIVE tickers; re-places the DAY profit-target sell for held positions |
 | [Evening Cleanup](.github/workflows/evening_cleanup.yml) | 21:05 UTC weekdays (5:05 PM EDT / 4:05 PM EST) | Detects fills, records P&L, runs the end-of-day stop check, clears expired orders, refreshes trade attribution, regenerates dashboard |
 | [Rebuild Dashboard](.github/workflows/regenerate_report.yml) | Manual (via Rebuild button) | Regenerates `docs/index.html` from existing data files and commits |
@@ -374,6 +374,7 @@ Discovery picks up every `test_*.py`; CI runs the same command before each night
 | `test_trader` | `record_buy` / `record_sell`, P&L and qty-desync capping, partial vs full exits, EOD stop and max-hold, Alpaca read failures, market-session gate |
 | `test_alpaca_client` | Order request construction, qty flooring, market calendar and last closed session, order lookup (404 vs error), position parsing |
 | `test_update_tickers` | Leveraged/inverse/VIX fund exclusion, plain-JSON asset fetch (unknown exchange codes), universe shrink guard |
+| `test_runner_cleanup` | Runner cleanup script on decoy directories: what is removed, what must survive, the refusal guard |
 | `test_model_canary` | Pre-flight model check: fallback judgment on the real prediction shape, sandbox isolation, every failure path |
 | `test_no_banned_punctuation` | Site copy punctuation guard |
 
