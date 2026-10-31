@@ -33,7 +33,7 @@ Each night, local Ollama models independently analyse every ticker on the watchl
    - OHLC check: did price touch the buy range? Did it then reach the sell range (win), or breach `buy_high × 0.95` (stop)? → ±0.01 score delta per model.
    - Trade journal check: for positions closed since the previous scored date, contributing models are adjusted by actual realized P&L (`pnl_pct × trade_score_scale`, capped by `trade_score_cap`). By default, a +1% trade gives +0.02, while a −5% stopped trade gives −0.10.
    - **Fallback predictions are excluded** from both consensus and scoring — they are tagged `fallback: true` and skipped.
-3. **AI inference** — each model receives the closing price, recent news headlines, its own historical win rate, and the last 5 actual trade results for that ticker. It responds with:
+3. **AI inference** — each model receives the closing price, recent news headlines (up to 5 from the last 4 days: Alpaca's news API first, Yahoo's search news as a fallback; each source has a hard timeout and a failure just means "No recent news available."), its own historical win rate, and the last 5 actual trade results for that ticker. It responds with:
    ```json
    {
      "buy_low": 178.50,
@@ -371,9 +371,9 @@ Discovery picks up every `test_*.py`; CI runs the same command before each night
 |---|---|
 | `test_signals` | Consensus weighting, CV disagreement gate, fallback exclusion, signal classification, STALE upside handling, buy limit capped at the close |
 | `test_backtest` | Win/stop/miss simulation, profit factor, avg win/loss %, max consecutive losses, internal field cleanup |
-| `test_forge` | LLM output parsing (incl. inline reasoning blocks), fallback tagging, bar fetch window, prior-predictions lookup, RSI/Bollinger/%B/momentum technicals, score updates (decay toward neutral, separate real-trade stream, journal windows), stop-threshold evaluation |
+| `test_forge` | LLM output parsing (incl. inline reasoning blocks), news source order, fallback and caching, fallback tagging, bar fetch window, prior-predictions lookup, RSI/Bollinger/%B/momentum technicals, score updates (decay toward neutral, separate real-trade stream, journal windows), stop-threshold evaluation |
 | `test_trader` | `record_buy` / `record_sell`, P&L and qty-desync capping, partial vs full exits, EOD stop and max-hold, Alpaca read failures, market-session gate |
-| `test_alpaca_client` | Order request construction, qty flooring, market calendar and last closed session, order lookup (404 vs error), position parsing |
+| `test_alpaca_client` | Order request construction, qty flooring, news fetch helper, market calendar and last closed session, order lookup (404 vs error), position parsing |
 | `test_update_tickers` | Leveraged/inverse/VIX fund exclusion, plain-JSON asset fetch (unknown exchange codes), universe shrink guard |
 | `test_runner_cleanup` | Runner cleanup script on decoy directories: what is removed, what must survive, the refusal guard |
 | `test_model_canary` | Pre-flight model check: fallback judgment on the real prediction shape, sandbox isolation, every failure path |

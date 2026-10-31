@@ -2,7 +2,8 @@
 from __future__ import annotations
 
 import unittest
-from datetime import date, datetime
+from datetime import date, datetime, timezone
+from types import SimpleNamespace
 from unittest.mock import MagicMock
 
 from alpaca.trading.enums import OrderSide, OrderType, TimeInForce
@@ -168,6 +169,40 @@ class LastClosedSessionTests(unittest.TestCase):
         client.get_calendar.return_value = []
         with self.assertRaises(RuntimeError):
             alpaca_client.last_closed_session(client, datetime(2026, 11, 30, 22, 0))
+
+
+class FetchNewsTests(unittest.TestCase):
+
+    @staticmethod
+    def _article(headline, source='Benzinga'):
+        return SimpleNamespace(headline=headline, source=source, created_at=datetime(2026, 10, 30, 19, 0))
+
+    def _client(self, articles):
+        client = MagicMock()
+        client.get_news.return_value = SimpleNamespace(data={'news': articles})
+        return client
+
+    def test_builds_a_newest_first_request_for_the_symbol_and_window(self):
+        client = self._client([])
+        alpaca_client.fetch_news(client, 'KO', limit=3, days=2)
+        req = client.get_news.call_args.args[0]
+        self.assertEqual((req.symbols, req.limit, str(req.sort)), ('KO', 3, 'desc'))
+        age = datetime.now(timezone.utc) - req.start.replace(tzinfo=req.start.tzinfo or timezone.utc)
+        self.assertAlmostEqual(age.total_seconds() / 86400, 2, delta=0.01)
+
+    def test_returns_plain_dicts_and_drops_articles_without_a_headline(self):
+        out = alpaca_client.fetch_news(self._client([self._article('Real'), self._article(''), self._article(None)]), 'KO')
+        self.assertEqual([a['headline'] for a in out], ['Real'])
+        self.assertEqual(set(out[0]), {'headline', 'source', 'created_at'})
+
+    def test_missing_source_becomes_unknown(self):
+        out = alpaca_client.fetch_news(self._client([self._article('H', source=None)]), 'KO')
+        self.assertEqual(out[0]['source'], 'Unknown')
+
+    def test_empty_result(self):
+        client = MagicMock()
+        client.get_news.return_value = SimpleNamespace(data={})
+        self.assertEqual(alpaca_client.fetch_news(client, 'KO'), [])
 
 
 if __name__ == '__main__':

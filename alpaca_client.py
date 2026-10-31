@@ -9,6 +9,8 @@ from zoneinfo import ZoneInfo
 
 from alpaca.common.exceptions import APIError
 from alpaca.data.historical import StockHistoricalDataClient
+from alpaca.data.historical.news import NewsClient
+from alpaca.data.requests import NewsRequest
 from alpaca.trading.client import TradingClient
 from alpaca.trading.enums import OrderSide, QueryOrderStatus, TimeInForce
 from alpaca.trading.requests import (
@@ -63,6 +65,27 @@ def get_trading_client() -> TradingClient:
 def get_data_client() -> StockHistoricalDataClient:
     api_key, secret_key, _ = load_keys()
     return StockHistoricalDataClient(api_key, secret_key)
+
+
+def get_news_client() -> NewsClient:
+    api_key, secret_key, _ = load_keys()
+    return NewsClient(api_key, secret_key)
+
+
+def fetch_news(client: NewsClient, symbol: str, limit: int = 5, days: int = 4) -> list[dict]:
+    """Recent headlines for one symbol, newest first.
+
+    Returns plain dicts ({'headline', 'source', 'created_at'}) so callers do not
+    depend on the library's model classes. Articles without a headline are
+    dropped.
+    """
+    start = datetime.now(timezone.utc) - timedelta(days=days)
+    result = client.get_news(NewsRequest(symbols=symbol, limit=limit, start=start, sort='desc'))
+    articles = (result.data if hasattr(result, 'data') else result).get('news', [])
+    return [
+        {'headline': a.headline, 'source': getattr(a, 'source', None) or 'Unknown', 'created_at': a.created_at}
+        for a in articles if getattr(a, 'headline', None)
+    ]
 
 
 def get_positions(client: TradingClient) -> dict[str, float]:

@@ -16,6 +16,7 @@ from forge_loop import (
     compute_technicals,
     evaluate_range_prediction,
     fetch_all_bars,
+    fetch_recent_news,
     format_recent_ohlc,
     parse_llm_range,
     previous_prediction_date,
@@ -302,6 +303,93 @@ class BarIsAfterPriorTests(unittest.TestCase):
         # prior_date is None after a gap over 10 days or in a fresh sandbox:
         # `str <= None` raised a TypeError that would fail every nightly.
         self.assertTrue(bar_is_after_prior(self._bar(22), None))
+
+
+class FetchRecentNewsTests(unittest.TestCase):
+    """The prompt's news used to be empty for every ticker for weeks: Yahoo's
+    news endpoint returned 404 and yfinance turned that into an empty list."""
+
+    ET_STAMP = datetime(2026, 10, 30, 19, 0, tzinfo=timezone.utc)   # 15:00 ET on 10-30
+
+    def setUp(self):
+        import forge_loop
+        self.fl = forge_loop
+        fetch_recent_news.cache_clear()
+        self.addCleanup(fetch_recent_news.cache_clear)
+        patch.object(forge_loop, '_alpaca_news_client', return_value=object()).start()
+        self.addCleanup(patch.stopall)
+
+    def _alpaca(self, items=None, raises=None):
+        if raises:
+            return patch.object(self.fl.alpaca_client, 'fetch_news', side_effect=raises)
+        return patch.object(self.fl.alpaca_client, 'fetch_news', return_value=items or [])
+
+    def _yahoo(self, news=None, raises=None):
+        search = MagicMock()
+        if raises:
+            search.side_effect = raises
+        else:
+            search.return_value.news = news or []
+        return patch.object(self.fl.yf, 'Search', search), search
+
+    def _item(self, n, source='Benzinga'):
+        return {'headline': f'Headline {n}', 'source': source, 'created_at': self.ET_STAMP}
+
+    def test_alpaca_headlines_are_formatted_with_source_and_et_date(self):
+        yahoo, search = self._yahoo()
+        with self._alpaca([self._item(1), self._item(2, 'Reuters')]), yahoo:
+            out = fetch_recent_news('KO')
+        self.assertEqual(out, '- Headline 1 (Benzinga, 10-30)\n- Headline 2 (Reuters, 10-30)')
+        search.assert_not_called()
+
+    def test_at_most_five_headlines(self):
+        yahoo, _ = self._yahoo()
+        with self._alpaca([self._item(i) for i in range(9)]), yahoo:
+            self.assertEqual(len(fetch_recent_news('KO').splitlines()), 5)
+
+    def test_falls_back_to_yahoo_search_when_alpaca_has_nothing(self):
+        yahoo, search = self._yahoo(news=[
+            {'title': 'Old format', 'publisher': 'Yahoo Finance'},
+            {'content': {'title': 'New format', 'provider': {'displayName': 'Reuters'}}},
+        ])
+        with self._alpaca([]), yahoo:
+            out = fetch_recent_news('KO')
+        self.assertEqual(out, '- Old format (Yahoo Finance)\n- New format (Reuters)')
+        search.assert_called_once_with('KO', news_count=5)
+
+    def test_falls_back_when_alpaca_raises(self):
+        yahoo, _ = self._yahoo(news=[{'title': 'From Yahoo', 'publisher': 'P'}])
+        with self._alpaca(raises=RuntimeError('401 unauthorized')), yahoo:
+            self.assertEqual(fetch_recent_news('KO'), '- From Yahoo (P)')
+
+    def test_both_sources_failing_gives_the_default_text_never_an_exception(self):
+        yahoo, _ = self._yahoo(raises=RuntimeError('boom'))
+        with self._alpaca(raises=RuntimeError('boom')), yahoo:
+            self.assertEqual(fetch_recent_news('KO'), 'No recent news available.')
+        fetch_recent_news.cache_clear()
+        yahoo, _ = self._yahoo(news=[])
+        with self._alpaca([]), yahoo:
+            self.assertEqual(fetch_recent_news('KO'), 'No recent news available.')
+
+    def test_a_hung_alpaca_call_is_abandoned_and_the_fallback_is_used(self):
+        import time
+        real = self.fl._with_timeout
+        patch.object(self.fl, '_with_timeout', lambda fn, timeout_s=0.2, default=None: real(fn, 0.2, default)).start()
+        yahoo, _ = self._yahoo(news=[{'title': 'Fallback', 'publisher': 'P'}])
+        with patch.object(self.fl.alpaca_client, 'fetch_news', side_effect=lambda *a, **k: time.sleep(30)), yahoo:
+            start = time.time()
+            out = fetch_recent_news('KO')
+        self.assertEqual(out, '- Fallback (P)')
+        self.assertLess(time.time() - start, 5)
+
+    def test_cached_per_ticker_so_both_models_share_one_fetch(self):
+        yahoo, _ = self._yahoo()
+        with patch.object(self.fl.alpaca_client, 'fetch_news', return_value=[self._item(1)]) as fetch, yahoo:
+            first = fetch_recent_news('KO')
+            second = fetch_recent_news('KO')
+            fetch_recent_news('NVDA')
+        self.assertEqual(first, second)
+        self.assertEqual(fetch.call_count, 2)    # KO once, NVDA once
 
 
 class PreviousPredictionDateTests(unittest.TestCase):

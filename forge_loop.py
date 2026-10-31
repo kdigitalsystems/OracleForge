@@ -1,5 +1,6 @@
 # forge_loop.py — overnight inference engine
 import argparse
+import functools
 import json
 import os
 import re
@@ -153,21 +154,51 @@ def _with_timeout(fn, timeout_s=YFINANCE_CALL_TIMEOUT, default=None):
     return result[0]
 
 
+NEWS_MAX_HEADLINES = 5
+NEWS_LOOKBACK_DAYS = 4          # a Sunday-night run still sees Friday's headlines
+NO_NEWS = "No recent news available."
+
+
+@functools.lru_cache(maxsize=1)
+def _alpaca_news_client():
+    return alpaca_client.get_news_client()
+
+
+def _news_from_alpaca(ticker: str) -> list[str]:
+    items = alpaca_client.fetch_news(_alpaca_news_client(), ticker,
+                                     limit=NEWS_MAX_HEADLINES, days=NEWS_LOOKBACK_DAYS)
+    return [f"- {i['headline']} ({i['source']}, {i['created_at'].astimezone(ET):%m-%d})" for i in items]
+
+
+def _news_from_yahoo_search(ticker: str) -> list[str]:
+    # Ticker.news / get_news() read Yahoo's /xhr/ncp endpoint, which started
+    # answering 404 in 2026 (yfinance turns that into an empty list instead of
+    # raising); the search endpoint still returns ticker-tagged headlines.
+    lines = []
+    for item in (yf.Search(ticker, news_count=NEWS_MAX_HEADLINES).news or []):
+        parsed = _headline_from_news_item(item)
+        if parsed:
+            lines.append(f"- {parsed[0]} ({parsed[1]})")
+    return lines
+
+
+@functools.lru_cache(maxsize=1024)
 def fetch_recent_news(ticker):
-    try:
-        stock = yf.Ticker(ticker)
-        news_items = _with_timeout(lambda: stock.news, default=None)
-        if not news_items:
-            return "No recent news available."
-        headlines = []
-        for item in news_items[:5]:
-            parsed = _headline_from_news_item(item)
-            if parsed:
-                title, publisher = parsed
-                headlines.append(f"- {title} ({publisher})")
-        return "\n".join(headlines) if headlines else "No recent news available."
-    except Exception:
-        return "No recent news available."
+    """Up to NEWS_MAX_HEADLINES recent headlines for the model prompt.
+
+    Alpaca's news API first (official, authenticated), Yahoo's search news as a
+    fallback. Each source runs under a hard wall-clock timeout and any failure
+    just moves on, so news can never stall or crash a forecast. Cached per
+    ticker for the run: both models see the same headlines and the API is hit
+    once per ticker, not once per model. The headlines went missing for weeks
+    (every prompt said "No recent news available.") because the only source,
+    Yahoo's news endpoint, started returning 404 and nothing flagged it.
+    """
+    for source in (_news_from_alpaca, _news_from_yahoo_search):
+        lines = _with_timeout(lambda s=source: s(ticker), default=None)
+        if lines:
+            return "\n".join(lines[:NEWS_MAX_HEADLINES])
+    return NO_NEWS
 
 
 def has_upcoming_earnings(ticker: str) -> bool:
