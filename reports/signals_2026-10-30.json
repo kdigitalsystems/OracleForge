@@ -1,6 +1,6 @@
 {
     "date": "2026-10-30",
-    "generated_at": "2026-11-01T20:59:14",
+    "generated_at": "2026-11-01T22:13:28",
     "config": {
         "min_upside_pct": 1.5,
         "min_range_width_pct": 0.5,
@@ -10,12 +10,34 @@
         "max_consensus_cv": 0.1
     },
     "summary": {
-        "total": 100,
-        "active": 44,
-        "skip": 48,
-        "stale": 8
+        "total": 194,
+        "active": 82,
+        "skip": 93,
+        "stale": 19
     },
     "active": [
+        {
+            "ticker": "HOOD",
+            "close": 85.0,
+            "buy_low": 78.22,
+            "buy_high": 80.14,
+            "sell_low": 89.7,
+            "sell_high": 92.27,
+            "upside_pct": 11.93,
+            "consensus_cv": 0.056,
+            "signal": "ACTIVE"
+        },
+        {
+            "ticker": "BBWI",
+            "close": 22.78,
+            "buy_low": 20.64,
+            "buy_high": 21.02,
+            "sell_low": 23.08,
+            "sell_high": 24.54,
+            "upside_pct": 9.8,
+            "consensus_cv": 0.0597,
+            "signal": "ACTIVE"
+        },
         {
             "ticker": "UMC",
             "close": 16.69,
@@ -36,6 +58,39 @@
             "sell_high": 14.71,
             "upside_pct": 8.82,
             "consensus_cv": 0.0522,
+            "signal": "ACTIVE"
+        },
+        {
+            "ticker": "TSM",
+            "close": 406.0,
+            "buy_low": 395.11,
+            "buy_high": 400.06,
+            "sell_low": 431.51,
+            "sell_high": 439.32,
+            "upside_pct": 7.86,
+            "consensus_cv": 0.0137,
+            "signal": "ACTIVE"
+        },
+        {
+            "ticker": "BAX",
+            "close": 22.96,
+            "buy_low": 22.5,
+            "buy_high": 22.96,
+            "sell_low": 24.54,
+            "sell_high": 25.3,
+            "upside_pct": 6.7,
+            "consensus_cv": 0.0203,
+            "signal": "ACTIVE"
+        },
+        {
+            "ticker": "AG",
+            "close": 14.25,
+            "buy_low": 14.0,
+            "buy_high": 14.25,
+            "sell_low": 15.16,
+            "sell_high": 15.54,
+            "upside_pct": 6.39,
+            "consensus_cv": 0.0247,
             "signal": "ACTIVE"
         },
         {
@@ -61,6 +116,17 @@
             "signal": "ACTIVE"
         },
         {
+            "ticker": "FIG",
+            "close": 21.64,
+            "buy_low": 21.0,
+            "buy_high": 21.59,
+            "sell_low": 22.62,
+            "sell_high": 23.23,
+            "upside_pct": 4.77,
+            "consensus_cv": 0.0106,
+            "signal": "ACTIVE"
+        },
+        {
             "ticker": "GOOGL",
             "close": 279.9,
             "buy_low": 275.81,
@@ -83,6 +149,17 @@
             "signal": "ACTIVE"
         },
         {
+            "ticker": "WY",
+            "close": 20.4,
+            "buy_low": 19.35,
+            "buy_high": 19.59,
+            "sell_low": 20.49,
+            "sell_high": 20.69,
+            "upside_pct": 4.59,
+            "consensus_cv": 0.0191,
+            "signal": "ACTIVE"
+        },
+        {
             "ticker": "CCL",
             "close": 28.8,
             "buy_low": 27.12,
@@ -91,6 +168,17 @@
             "sell_high": 29.06,
             "upside_pct": 4.26,
             "consensus_cv": 0.0286,
+            "signal": "ACTIVE"
+        },
+        {
+            "ticker": "MU",
+            "close": 884.57,
+            "buy_low": 841.7,
+            "buy_high": 861.3,
+            "sell_low": 896.26,
+            "sell_high": 955.52,
+            "upside_pct": 4.06,
+            "consensus_cv": 0.0142,
             "signal": "ACTIVE"
         },
         {
@@ -105,6 +193,50 @@
             "signal": "ACTIVE"
         },
         {
+            "ticker": "MDLZ",
+            "close": 64.94,
+            "buy_low": 62.5,
+            "buy_high": 63.0,
+            "sell_low": 65.51,
+            "sell_high": 67.0,
+            "upside_pct": 3.98,
+            "consensus_cv": 0.0081,
+            "signal": "ACTIVE"
+        },
+        {
+            "ticker": "CART",
+            "close": 56.47,
+            "buy_low": 56.0,
+            "buy_high": 56.47,
+            "sell_low": 58.62,
+            "sell_high": 59.35,
+            "upside_pct": 3.77,
+            "consensus_cv": 0.0255,
+            "signal": "ACTIVE"
+        },
+        {
+            "ticker": "SCHG",
+            "close": 34.32,
+            "buy_low": 34.0,
+            "buy_high": 34.26,
+            "sell_low": 35.54,
+            "sell_high": 36.04,
+            "upside_pct": 3.74,
+            "consensus_cv": 0.014,
+            "signal": "ACTIVE"
+        },
+        {
+            "ticker": "U",
+            "close": 37.7,
+            "buy_low": 37.38,
+            "buy_high": 37.7,
+            "sell_low": 39.17,
+            "sell_high": 39.81,
+            "upside_pct": 3.71,
+            "consensus_cv": 0.0229,
+            "signal": "ACTIVE"
+        },
+        {
             "ticker": "SAN",
             "close": 11.19,
             "buy_low": 11.04,
@@ -113,6 +245,17 @@
             "sell_high": 11.97,
             "upside_pct": 3.64,
             "consensus_cv": 0.0321,
+            "signal": "ACTIVE"
+        },
+        {
+            "ticker": "BTI",
+            "close": 61.52,
+            "buy_low": 59.25,
+            "buy_high": 59.68,
+            "sell_low": 61.78,
+            "sell_high": 62.28,
+            "upside_pct": 3.52,
+            "consensus_cv": 0.0123,
             "signal": "ACTIVE"
         },
         {
@@ -135,6 +278,28 @@
             "sell_high": 12.45,
             "upside_pct": 3.44,
             "consensus_cv": 0.0188,
+            "signal": "ACTIVE"
+        },
+        {
+            "ticker": "SLV",
+            "close": 44.59,
+            "buy_low": 44.08,
+            "buy_high": 44.59,
+            "sell_low": 46.93,
+            "sell_high": 49.35,
+            "upside_pct": 3.39,
+            "consensus_cv": 0.0362,
+            "signal": "ACTIVE"
+        },
+        {
+            "ticker": "CAG",
+            "close": 14.57,
+            "buy_low": 14.15,
+            "buy_high": 14.23,
+            "sell_low": 14.71,
+            "sell_high": 14.84,
+            "upside_pct": 3.37,
+            "consensus_cv": 0.0098,
             "signal": "ACTIVE"
         },
         {
@@ -171,6 +336,50 @@
             "signal": "ACTIVE"
         },
         {
+            "ticker": "CNQ",
+            "close": 56.12,
+            "buy_low": 53.94,
+            "buy_high": 54.5,
+            "sell_low": 56.21,
+            "sell_high": 57.16,
+            "upside_pct": 3.14,
+            "consensus_cv": 0.01,
+            "signal": "ACTIVE"
+        },
+        {
+            "ticker": "GLW",
+            "close": 123.32,
+            "buy_low": 122.24,
+            "buy_high": 123.32,
+            "sell_low": 128.87,
+            "sell_high": 130.42,
+            "upside_pct": 3.12,
+            "consensus_cv": 0.0174,
+            "signal": "ACTIVE"
+        },
+        {
+            "ticker": "IVZ",
+            "close": 27.77,
+            "buy_low": 27.34,
+            "buy_high": 27.62,
+            "sell_low": 28.48,
+            "sell_high": 29.01,
+            "upside_pct": 3.11,
+            "consensus_cv": 0.0049,
+            "signal": "ACTIVE"
+        },
+        {
+            "ticker": "MDLN",
+            "close": 32.1,
+            "buy_low": 31.88,
+            "buy_high": 32.1,
+            "sell_low": 33.18,
+            "sell_high": 33.72,
+            "upside_pct": 3.01,
+            "consensus_cv": 0.0105,
+            "signal": "ACTIVE"
+        },
+        {
             "ticker": "VALE",
             "close": 11.4,
             "buy_low": 11.08,
@@ -193,6 +402,50 @@
             "signal": "ACTIVE"
         },
         {
+            "ticker": "VTRS",
+            "close": 19.04,
+            "buy_low": 18.48,
+            "buy_high": 18.69,
+            "sell_low": 19.23,
+            "sell_high": 19.4,
+            "upside_pct": 2.89,
+            "consensus_cv": 0.0171,
+            "signal": "ACTIVE"
+        },
+        {
+            "ticker": "FLG",
+            "close": 10.52,
+            "buy_low": 10.22,
+            "buy_high": 10.37,
+            "sell_low": 10.67,
+            "sell_high": 10.79,
+            "upside_pct": 2.89,
+            "consensus_cv": 0.0077,
+            "signal": "ACTIVE"
+        },
+        {
+            "ticker": "KLAC",
+            "close": 157.83,
+            "buy_low": 155.74,
+            "buy_high": 157.38,
+            "sell_low": 161.91,
+            "sell_high": 163.54,
+            "upside_pct": 2.88,
+            "consensus_cv": 0.0128,
+            "signal": "ACTIVE"
+        },
+        {
+            "ticker": "IGV",
+            "close": 104.33,
+            "buy_low": 103.95,
+            "buy_high": 104.33,
+            "sell_low": 108.23,
+            "sell_high": 117.52,
+            "upside_pct": 2.86,
+            "consensus_cv": 0.0148,
+            "signal": "ACTIVE"
+        },
+        {
             "ticker": "BITO",
             "close": 10.23,
             "buy_low": 10.23,
@@ -212,6 +465,17 @@
             "sell_high": 12.95,
             "upside_pct": 2.8,
             "consensus_cv": 0.0058,
+            "signal": "ACTIVE"
+        },
+        {
+            "ticker": "FCX",
+            "close": 62.45,
+            "buy_low": 61.73,
+            "buy_high": 62.45,
+            "sell_low": 64.49,
+            "sell_high": 65.6,
+            "upside_pct": 2.77,
+            "consensus_cv": 0.0085,
             "signal": "ACTIVE"
         },
         {
@@ -281,6 +545,17 @@
             "signal": "ACTIVE"
         },
         {
+            "ticker": "KLAR",
+            "close": 13.3,
+            "buy_low": 12.91,
+            "buy_high": 13.13,
+            "sell_low": 13.45,
+            "sell_high": 13.7,
+            "upside_pct": 2.44,
+            "consensus_cv": 0.0057,
+            "signal": "ACTIVE"
+        },
+        {
             "ticker": "XLP",
             "close": 89.42,
             "buy_low": 86.69,
@@ -325,6 +600,28 @@
             "signal": "ACTIVE"
         },
         {
+            "ticker": "GOOG",
+            "close": 278.3,
+            "buy_low": 275.17,
+            "buy_high": 278.3,
+            "sell_low": 286.26,
+            "sell_high": 291.04,
+            "upside_pct": 2.24,
+            "consensus_cv": 0.0142,
+            "signal": "ACTIVE"
+        },
+        {
+            "ticker": "MCHP",
+            "close": 77.36,
+            "buy_low": 75.16,
+            "buy_high": 76.68,
+            "sell_low": 78.39,
+            "sell_high": 81.18,
+            "upside_pct": 2.23,
+            "consensus_cv": 0.0053,
+            "signal": "ACTIVE"
+        },
+        {
             "ticker": "EEM",
             "close": 61.03,
             "buy_low": 60.27,
@@ -347,6 +644,17 @@
             "signal": "ACTIVE"
         },
         {
+            "ticker": "KR",
+            "close": 66.77,
+            "buy_low": 65.01,
+            "buy_high": 65.7,
+            "sell_low": 67.08,
+            "sell_high": 67.99,
+            "upside_pct": 2.1,
+            "consensus_cv": 0.0033,
+            "signal": "ACTIVE"
+        },
+        {
             "ticker": "KO",
             "close": 94.12,
             "buy_low": 91.81,
@@ -355,6 +663,17 @@
             "sell_high": 95.57,
             "upside_pct": 2.08,
             "consensus_cv": 0.002,
+            "signal": "ACTIVE"
+        },
+        {
+            "ticker": "B",
+            "close": 36.97,
+            "buy_low": 36.8,
+            "buy_high": 36.97,
+            "sell_low": 38.03,
+            "sell_high": 39.11,
+            "upside_pct": 2.07,
+            "consensus_cv": 0.0135,
             "signal": "ACTIVE"
         },
         {
@@ -402,6 +721,39 @@
             "signal": "ACTIVE"
         },
         {
+            "ticker": "ACI",
+            "close": 13.06,
+            "buy_low": 12.79,
+            "buy_high": 13.06,
+            "sell_low": 13.33,
+            "sell_high": 13.64,
+            "upside_pct": 1.91,
+            "consensus_cv": 0.0108,
+            "signal": "ACTIVE"
+        },
+        {
+            "ticker": "PYPL",
+            "close": 57.02,
+            "buy_low": 54.71,
+            "buy_high": 55.99,
+            "sell_low": 57.06,
+            "sell_high": 57.84,
+            "upside_pct": 1.91,
+            "consensus_cv": 0.0098,
+            "signal": "ACTIVE"
+        },
+        {
+            "ticker": "AVGO",
+            "close": 326.15,
+            "buy_low": 326.15,
+            "buy_high": 326.15,
+            "sell_low": 339.94,
+            "sell_high": 345.4,
+            "upside_pct": 1.89,
+            "consensus_cv": 0.0207,
+            "signal": "ACTIVE"
+        },
+        {
             "ticker": "HBAN",
             "close": 15.78,
             "buy_low": 15.48,
@@ -413,6 +765,28 @@
             "signal": "ACTIVE"
         },
         {
+            "ticker": "XBI",
+            "close": 155.96,
+            "buy_low": 152.73,
+            "buy_high": 153.55,
+            "sell_low": 156.37,
+            "sell_high": 157.46,
+            "upside_pct": 1.84,
+            "consensus_cv": 0.0039,
+            "signal": "ACTIVE"
+        },
+        {
+            "ticker": "PTEN",
+            "close": 13.32,
+            "buy_low": 12.84,
+            "buy_high": 13.11,
+            "sell_low": 13.35,
+            "sell_high": 13.62,
+            "upside_pct": 1.83,
+            "consensus_cv": 0.0076,
+            "signal": "ACTIVE"
+        },
+        {
             "ticker": "BP",
             "close": 50.43,
             "buy_low": 49.0,
@@ -421,6 +795,17 @@
             "sell_high": 51.46,
             "upside_pct": 1.82,
             "consensus_cv": 0.0069,
+            "signal": "ACTIVE"
+        },
+        {
+            "ticker": "CHWY",
+            "close": 21.29,
+            "buy_low": 20.66,
+            "buy_high": 21.03,
+            "sell_low": 21.41,
+            "sell_high": 21.77,
+            "upside_pct": 1.81,
+            "consensus_cv": 0.0056,
             "signal": "ACTIVE"
         },
         {
@@ -468,6 +853,28 @@
             "signal": "ACTIVE"
         },
         {
+            "ticker": "USB",
+            "close": 59.45,
+            "buy_low": 58.22,
+            "buy_high": 59.45,
+            "sell_low": 60.41,
+            "sell_high": 63.43,
+            "upside_pct": 1.61,
+            "consensus_cv": 0.0044,
+            "signal": "ACTIVE"
+        },
+        {
+            "ticker": "GIS",
+            "close": 34.28,
+            "buy_low": 33.53,
+            "buy_high": 33.97,
+            "sell_low": 34.5,
+            "sell_high": 35.14,
+            "upside_pct": 1.56,
+            "consensus_cv": 0.01,
+            "signal": "ACTIVE"
+        },
+        {
             "ticker": "KHC",
             "close": 24.32,
             "buy_low": 23.68,
@@ -476,6 +883,17 @@
             "sell_high": 24.82,
             "upside_pct": 1.54,
             "consensus_cv": 0.0061,
+            "signal": "ACTIVE"
+        },
+        {
+            "ticker": "MSFT",
+            "close": 521.97,
+            "buy_low": 517.79,
+            "buy_high": 521.97,
+            "sell_low": 530.18,
+            "sell_high": 534.22,
+            "upside_pct": 1.52,
+            "consensus_cv": 0.0005,
             "signal": "ACTIVE"
         },
         {
@@ -547,6 +965,28 @@
             "signal": "SKIP"
         },
         {
+            "ticker": "HBM",
+            "close": 21.7,
+            "buy_low": 21.0,
+            "buy_high": 21.81,
+            "sell_low": 22.31,
+            "sell_high": 22.91,
+            "upside_pct": 2.29,
+            "consensus_cv": 0.008,
+            "signal": "SKIP"
+        },
+        {
+            "ticker": "JETS",
+            "close": 26.93,
+            "buy_low": 25.6,
+            "buy_high": 26.47,
+            "sell_low": 27.04,
+            "sell_high": 27.56,
+            "upside_pct": 2.15,
+            "consensus_cv": 0.0017,
+            "signal": "SKIP"
+        },
+        {
             "ticker": "S",
             "close": 25.15,
             "buy_low": 24.3,
@@ -591,6 +1031,17 @@
             "signal": "SKIP"
         },
         {
+            "ticker": "TFC",
+            "close": 48.82,
+            "buy_low": 47.1,
+            "buy_high": 48.6,
+            "sell_low": 49.31,
+            "sell_high": 51.17,
+            "upside_pct": 1.46,
+            "consensus_cv": 0.0014,
+            "signal": "SKIP"
+        },
+        {
             "ticker": "NFLX",
             "close": 62.09,
             "buy_low": 61.5,
@@ -599,6 +1050,17 @@
             "sell_high": 63.73,
             "upside_pct": 1.37,
             "consensus_cv": 0.0008,
+            "signal": "SKIP"
+        },
+        {
+            "ticker": "OXY",
+            "close": 63.99,
+            "buy_low": 62.0,
+            "buy_high": 63.39,
+            "sell_low": 64.26,
+            "sell_high": 65.0,
+            "upside_pct": 1.37,
+            "consensus_cv": 0.0057,
             "signal": "SKIP"
         },
         {
@@ -624,6 +1086,17 @@
             "signal": "SKIP"
         },
         {
+            "ticker": "HST",
+            "close": 25.3,
+            "buy_low": 24.91,
+            "buy_high": 25.15,
+            "sell_low": 25.49,
+            "sell_high": 25.74,
+            "upside_pct": 1.35,
+            "consensus_cv": 0.0039,
+            "signal": "SKIP"
+        },
+        {
             "ticker": "SCHH",
             "close": 23.06,
             "buy_low": 22.7,
@@ -632,6 +1105,17 @@
             "sell_high": 23.33,
             "upside_pct": 1.27,
             "consensus_cv": 0.01,
+            "signal": "SKIP"
+        },
+        {
+            "ticker": "IEMG",
+            "close": 74.27,
+            "buy_low": 74.05,
+            "buy_high": 75.57,
+            "sell_low": 76.53,
+            "sell_high": 77.1,
+            "upside_pct": 1.27,
+            "consensus_cv": 0.0159,
             "signal": "SKIP"
         },
         {
@@ -646,6 +1130,17 @@
             "signal": "SKIP"
         },
         {
+            "ticker": "CSCO",
+            "close": 104.53,
+            "buy_low": 103.36,
+            "buy_high": 104.51,
+            "sell_low": 105.83,
+            "sell_high": 107.38,
+            "upside_pct": 1.26,
+            "consensus_cv": 0.0085,
+            "signal": "SKIP"
+        },
+        {
             "ticker": "SPY",
             "close": 755.72,
             "buy_low": 747.47,
@@ -654,6 +1149,28 @@
             "sell_high": 764.55,
             "upside_pct": 1.24,
             "consensus_cv": 0.002,
+            "signal": "SKIP"
+        },
+        {
+            "ticker": "HDB",
+            "close": 22.2,
+            "buy_low": 21.74,
+            "buy_high": 22.05,
+            "sell_low": 22.32,
+            "sell_high": 23.09,
+            "upside_pct": 1.22,
+            "consensus_cv": 0.0023,
+            "signal": "SKIP"
+        },
+        {
+            "ticker": "JD",
+            "close": 25.71,
+            "buy_low": 25.21,
+            "buy_high": 25.49,
+            "sell_low": 25.8,
+            "sell_high": 26.59,
+            "upside_pct": 1.22,
+            "consensus_cv": 0.008,
             "signal": "SKIP"
         },
         {
@@ -712,6 +1229,17 @@
             "signal": "SKIP"
         },
         {
+            "ticker": "XLV",
+            "close": 184.9,
+            "buy_low": 180.46,
+            "buy_high": 182.95,
+            "sell_low": 185.0,
+            "sell_high": 186.91,
+            "upside_pct": 1.12,
+            "consensus_cv": 0.0056,
+            "signal": "SKIP"
+        },
+        {
             "ticker": "SLB",
             "close": 53.74,
             "buy_low": 52.32,
@@ -723,6 +1251,72 @@
             "signal": "SKIP"
         },
         {
+            "ticker": "EWY",
+            "close": 152.92,
+            "buy_low": 149.43,
+            "buy_high": 152.92,
+            "sell_low": 154.55,
+            "sell_high": 161.24,
+            "upside_pct": 1.07,
+            "consensus_cv": 0.0032,
+            "signal": "SKIP"
+        },
+        {
+            "ticker": "XLRE",
+            "close": 43.16,
+            "buy_low": 42.47,
+            "buy_high": 42.75,
+            "sell_low": 43.18,
+            "sell_high": 43.36,
+            "upside_pct": 1.01,
+            "consensus_cv": 0.0064,
+            "signal": "SKIP"
+        },
+        {
+            "ticker": "SHEL",
+            "close": 108.71,
+            "buy_low": 107.8,
+            "buy_high": 108.29,
+            "sell_low": 109.37,
+            "sell_high": 111.28,
+            "upside_pct": 1.0,
+            "consensus_cv": 0.0042,
+            "signal": "SKIP"
+        },
+        {
+            "ticker": "LYFT",
+            "close": 16.18,
+            "buy_low": 16.02,
+            "buy_high": 16.14,
+            "sell_low": 16.3,
+            "sell_high": 16.83,
+            "upside_pct": 0.99,
+            "consensus_cv": 0.0077,
+            "signal": "SKIP"
+        },
+        {
+            "ticker": "VEA",
+            "close": 69.44,
+            "buy_low": 68.96,
+            "buy_high": 69.39,
+            "sell_low": 70.07,
+            "sell_high": 70.41,
+            "upside_pct": 0.98,
+            "consensus_cv": 0.0011,
+            "signal": "SKIP"
+        },
+        {
+            "ticker": "ABT",
+            "close": 106.24,
+            "buy_low": 104.31,
+            "buy_high": 105.62,
+            "sell_low": 106.65,
+            "sell_high": 107.77,
+            "upside_pct": 0.98,
+            "consensus_cv": 0.0064,
+            "signal": "SKIP"
+        },
+        {
             "ticker": "KVUE",
             "close": 19.27,
             "buy_low": 19.18,
@@ -731,6 +1325,39 @@
             "sell_high": 19.72,
             "upside_pct": 0.93,
             "consensus_cv": 0.0016,
+            "signal": "SKIP"
+        },
+        {
+            "ticker": "FHN",
+            "close": 23.27,
+            "buy_low": 22.82,
+            "buy_high": 23.15,
+            "sell_low": 23.36,
+            "sell_high": 23.65,
+            "upside_pct": 0.91,
+            "consensus_cv": 0.0036,
+            "signal": "SKIP"
+        },
+        {
+            "ticker": "XLK",
+            "close": 179.5,
+            "buy_low": 178.32,
+            "buy_high": 180.57,
+            "sell_low": 182.19,
+            "sell_high": 187.83,
+            "upside_pct": 0.9,
+            "consensus_cv": 0.0106,
+            "signal": "SKIP"
+        },
+        {
+            "ticker": "CNP",
+            "close": 42.45,
+            "buy_low": 42.06,
+            "buy_high": 42.3,
+            "sell_low": 42.68,
+            "sell_high": 43.88,
+            "upside_pct": 0.9,
+            "consensus_cv": 0.0082,
             "signal": "SKIP"
         },
         {
@@ -756,6 +1383,39 @@
             "signal": "SKIP"
         },
         {
+            "ticker": "FAST",
+            "close": 51.91,
+            "buy_low": 51.23,
+            "buy_high": 51.8,
+            "sell_low": 52.23,
+            "sell_high": 53.11,
+            "upside_pct": 0.83,
+            "consensus_cv": 0.0047,
+            "signal": "SKIP"
+        },
+        {
+            "ticker": "NLY",
+            "close": 18.25,
+            "buy_low": 17.84,
+            "buy_high": 18.25,
+            "sell_low": 18.4,
+            "sell_high": 18.59,
+            "upside_pct": 0.82,
+            "consensus_cv": 0.0033,
+            "signal": "SKIP"
+        },
+        {
+            "ticker": "SCHW",
+            "close": 88.02,
+            "buy_low": 87.5,
+            "buy_high": 88.28,
+            "sell_low": 89.0,
+            "sell_high": 90.67,
+            "upside_pct": 0.82,
+            "consensus_cv": 0.0027,
+            "signal": "SKIP"
+        },
+        {
             "ticker": "UBER",
             "close": 65.23,
             "buy_low": 64.99,
@@ -764,6 +1424,17 @@
             "sell_high": 67.96,
             "upside_pct": 0.8,
             "consensus_cv": 0.0096,
+            "signal": "SKIP"
+        },
+        {
+            "ticker": "PR",
+            "close": 26.03,
+            "buy_low": 24.78,
+            "buy_high": 25.81,
+            "sell_low": 25.99,
+            "sell_high": 26.27,
+            "upside_pct": 0.7,
+            "consensus_cv": 0.0039,
             "signal": "SKIP"
         },
         {
@@ -789,6 +1460,17 @@
             "signal": "SKIP"
         },
         {
+            "ticker": "JBS",
+            "close": 12.48,
+            "buy_low": 12.24,
+            "buy_high": 12.41,
+            "sell_low": 12.49,
+            "sell_high": 12.71,
+            "upside_pct": 0.64,
+            "consensus_cv": 0.0032,
+            "signal": "SKIP"
+        },
+        {
             "ticker": "PBR.A",
             "close": 19.42,
             "buy_low": 19.34,
@@ -800,6 +1482,28 @@
             "signal": "SKIP"
         },
         {
+            "ticker": "SCHF",
+            "close": 26.96,
+            "buy_low": 26.78,
+            "buy_high": 26.95,
+            "sell_low": 27.1,
+            "sell_high": 27.35,
+            "upside_pct": 0.56,
+            "consensus_cv": 0.0019,
+            "signal": "SKIP"
+        },
+        {
+            "ticker": "IEFA",
+            "close": 96.26,
+            "buy_low": 95.53,
+            "buy_high": 95.94,
+            "sell_low": 96.46,
+            "sell_high": 97.25,
+            "upside_pct": 0.54,
+            "consensus_cv": 0.0052,
+            "signal": "SKIP"
+        },
+        {
             "ticker": "EMB",
             "close": 92.05,
             "buy_low": 91.56,
@@ -808,6 +1512,17 @@
             "sell_high": 92.3,
             "upside_pct": 0.53,
             "consensus_cv": 0.0019,
+            "signal": "SKIP"
+        },
+        {
+            "ticker": "APH",
+            "close": 79.33,
+            "buy_low": 77.7,
+            "buy_high": 79.33,
+            "sell_low": 79.7,
+            "sell_high": 82.59,
+            "upside_pct": 0.47,
+            "consensus_cv": 0.0041,
             "signal": "SKIP"
         },
         {
@@ -844,6 +1559,17 @@
             "signal": "SKIP"
         },
         {
+            "ticker": "RF",
+            "close": 28.57,
+            "buy_low": 28.36,
+            "buy_high": 28.72,
+            "sell_low": 28.84,
+            "sell_high": 29.21,
+            "upside_pct": 0.42,
+            "consensus_cv": 0.0104,
+            "signal": "SKIP"
+        },
+        {
             "ticker": "BAC",
             "close": 50.01,
             "buy_low": 49.93,
@@ -855,6 +1581,39 @@
             "signal": "SKIP"
         },
         {
+            "ticker": "XLI",
+            "close": 167.42,
+            "buy_low": 163.92,
+            "buy_high": 167.42,
+            "sell_low": 168.0,
+            "sell_high": 170.2,
+            "upside_pct": 0.35,
+            "consensus_cv": 0.0,
+            "signal": "SKIP"
+        },
+        {
+            "ticker": "QQQ",
+            "close": 690.54,
+            "buy_low": 687.99,
+            "buy_high": 691.33,
+            "sell_low": 693.16,
+            "sell_high": 700.0,
+            "upside_pct": 0.26,
+            "consensus_cv": 0.0029,
+            "signal": "SKIP"
+        },
+        {
+            "ticker": "XLC",
+            "close": 99.91,
+            "buy_low": 99.2,
+            "buy_high": 100.14,
+            "sell_low": 100.35,
+            "sell_high": 103.55,
+            "upside_pct": 0.21,
+            "consensus_cv": 0.0021,
+            "signal": "SKIP"
+        },
+        {
             "ticker": "VTEB",
             "close": 48.9,
             "buy_low": 48.7,
@@ -863,6 +1622,28 @@
             "sell_high": 49.05,
             "upside_pct": 0.2,
             "consensus_cv": 0.0001,
+            "signal": "SKIP"
+        },
+        {
+            "ticker": "BKLN",
+            "close": 20.42,
+            "buy_low": 20.32,
+            "buy_high": 20.4,
+            "sell_low": 20.44,
+            "sell_high": 20.48,
+            "upside_pct": 0.2,
+            "consensus_cv": 0.001,
+            "signal": "SKIP"
+        },
+        {
+            "ticker": "CZR",
+            "close": 29.09,
+            "buy_low": 28.86,
+            "buy_high": 29.08,
+            "sell_low": 29.13,
+            "sell_high": 29.23,
+            "upside_pct": 0.17,
+            "consensus_cv": 0.001,
             "signal": "SKIP"
         },
         {
@@ -1029,6 +1810,138 @@
             "upside_pct": null,
             "consensus_cv": null,
             "signal": "SKIP"
+        },
+        {
+            "ticker": "MOS",
+            "close": 18.38,
+            "buy_low": null,
+            "buy_high": null,
+            "sell_low": null,
+            "sell_high": null,
+            "upside_pct": null,
+            "consensus_cv": null,
+            "signal": "SKIP"
+        },
+        {
+            "ticker": "STM",
+            "close": 46.76,
+            "buy_low": null,
+            "buy_high": null,
+            "sell_low": null,
+            "sell_high": null,
+            "upside_pct": null,
+            "consensus_cv": null,
+            "signal": "SKIP"
+        },
+        {
+            "ticker": "ET",
+            "close": 20.92,
+            "buy_low": null,
+            "buy_high": null,
+            "sell_low": null,
+            "sell_high": null,
+            "upside_pct": null,
+            "consensus_cv": null,
+            "signal": "SKIP"
+        },
+        {
+            "ticker": "DOW",
+            "close": 34.7,
+            "buy_low": null,
+            "buy_high": null,
+            "sell_low": null,
+            "sell_high": null,
+            "upside_pct": null,
+            "consensus_cv": null,
+            "signal": "SKIP"
+        },
+        {
+            "ticker": "TOST",
+            "close": 31.67,
+            "buy_low": null,
+            "buy_high": null,
+            "sell_low": null,
+            "sell_high": null,
+            "upside_pct": null,
+            "consensus_cv": null,
+            "signal": "SKIP"
+        },
+        {
+            "ticker": "CVE",
+            "close": 32.73,
+            "buy_low": null,
+            "buy_high": null,
+            "sell_low": null,
+            "sell_high": null,
+            "upside_pct": null,
+            "consensus_cv": null,
+            "signal": "SKIP"
+        },
+        {
+            "ticker": "XLY",
+            "close": 115.38,
+            "buy_low": null,
+            "buy_high": null,
+            "sell_low": null,
+            "sell_high": null,
+            "upside_pct": null,
+            "consensus_cv": null,
+            "signal": "SKIP"
+        },
+        {
+            "ticker": "PLTR",
+            "close": 184.1,
+            "buy_low": null,
+            "buy_high": null,
+            "sell_low": null,
+            "sell_high": null,
+            "upside_pct": null,
+            "consensus_cv": null,
+            "signal": "SKIP"
+        },
+        {
+            "ticker": "JHX",
+            "close": 27.25,
+            "buy_low": null,
+            "buy_high": null,
+            "sell_low": null,
+            "sell_high": null,
+            "upside_pct": null,
+            "consensus_cv": null,
+            "signal": "SKIP"
+        },
+        {
+            "ticker": "O",
+            "close": 56.94,
+            "buy_low": null,
+            "buy_high": null,
+            "sell_low": null,
+            "sell_high": null,
+            "upside_pct": null,
+            "consensus_cv": null,
+            "signal": "SKIP"
+        },
+        {
+            "ticker": "WMB",
+            "close": 74.37,
+            "buy_low": null,
+            "buy_high": null,
+            "sell_low": null,
+            "sell_high": null,
+            "upside_pct": null,
+            "consensus_cv": null,
+            "signal": "SKIP"
+        },
+        {
+            "ticker": "CRBG",
+            "close": 34.79,
+            "buy_low": null,
+            "buy_high": null,
+            "sell_low": null,
+            "sell_high": null,
+            "upside_pct": null,
+            "consensus_cv": null,
+            "signal": "SKIP"
         }
     ],
     "stale": [
@@ -1118,6 +2031,127 @@
             "sell_high": 79.77,
             "upside_pct": null,
             "consensus_cv": 0.0033,
+            "signal": "STALE"
+        },
+        {
+            "ticker": "MUB",
+            "close": 104.25,
+            "buy_low": 102.89,
+            "buy_high": 103.37,
+            "sell_low": 104.11,
+            "sell_high": 104.45,
+            "upside_pct": null,
+            "consensus_cv": 0.0065,
+            "signal": "STALE"
+        },
+        {
+            "ticker": "SPIB",
+            "close": 32.68,
+            "buy_low": 32.49,
+            "buy_high": 32.58,
+            "sell_low": 32.65,
+            "sell_high": 32.72,
+            "upside_pct": null,
+            "consensus_cv": 0.0015,
+            "signal": "STALE"
+        },
+        {
+            "ticker": "VCLT",
+            "close": 70.64,
+            "buy_low": 69.74,
+            "buy_high": 70.25,
+            "sell_low": 70.43,
+            "sell_high": 71.06,
+            "upside_pct": null,
+            "consensus_cv": 0.0038,
+            "signal": "STALE"
+        },
+        {
+            "ticker": "MNST",
+            "close": 47.35,
+            "buy_low": 45.45,
+            "buy_high": 46.07,
+            "sell_low": 47.08,
+            "sell_high": 47.82,
+            "upside_pct": null,
+            "consensus_cv": 0.0026,
+            "signal": "STALE"
+        },
+        {
+            "ticker": "VICI",
+            "close": 24.48,
+            "buy_low": 23.54,
+            "buy_high": 23.79,
+            "sell_low": 23.89,
+            "sell_high": 24.07,
+            "upside_pct": null,
+            "consensus_cv": 0.0234,
+            "signal": "STALE"
+        },
+        {
+            "ticker": "INDA",
+            "close": 47.72,
+            "buy_low": 46.68,
+            "buy_high": 47.09,
+            "sell_low": 47.28,
+            "sell_high": 47.84,
+            "upside_pct": null,
+            "consensus_cv": 0.0042,
+            "signal": "STALE"
+        },
+        {
+            "ticker": "IYR",
+            "close": 99.67,
+            "buy_low": 97.12,
+            "buy_high": 97.71,
+            "sell_low": 99.22,
+            "sell_high": 100.35,
+            "upside_pct": null,
+            "consensus_cv": 0.0086,
+            "signal": "STALE"
+        },
+        {
+            "ticker": "EXC",
+            "close": 46.15,
+            "buy_low": 43.8,
+            "buy_high": 44.38,
+            "sell_low": 46.14,
+            "sell_high": 46.77,
+            "upside_pct": null,
+            "consensus_cv": 0.0337,
+            "signal": "STALE"
+        },
+        {
+            "ticker": "NI",
+            "close": 44.57,
+            "buy_low": 42.8,
+            "buy_high": 43.24,
+            "sell_low": 43.8,
+            "sell_high": 44.15,
+            "upside_pct": null,
+            "consensus_cv": 0.0254,
+            "signal": "STALE"
+        },
+        {
+            "ticker": "MRK",
+            "close": 149.54,
+            "buy_low": 144.89,
+            "buy_high": 146.51,
+            "sell_low": 149.14,
+            "sell_high": 151.67,
+            "upside_pct": null,
+            "consensus_cv": 0.0184,
+            "signal": "STALE"
+        },
+        {
+            "ticker": "VLY",
+            "close": 14.14,
+            "buy_low": 13.29,
+            "buy_high": 13.6,
+            "sell_low": 13.7,
+            "sell_high": 14.1,
+            "upside_pct": null,
+            "consensus_cv": 0.0393,
             "signal": "STALE"
         }
     ]
