@@ -1,6 +1,6 @@
 {
     "date": "2026-11-03",
-    "generated_at": "2026-11-04T05:45:50",
+    "generated_at": "2026-11-04T12:47:24",
     "config": {
         "min_upside_pct": 1.5,
         "min_range_width_pct": 0.5,
@@ -10,9 +10,9 @@
         "max_consensus_cv": 0.1
     },
     "summary": {
-        "total": 197,
+        "total": 200,
         "active": 85,
-        "skip": 102,
+        "skip": 105,
         "stale": 10
     },
     "active": [
@@ -1306,6 +1306,17 @@
             "signal": "SKIP"
         },
         {
+            "ticker": "PGX",
+            "close": 10.01,
+            "buy_low": 9.87,
+            "buy_high": 9.94,
+            "sell_low": 10.03,
+            "sell_high": 10.1,
+            "upside_pct": 0.91,
+            "consensus_cv": 0.0015,
+            "signal": "SKIP"
+        },
+        {
             "ticker": "BSX",
             "close": 43.5,
             "buy_low": 42.69,
@@ -2067,6 +2078,28 @@
         {
             "ticker": "MCHP",
             "close": 77.9,
+            "buy_low": null,
+            "buy_high": null,
+            "sell_low": null,
+            "sell_high": null,
+            "upside_pct": null,
+            "consensus_cv": null,
+            "signal": "SKIP"
+        },
+        {
+            "ticker": "CVS",
+            "close": 79.94,
+            "buy_low": null,
+            "buy_high": null,
+            "sell_low": null,
+            "sell_high": null,
+            "upside_pct": null,
+            "consensus_cv": null,
+            "signal": "SKIP"
+        },
+        {
+            "ticker": "DT",
+            "close": 46.42,
             "buy_low": null,
             "buy_high": null,
             "sell_low": null,

@@ -5208,5 +5208,72 @@
         },
         "signal": "ACTIVE",
         "upside_pct": 3.91
+    },
+    "CVS": {
+        "close": 79.94,
+        "models": {
+            "qwen2.5:14b-instruct-q4_K_M": {
+                "skipped": true,
+                "reason": "upcoming_earnings"
+            },
+            "deepseek-r1:8b": {
+                "skipped": true,
+                "reason": "upcoming_earnings"
+            }
+        },
+        "consensus": null,
+        "signal": "SKIP",
+        "upside_pct": null
+    },
+    "PGX": {
+        "close": 10.01,
+        "models": {
+            "qwen2.5:14b-instruct-q4_K_M": {
+                "buy_low": 9.87,
+                "buy_high": 9.93,
+                "sell_low": 10.05,
+                "sell_high": 10.11,
+                "rationale": "Entering a long position near the recent support level and taking profit closer to resistance."
+            },
+            "deepseek-r1:8b": {
+                "buy_low": 9.87,
+                "buy_high": 9.95,
+                "sell_low": 10.02,
+                "sell_high": 10.1,
+                "rationale": "Support near 10-day low, resistance near 10-day high, higher volume suggests potential breakout."
+            }
+        },
+        "consensus": {
+            "buy_low": 9.87,
+            "buy_high": 9.94,
+            "sell_low": 10.03,
+            "sell_high": 10.1,
+            "consensus_cv": 0.0015
+        },
+        "signal": "SKIP",
+        "upside_pct": 0.91
+    },
+    "DT": {
+        "close": 46.42,
+        "models": {
+            "qwen2.5:14b-instruct-q4_K_M": {
+                "buy_low": 45.61,
+                "buy_high": 46.42,
+                "sell_low": 47.11,
+                "sell_high": 50.92,
+                "rationale": "Given the oversold RSI and proximity to support, a long entry is favorable with targets set near resistance."
+            },
+            "deepseek-r1:8b": {
+                "buy_low": 45.73,
+                "buy_high": 46.19,
+                "sell_low": 47.12,
+                "sell_high": 47.59,
+                "rationale": "Fallback range (model output unparseable)",
+                "fallback": true
+            }
+        },
+        "consensus": null,
+        "signal": "SKIP",
+        "upside_pct": null
     }
 }
