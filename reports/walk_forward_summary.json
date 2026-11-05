@@ -1,5 +1,5 @@
 {
-    "generated_at": "2026-11-04T12:47:57",
+    "generated_at": "2026-11-04T23:35:45",
     "train_window": 20,
     "test_window": 5,
     "min_train_trades": 30,
@@ -367,12 +367,12 @@
                 "sample_adequate": true
             },
             "test_stats": {
-                "n": 43,
-                "mean": 0.8089,
-                "std": 5.2001,
-                "t_stat": 1.02,
-                "ci95_low": -0.7454,
-                "ci95_high": 2.3632,
+                "n": 46,
+                "mean": 1.0526,
+                "std": 5.3222,
+                "t_stat": 1.341,
+                "ci95_low": -0.4855,
+                "ci95_high": 2.5906,
                 "significant": false,
                 "sample_adequate": true
             }
@@ -384,7 +384,7 @@
             ],
             "test": [
                 "2026-10-30",
-                "2026-11-02"
+                "2026-11-03"
             ],
             "selected_params": {
                 "stop_loss_pct": 0.95,
@@ -402,12 +402,12 @@
                 "sample_adequate": true
             },
             "test_stats": {
-                "n": 1,
-                "mean": 4.5005,
-                "std": 0.0,
-                "t_stat": null,
-                "ci95_low": 4.5005,
-                "ci95_high": 4.5005,
+                "n": 9,
+                "mean": 4.1106,
+                "std": 0.7611,
+                "t_stat": 16.202,
+                "ci95_low": 3.6134,
+                "ci95_high": 4.6079,
                 "significant": false,
                 "sample_adequate": false
             }
@@ -416,14 +416,14 @@
     "summary": {
         "windows": 12,
         "validation_windows": 9,
-        "validation_trades": 231,
-        "avg_validation_return_pct": 2.0329,
+        "validation_trades": 242,
+        "avg_validation_return_pct": 2.0167,
         "positive_windows": 8
     },
     "latest_recommendation": {
         "train": [
-            "2026-09-30",
-            "2026-11-02"
+            "2026-10-01",
+            "2026-11-03"
         ],
         "selected_params": {
             "stop_loss_pct": 0.93,
@@ -431,12 +431,12 @@
             "min_upside_pct": 2.5
         },
         "train_stats": {
-            "n": 105,
-            "mean": 0.237,
-            "std": 6.8011,
-            "t_stat": 0.357,
-            "ci95_low": -1.0639,
-            "ci95_high": 1.5379,
+            "n": 115,
+            "mean": 0.6407,
+            "std": 6.6625,
+            "t_stat": 1.031,
+            "ci95_low": -0.577,
+            "ci95_high": 1.8584,
             "significant": false,
             "sample_adequate": true
         }
