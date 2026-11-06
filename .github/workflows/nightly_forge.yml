@@ -29,14 +29,16 @@ jobs:
     # restart, a self-heal that has fired in production) and pulls models
     # with the host ollama binary. Neither works inside a job container.
     #
-    # Needs the Alpaca key file and Ollama with the configured models. nvidia-gpu
-    # keeps it off server2 (AMD), which has neither yet; drop the label once
-    # runner_health.yml canary=true passes there. Known issue: deepseek-r1:8b
-    # returned gibberish on server1 under the real prompts, leaving a handful
-    # of ACTIVE signals a night instead of ~70 and its runner dropped mid-job
-    # on 2026-10-22. The "Preflight" step below fails the job early on any
-    # runner whose models misbehave, so the retry can land elsewhere.
-    runs-on: [self-hosted, nvidia-gpu]
+    # Needs the Alpaca key file and Ollama with the configured models. The wsl
+    # label (the desktop) keeps it off server1, whose deepseek-r1:8b returns
+    # gibberish under sustained load: on 2026-10-29 a retry landed there, the
+    # 4-ticker Preflight below passed, and the real run still produced 3 ACTIVE
+    # signals instead of ~70. server2 (AMD, memory-starved) is not an option
+    # either. Cost: this competes with other projects' jobs for the one desktop
+    # runner. Drop the label once server1 is fixed and passes runner_health.yml
+    # canary=true under load. If any model does break mid-run, forge_loop
+    # discards its fallbacks and exits 75, which fails the job at once (below).
+    runs-on: [self-hosted, wsl]
     timeout-minutes: 720
 
     permissions:
@@ -229,11 +231,19 @@ jobs:
         run: |
           for attempt in 1 2 3; do
             echo "=== Forge attempt $attempt ==="
-            if python3 forge_loop.py --batch-size 10 --push-every 100 --push; then
+            python3 forge_loop.py --batch-size 10 --push-every 100 --push && rc=0 || rc=$?
+            if [ "$rc" -eq 0 ]; then
               echo "Forge completed on attempt $attempt."
               exit 0
             fi
-            echo "Forge attempt $attempt failed; resuming in 30s..."
+            if [ "$rc" -eq 75 ]; then
+              # A model is broken on this runner (see forge_loop.ModelUnhealthy).
+              # Retrying in place would hit the same machine; fail the job so the
+              # retry watchdog starts a fresh one. Bad predictions were discarded.
+              echo "ERROR: a model is unhealthy on this runner; failing the job without inline retries."
+              exit 75
+            fi
+            echo "Forge attempt $attempt failed (exit $rc); resuming in 30s..."
             sleep 30
           done
           echo "ERROR: forge did not complete after 3 attempts."

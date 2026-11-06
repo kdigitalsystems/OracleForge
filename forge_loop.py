@@ -8,7 +8,7 @@ import subprocess
 import sys
 import threading
 import time
-from collections import defaultdict
+from collections import Counter, defaultdict, deque
 from datetime import datetime, timedelta, timezone
 
 import pytz
@@ -154,7 +154,11 @@ def _with_timeout(fn, timeout_s=YFINANCE_CALL_TIMEOUT, default=None):
     return result[0]
 
 
+# Where the forecast sends prompts; overridable so tests can point it at a fake.
+OLLAMA_URL = os.environ.get('OLLAMA_URL', 'http://localhost:11434/api/generate')
+
 NEWS_MAX_HEADLINES = 5
+NEWS_STATS: Counter = Counter()   # which source answered, per ticker this run
 NEWS_LOOKBACK_DAYS = 4          # a Sunday-night run still sees Friday's headlines
 NO_NEWS = "No recent news available."
 
@@ -194,11 +198,25 @@ def fetch_recent_news(ticker):
     (every prompt said "No recent news available.") because the only source,
     Yahoo's news endpoint, started returning 404 and nothing flagged it.
     """
-    for source in (_news_from_alpaca, _news_from_yahoo_search):
+    for name, source in (('alpaca', _news_from_alpaca), ('yahoo', _news_from_yahoo_search)):
         lines = _with_timeout(lambda s=source: s(ticker), default=None)
         if lines:
+            NEWS_STATS[name] += 1
             return "\n".join(lines[:NEWS_MAX_HEADLINES])
+    NEWS_STATS['none'] += 1
     return NO_NEWS
+
+
+def news_summary() -> str:
+    """One line for the log: which source gave each ticker's headlines so far."""
+    total = sum(NEWS_STATS.values())
+    if not total:
+        return "News: no tickers fetched yet"
+    line = (f"News: {NEWS_STATS['alpaca']} Alpaca, {NEWS_STATS['yahoo']} Yahoo fallback, "
+            f"{NEWS_STATS['none']} none (of {total} tickers)")
+    if total >= 20 and NEWS_STATS['none'] * 2 > total:
+        line += "  [!] more than half had no headlines: check the Alpaca key and Yahoo search"
+    return line
 
 
 def has_upcoming_earnings(ticker: str) -> bool:
@@ -616,7 +634,7 @@ All values must be positive numbers. buy_high must be less than sell_low."""
     for attempt in range(1, MAX_LLM_RETRIES + 1):
         try:
             response = requests.post(
-                "http://localhost:11434/api/generate",
+                OLLAMA_URL,
                 json={"model": model_name, "prompt": prompt, "stream": False,
                       "options": {"temperature": 0.1}},
                 timeout=120,
@@ -682,6 +700,78 @@ def bar_is_after_prior(bar, prior_date: str | None) -> bool:
     that would have failed every nightly once the newest forecast got old.
     """
     return prior_date is None or bar_session_date(bar) > prior_date
+
+
+# A model that falls back on most of its recent calls is broken on this runner,
+# not unlucky: healthy models fall back on roughly 3-8% of calls. deepseek-r1
+# returned gibberish on server1 for weeks, and on 2026-10-29 it did so in the
+# middle of a run whose 4-ticker preflight had passed, committing a forecast
+# with 3 ACTIVE signals instead of ~70.
+MODEL_HEALTH_WINDOW = 12
+MODEL_HEALTH_MIN_CALLS = 8
+MODEL_HEALTH_MAX_FALLBACK = 0.75
+MODEL_UNHEALTHY_EXIT = 75     # EX_TEMPFAIL: the workflow must not retry in place
+
+
+class ModelUnhealthy(Exception):
+    def __init__(self, model: str, fallbacks: int, calls: int):
+        super().__init__(f"{model} fell back on {fallbacks} of its last {calls} calls")
+        self.model, self.fallbacks, self.calls = model, fallbacks, calls
+
+
+class ModelHealthMonitor:
+    """Rolling per-model record of whether recent LLM calls fell back."""
+
+    def __init__(self, window: int = MODEL_HEALTH_WINDOW, min_calls: int = MODEL_HEALTH_MIN_CALLS,
+                 max_fallback: float = MODEL_HEALTH_MAX_FALLBACK):
+        self.min_calls, self.max_fallback = min_calls, max_fallback
+        self._recent: dict[str, deque] = defaultdict(lambda: deque(maxlen=window))
+
+    def record(self, model: str, fell_back: bool) -> None:
+        """Note one call's outcome; raise ModelUnhealthy once the model is clearly broken."""
+        recent = self._recent[model]
+        recent.append(bool(fell_back))
+        if len(recent) >= self.min_calls and sum(recent) / len(recent) >= self.max_fallback:
+            raise ModelUnhealthy(model, sum(recent), len(recent))
+
+
+def discard_fallbacks(enriched: dict, model: str) -> list[str]:
+    """Remove every ticker whose prediction from ``model`` is a fallback.
+
+    Mutates ``enriched`` and returns the removed tickers, so a retry redoes them
+    instead of treating the synthetic range as finished work.
+    """
+    bad = [t for t, e in enriched.items()
+           if ((e.get('models') or {}).get(model) or {}).get('fallback')]
+    for t in bad:
+        del enriched[t]
+    return bad
+
+
+def _abort_unhealthy(unhealthy: ModelUnhealthy, enriched_all: dict, log_path: str, report_path: str,
+                     today_date: str, push: bool) -> None:
+    """Stop the run because a model is broken on this runner, leaving no bad data behind.
+
+    The batch in progress is never saved (a batch is only written once every
+    model has finished it), but earlier saved or pushed batches may hold a few
+    fallback predictions from before the problem was noticed: drop those too
+    so the retry redoes them, and push the cleaned state. Exits with
+    MODEL_UNHEALTHY_EXIT so the workflow fails the job instead of retrying in
+    place on the same machine.
+    """
+    removed = discard_fallbacks(enriched_all, unhealthy.model)
+    print(f"\nERROR: {unhealthy}. This runner's {unhealthy.model} is not producing usable "
+          f"ranges (check Ollama and its logs on this machine). Discarded {len(removed)} saved "
+          "fallback prediction(s); the retry will redo them.")
+    save_json(log_path, enriched_all)
+    save_signals_json(report_path, build_signals_report(enriched_all, today_date))
+    if push and removed:
+        git_checkpoint(
+            f"Forge: discarded {len(removed)} fallback prediction(s) from unhealthy model "
+            f"{unhealthy.model} ({today_date})",
+            ['config/', SCORES_FILE, HISTORY_DIR, REPORTS_DIR],
+        )
+    sys.exit(MODEL_UNHEALTHY_EXIT)
 
 
 def git_checkpoint(message: str, paths: list[str]) -> bool:
@@ -886,6 +976,7 @@ def main():
     fallback_count = 0
     valid_count = 0
     total = len(market_data)
+    monitor = ModelHealthMonitor()
 
     for start in range(0, len(pending), batch_size):
         batch = pending[start:start + batch_size]
@@ -913,6 +1004,11 @@ def main():
                 else:
                     valid_count += 1
                 batch_raw.setdefault(ticker, {})[model_name] = rp
+                try:
+                    monitor.record(model_name, bool(rp.get('fallback')))
+                except ModelUnhealthy as unhealthy:
+                    _abort_unhealthy(unhealthy, enriched_all, today_log_path, report_path,
+                                     today_date, args.push)
 
         # Enrich this batch, merge, and rebuild the report from everything so far.
         batch_closes = {t: market_data[t] for t in batch}
@@ -924,6 +1020,7 @@ def main():
         save_signals_json(report_path, report)
         done = len(enriched_all)
         print(f"  Checkpoint saved: {done}/{total} tickers ({report['summary']['active']} ACTIVE so far).")
+        print(f"  {news_summary()}")
 
         # Push only once a full stage of new tickers has accumulated.
         is_last_batch = (start + batch_size) >= len(pending)

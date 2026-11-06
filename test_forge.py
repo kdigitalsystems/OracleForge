@@ -1,6 +1,8 @@
 """Unit tests for forge_loop helpers."""
 from __future__ import annotations
 
+import contextlib
+import io
 import os
 import tempfile
 from datetime import datetime, timedelta, timezone
@@ -12,7 +14,12 @@ from forge_loop import (
     _trade_score_delta,
     _with_timeout,
     apply_score_deltas,
+    ModelHealthMonitor,
+    ModelUnhealthy,
+    _abort_unhealthy,
     bar_is_after_prior,
+    discard_fallbacks,
+    news_summary,
     compute_technicals,
     evaluate_range_prediction,
     fetch_all_bars,
@@ -283,6 +290,112 @@ class ScoreDeltasFromJournalTests(unittest.TestCase):
         self.assertNotIn('unknown_model', deltas)
 
 
+class ModelHealthMonitorTests(unittest.TestCase):
+
+    def test_a_healthy_model_with_occasional_fallbacks_never_trips(self):
+        m = ModelHealthMonitor()
+        for i in range(300):
+            m.record('deepseek', fell_back=(i % 17 == 0))       # about 6%
+
+    def test_does_not_judge_before_it_has_enough_calls(self):
+        m = ModelHealthMonitor()
+        for _ in range(7):
+            m.record('deepseek', True)                          # 7 straight failures: still too few
+
+    def test_trips_when_a_model_is_clearly_broken(self):
+        m = ModelHealthMonitor()
+        for _ in range(7):
+            m.record('deepseek', True)
+        with self.assertRaises(ModelUnhealthy) as ctx:
+            m.record('deepseek', True)                          # the 8th call
+        self.assertEqual((ctx.exception.model, ctx.exception.fallbacks, ctx.exception.calls), ('deepseek', 8, 8))
+
+    def test_threshold_is_three_quarters_of_recent_calls(self):
+        ok = ModelHealthMonitor()
+        for fell in [True] * 5 + [False] * 3:                   # 5 of 8
+            ok.record('m', fell)
+        bad = ModelHealthMonitor()
+        with self.assertRaises(ModelUnhealthy):
+            for fell in [True] * 6 + [False] * 2:               # 6 of 8
+                bad.record('m', fell)
+
+    def test_recent_failures_age_out_of_the_window(self):
+        # Two separate bursts of 5 failures are each below the threshold. With a
+        # running total they would add up to 10 and trip; the rolling window has
+        # forgotten the first burst after 40 good calls.
+        m = ModelHealthMonitor()
+        for fell in [True] * 5 + [False] * 40 + [True] * 5:
+            m.record('m', fell)
+
+    def test_failures_that_stay_recent_do_trip(self):
+        m = ModelHealthMonitor()
+        for _ in range(7):
+            m.record('m', True)
+        with self.assertRaises(ModelUnhealthy):
+            m.record('m', False)                                # 7 of the last 8 failed
+
+    def test_models_are_tracked_independently(self):
+        m = ModelHealthMonitor()
+        with self.assertRaises(ModelUnhealthy) as ctx:
+            for _ in range(8):
+                m.record('good', False)
+                m.record('broken', True)
+        self.assertEqual(ctx.exception.model, 'broken')
+
+
+class DiscardFallbacksTests(unittest.TestCase):
+
+    @staticmethod
+    def _entry(**models):
+        return {'models': models}
+
+    def test_removes_only_tickers_where_that_model_fell_back(self):
+        enriched = {
+            'A': self._entry(deepseek={'fallback': True}, qwen={'buy_high': 1}),
+            'B': self._entry(deepseek={'buy_high': 1}, qwen={'buy_high': 1}),
+            'C': self._entry(deepseek={'skipped': True}, qwen={'fallback': True}),
+        }
+        removed = discard_fallbacks(enriched, 'deepseek')
+        self.assertEqual(removed, ['A'])
+        self.assertEqual(sorted(enriched), ['B', 'C'])
+
+    def test_nothing_to_remove_leaves_everything(self):
+        enriched = {'A': self._entry(deepseek={'buy_high': 1})}
+        self.assertEqual(discard_fallbacks(enriched, 'deepseek'), [])
+        self.assertEqual(list(enriched), ['A'])
+
+
+class AbortUnhealthyTests(unittest.TestCase):
+
+    def _abort(self, enriched, push):
+        import forge_loop
+        patches = [patch.object(forge_loop, 'save_json'), patch.object(forge_loop, 'save_signals_json'),
+                   patch.object(forge_loop, 'build_signals_report', return_value={'summary': {}}),
+                   patch.object(forge_loop, 'git_checkpoint')]
+        mocks = [p.start() for p in patches]
+        self.addCleanup(patch.stopall)
+        with contextlib.redirect_stdout(io.StringIO()) as out:
+            with self.assertRaises(SystemExit) as ctx:
+                _abort_unhealthy(ModelUnhealthy('deepseek', 9, 12), enriched, 'log.json', 'rep.json', '2026-11-06', push)
+        return ctx.exception.code, mocks, out.getvalue()
+
+    def test_purges_saves_pushes_and_exits_with_the_retry_elsewhere_code(self):
+        enriched = {'A': {'models': {'deepseek': {'fallback': True}}}, 'B': {'models': {'deepseek': {'buy_high': 1}}}}
+        code, (save_json, save_signals, _, checkpoint), out = self._abort(enriched, push=True)
+        self.assertEqual(code, 75)
+        self.assertEqual(list(enriched), ['B'])
+        save_json.assert_called_once_with('log.json', enriched)
+        save_signals.assert_called_once()
+        checkpoint.assert_called_once()
+        self.assertIn('Discarded 1 saved fallback', out)
+
+    def test_no_push_when_pushing_is_off_or_nothing_was_removed(self):
+        enriched = {'A': {'models': {'deepseek': {'fallback': True}}}}
+        self.assertEqual(self._abort(enriched, push=False)[1][3].call_count, 0)
+        enriched = {'B': {'models': {'deepseek': {'buy_high': 1}}}}
+        self.assertEqual(self._abort(enriched, push=True)[1][3].call_count, 0)
+
+
 class BarIsAfterPriorTests(unittest.TestCase):
 
     @staticmethod
@@ -315,7 +428,9 @@ class FetchRecentNewsTests(unittest.TestCase):
         import forge_loop
         self.fl = forge_loop
         fetch_recent_news.cache_clear()
+        self.fl.NEWS_STATS.clear()
         self.addCleanup(fetch_recent_news.cache_clear)
+        self.addCleanup(self.fl.NEWS_STATS.clear)
         patch.object(forge_loop, '_alpaca_news_client', return_value=object()).start()
         self.addCleanup(patch.stopall)
 
@@ -381,6 +496,29 @@ class FetchRecentNewsTests(unittest.TestCase):
             out = fetch_recent_news('KO')
         self.assertEqual(out, '- Fallback (P)')
         self.assertLess(time.time() - start, 5)
+
+    def test_news_stats_count_each_ticker_once_by_the_source_that_answered(self):
+        yahoo, _ = self._yahoo(news=[{'title': 'Y', 'publisher': 'P'}])
+        with patch.object(self.fl.alpaca_client, 'fetch_news',
+                          side_effect=lambda c, t, **k: [self._item(1)] if t in ('KO', 'F') else []), yahoo:
+            for t in ('KO', 'NVDA', 'F', 'KO'):          # KO repeats: cached, not counted twice
+                fetch_recent_news(t)
+        self.assertEqual(dict(self.fl.NEWS_STATS), {'alpaca': 2, 'yahoo': 1})
+
+    def test_news_stats_record_tickers_with_no_headlines(self):
+        yahoo, _ = self._yahoo(news=[])
+        with self._alpaca([]), yahoo:
+            fetch_recent_news('KO')
+        self.assertEqual(dict(self.fl.NEWS_STATS), {'none': 1})
+        self.assertIn('1 none (of 1 tickers)', news_summary())
+
+    def test_news_summary_warns_when_more_than_half_of_a_real_sample_has_none(self):
+        self.fl.NEWS_STATS.update({'alpaca': 9, 'none': 11})
+        self.assertIn('[!]', news_summary())
+        self.fl.NEWS_STATS.clear(); self.fl.NEWS_STATS.update({'alpaca': 12, 'none': 8})
+        self.assertNotIn('[!]', news_summary())
+        self.fl.NEWS_STATS.clear(); self.fl.NEWS_STATS.update({'none': 5})        # too few to judge
+        self.assertNotIn('[!]', news_summary())
 
     def test_cached_per_ticker_so_both_models_share_one_fetch(self):
         yahoo, _ = self._yahoo()
