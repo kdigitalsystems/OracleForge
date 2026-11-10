@@ -57,6 +57,15 @@ class RunnerCleanupTests(unittest.TestCase):
         self.assertEqual(open(os.path.join(self.ws, 'tracked.py')).read(), 'edited, not committed\n')
         self.assertTrue(os.path.isdir(os.path.join(self.ws, '.git')))
 
+    def test_removes_only_our_venv_from_runner_temp(self):
+        rt = os.path.join(self._tmp.name, 'runner_temp')
+        _write(os.path.join(rt, 'oracleforge-venv', 'bin', 'python'))
+        _write(os.path.join(rt, 'other-venv', 'bin', 'python'))
+        r = self._run(RUNNER_TEMP=rt)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertFalse(os.path.exists(os.path.join(rt, 'oracleforge-venv')))
+        self.assertTrue(os.path.exists(os.path.join(rt, 'other-venv', 'bin', 'python')))
+
     def test_removes_our_temp_files_and_leaves_other_temp_files(self):
         for name in ('ollama.log', 'ollama_tags.json', 'ollama_canary.log'):
             _write(os.path.join(self.tmpd, name))

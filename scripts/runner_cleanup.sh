@@ -40,6 +40,8 @@ find "$real" -name __pycache__ -type d -prune -exec rm -rf {} + 2>/dev/null || t
 # 2. temp files this repo's steps create
 rm -f "$TMPD/ollama.log" "$TMPD/ollama_tags.json" "$TMPD/ollama_canary.log"
 rm -rf "$TMPD"/oracleforge-canary-* 2>/dev/null || true
+# the per-job virtualenv (lives in the runner's temp dir)
+[ -n "${RUNNER_TEMP:-}" ] && rm -rf "$RUNNER_TEMP/oracleforge-venv" 2>/dev/null || true
 
 # 3. shared pip cache: old entries only
 if [ -d "$PIP_CACHE" ]; then

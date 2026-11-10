@@ -77,10 +77,15 @@ jobs:
           # cleanup surface that can hang/fail the whole job (seen after a
           # power blip killed the runner mid-cleanup).
 
-      - name: Install Dependencies
+      - name: Install Dependencies (private virtualenv)
+        # Installing into the runner's shared tool-cache Python or ~/.local
+        # once removed yfinance from another project's interpreter. Everything
+        # here goes into a per-job venv that later steps pick up via PATH.
         run: |
-          python3 -m pip install --upgrade pip
-          pip install -r requirements.txt
+          python3 -m venv "$RUNNER_TEMP/oracleforge-venv"
+          "$RUNNER_TEMP/oracleforge-venv/bin/python" -m pip install --upgrade pip
+          "$RUNNER_TEMP/oracleforge-venv/bin/pip" install -r requirements.txt
+          echo "$RUNNER_TEMP/oracleforge-venv/bin" >> "$GITHUB_PATH"
 
       - name: Run Unit Tests
         # Discover rather than list modules, so a new test_*.py file runs
