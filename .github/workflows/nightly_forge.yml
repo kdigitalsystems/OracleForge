@@ -2,10 +2,13 @@ name: OracleForge Nightly Engine
 
 on:
   schedule:
-    # Sunday-Thursday 23:00 UTC — prepares the next US trading morning.
+    # Sunday-Thursday 23:17 UTC — prepares the next US trading morning.
+    # Off the top of the hour on purpose: at 23:00 GitHub fired this schedule
+    # 3 to 5 hours late (its busiest slot), and the watchdog's backstop
+    # dispatch then raced the late run.
     # Sunday covers Monday open; Friday is intentionally skipped because the
     # Sunday run refreshes weekend news before Monday orders.
-    - cron: '0 23 * * 0-4'
+    - cron: '17 23 * * 0-4'
 
   workflow_dispatch:
 
