@@ -11170,5 +11170,59 @@
         ],
         "consensus_buy_high": 43.03,
         "consensus_sell_low": 44.53
+    },
+    {
+        "close_date": "2026-11-13",
+        "ticker": "PATH",
+        "entry_date": "2026-11-05",
+        "entry_price": 12.928,
+        "exit_price": 13.362,
+        "usd_invested": 1.9889,
+        "usd_returned": 2.0557,
+        "pnl_usd": 0.0668,
+        "pnl_pct": 3.36,
+        "outcome": "win",
+        "predicting_models": [
+            "qwen2.5:14b-instruct-q4_K_M",
+            "deepseek-r1:8b"
+        ],
+        "consensus_buy_high": 13.0,
+        "consensus_sell_low": 13.36
+    },
+    {
+        "close_date": "2026-11-13",
+        "ticker": "KHC",
+        "entry_date": "2026-11-09",
+        "entry_price": 24.218,
+        "exit_price": 25.142,
+        "usd_invested": 1.9835,
+        "usd_returned": 2.0591,
+        "pnl_usd": 0.0756,
+        "pnl_pct": 3.81,
+        "outcome": "win",
+        "predicting_models": [
+            "qwen2.5:14b-instruct-q4_K_M",
+            "deepseek-r1:8b"
+        ],
+        "consensus_buy_high": 24.42,
+        "consensus_sell_low": 25.0
+    },
+    {
+        "close_date": "2026-11-13",
+        "ticker": "GDX",
+        "entry_date": "2026-11-09",
+        "entry_price": 87.018,
+        "exit_price": 81.64,
+        "usd_invested": 1.9305,
+        "usd_returned": 1.8112,
+        "pnl_usd": -0.1193,
+        "pnl_pct": -6.18,
+        "outcome": "loss",
+        "predicting_models": [
+            "qwen2.5:14b-instruct-q4_K_M",
+            "deepseek-r1:8b"
+        ],
+        "consensus_buy_high": 90.15,
+        "consensus_sell_low": 91.74
     }
 ]
