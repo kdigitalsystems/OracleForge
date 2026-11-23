@@ -158,9 +158,16 @@ jobs:
             // recovering (trader.py also gates on Alpaca's calendar, so a
             // dispatch that lands outside market-appropriate hours no-ops). maxAgeH: latest run older than this means the
             // schedule was dropped (all three are daily on weekdays).
+            // expected = when the schedule should have fired (UTC hour, minute,
+            // day offset); graceH = how long to wait past that before acting.
+            // A run created before the expected time is yesterday's, however
+            // recent: GitHub fired morning_orders 5 to 9 hours late on most days
+            // from 2026-10-27, after the close, and the plain maxAgeH check
+            // took each late run as proof the next day's was on time, so no
+            // orders were placed 2026-11-16 to 11-20.
             const SCHEDULES = [
-              { wf: 'nightly_forge.yml',   from: 2,  to: 13, maxAgeH: 20 },
-              { wf: 'morning_orders.yml',  from: 14, to: 19, maxAgeH: 22 },
+              { wf: 'nightly_forge.yml',   from: 2,  to: 13, maxAgeH: 20, expected: [23, 17, -1], graceH: 1.5 },
+              { wf: 'morning_orders.yml',  from: 14, to: 21, maxAgeH: 22, expected: [13, 30, 0],  graceH: 0.75 },
               { wf: 'evening_cleanup.yml', from: 21, to: 24, maxAgeH: 22 },
             ];
             for (const s of SCHEDULES) {
@@ -194,7 +201,13 @@ jobs:
                 continue;
               }
               console.log(`${s.wf}: latest run ${latest ? latest.created_at : 'none'} (${ageHours.toFixed(1)}h ago)`);
-              if (ageHours <= s.maxAgeH) {
+              let missed = ageHours > s.maxAgeH;
+              if (s.expected && latest) {
+                const due = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(),
+                  now.getUTCDate() + s.expected[2], s.expected[0], s.expected[1]));
+                missed = new Date(latest.created_at) < due && (now - due) / 36e5 >= s.graceH;
+              }
+              if (!missed) {
                 console.log(`${s.wf}: current; no action.`);
                 continue;
               }
