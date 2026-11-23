@@ -1,0 +1,9 @@
+[Unit]
+Description=OracleForge: dispatch trading workflows GitHub's scheduler missed
+After=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=%h/tools/OracleForge
+ExecStart=/usr/bin/python3 %h/tools/OracleForge/scripts/dispatch_missed.py
+TimeoutStartSec=120

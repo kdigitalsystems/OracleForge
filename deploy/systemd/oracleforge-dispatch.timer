@@ -1,0 +1,10 @@
+[Unit]
+Description=Check every 10 minutes whether a trading workflow is overdue
+
+[Timer]
+OnCalendar=*:0/10
+Persistent=true
+AccuracySec=30s
+
+[Install]
+WantedBy=timers.target
