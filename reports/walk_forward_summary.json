@@ -1,5 +1,5 @@
 {
-    "generated_at": "2026-11-24T01:03:06",
+    "generated_at": "2026-11-24T21:22:24",
     "train_window": 20,
     "test_window": 5,
     "min_train_trades": 30,
@@ -437,12 +437,12 @@
                 "sample_adequate": true
             },
             "test_stats": {
-                "n": 84,
-                "mean": -2.3752,
-                "std": 5.9214,
-                "t_stat": -3.676,
-                "ci95_low": -3.6415,
-                "ci95_high": -1.1089,
+                "n": 90,
+                "mean": -2.4633,
+                "std": 5.7736,
+                "t_stat": -4.048,
+                "ci95_low": -3.6561,
+                "ci95_high": -1.2704,
                 "significant": true,
                 "sample_adequate": true
             }
@@ -472,12 +472,12 @@
                 "sample_adequate": true
             },
             "test_stats": {
-                "n": 71,
-                "mean": -2.4024,
-                "std": 5.1394,
-                "t_stat": -3.939,
-                "ci95_low": -3.5979,
-                "ci95_high": -1.2069,
+                "n": 86,
+                "mean": -1.5082,
+                "std": 5.2242,
+                "t_stat": -2.677,
+                "ci95_low": -2.6123,
+                "ci95_high": -0.404,
                 "significant": true,
                 "sample_adequate": true
             }
@@ -489,7 +489,7 @@
             ],
             "test": [
                 "2026-11-20",
-                "2026-11-20"
+                "2026-11-23"
             ],
             "selected_params": {
                 "stop_loss_pct": 0.93,
@@ -507,12 +507,12 @@
                 "sample_adequate": true
             },
             "test_stats": {
-                "n": 0,
-                "mean": 0.0,
-                "std": 0.0,
-                "t_stat": null,
-                "ci95_low": null,
-                "ci95_high": null,
+                "n": 9,
+                "mean": 3.0231,
+                "std": 0.7077,
+                "t_stat": 12.815,
+                "ci95_low": 2.5607,
+                "ci95_high": 3.4855,
                 "significant": false,
                 "sample_adequate": false
             }
@@ -520,15 +520,15 @@
     ],
     "summary": {
         "windows": 15,
-        "validation_windows": 11,
-        "validation_trades": 481,
-        "avg_validation_return_pct": 0.6904,
-        "positive_windows": 7
+        "validation_windows": 12,
+        "validation_trades": 511,
+        "avg_validation_return_pct": 0.952,
+        "positive_windows": 8
     },
     "latest_recommendation": {
         "train": [
-            "2026-10-26",
-            "2026-11-20"
+            "2026-10-27",
+            "2026-11-23"
         ],
         "selected_params": {
             "stop_loss_pct": 0.97,
@@ -536,12 +536,12 @@
             "min_upside_pct": 1.5
         },
         "train_stats": {
-            "n": 423,
-            "mean": -0.7499,
-            "std": 4.2574,
-            "t_stat": -3.622,
-            "ci95_low": -1.1556,
-            "ci95_high": -0.3441,
+            "n": 429,
+            "mean": -0.67,
+            "std": 4.3109,
+            "t_stat": -3.219,
+            "ci95_low": -1.0779,
+            "ci95_high": -0.2621,
             "significant": true,
             "sample_adequate": true
         }
