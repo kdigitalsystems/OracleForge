@@ -1,6 +1,6 @@
 {
     "date": "2026-11-25",
-    "generated_at": "2026-11-25T21:49:52",
+    "generated_at": "2026-11-26T20:09:04",
     "config": {
         "min_upside_pct": 1.5,
         "min_range_width_pct": 0.5,
@@ -10,9 +10,9 @@
         "max_consensus_cv": 0.1
     },
     "summary": {
-        "total": 151,
-        "active": 77,
-        "skip": 61,
+        "total": 153,
+        "active": 78,
+        "skip": 62,
         "stale": 13
     },
     "active": [
@@ -201,6 +201,17 @@
             "sell_high": 29.19,
             "upside_pct": 3.97,
             "consensus_cv": 0.0092,
+            "signal": "ACTIVE"
+        },
+        {
+            "ticker": "MAGS",
+            "close": 65.05,
+            "buy_low": 63.28,
+            "buy_high": 64.26,
+            "sell_low": 66.77,
+            "sell_high": 68.1,
+            "upside_pct": 3.91,
+            "consensus_cv": 0.0043,
             "signal": "ACTIVE"
         },
         {
@@ -1193,6 +1204,17 @@
             "sell_high": 274.06,
             "upside_pct": 0.91,
             "consensus_cv": 0.0052,
+            "signal": "SKIP"
+        },
+        {
+            "ticker": "TJX",
+            "close": 146.07,
+            "buy_low": 136.21,
+            "buy_high": 141.56,
+            "sell_low": 142.85,
+            "sell_high": 147.78,
+            "upside_pct": 0.91,
+            "consensus_cv": 0.0233,
             "signal": "SKIP"
         },
         {

@@ -4183,5 +4183,61 @@
         },
         "signal": "SKIP",
         "upside_pct": 0.99
+    },
+    "MAGS": {
+        "close": 65.05,
+        "models": {
+            "qwen2.5:14b-instruct-q4_K_M": {
+                "buy_low": 63.59,
+                "buy_high": 64.56,
+                "sell_low": 66.52,
+                "sell_high": 67.24,
+                "rationale": "Entering a long position near the recent support level and taking profit near resistance."
+            },
+            "deepseek-r1:8b": {
+                "buy_low": 63.0,
+                "buy_high": 64.0,
+                "sell_low": 67.0,
+                "sell_high": 68.87,
+                "rationale": "Entry near 10-day low support ($61.78) but above oversold Bollinger %B (0.20), target near 10-day high resistance ($68.87) and 20-day SMA ($70.70)."
+            }
+        },
+        "consensus": {
+            "buy_low": 63.28,
+            "buy_high": 64.26,
+            "sell_low": 66.77,
+            "sell_high": 68.1,
+            "consensus_cv": 0.0043
+        },
+        "signal": "ACTIVE",
+        "upside_pct": 3.91
+    },
+    "TJX": {
+        "close": 146.07,
+        "models": {
+            "qwen2.5:14b-instruct-q4_K_M": {
+                "buy_low": 143.84,
+                "buy_high": 145.07,
+                "sell_low": 146.07,
+                "sell_high": 148.29,
+                "rationale": "Given the overbought condition and recent price action, a pullback to support is likely before further upside."
+            },
+            "deepseek-r1:8b": {
+                "buy_low": 129.45,
+                "buy_high": 138.45,
+                "sell_low": 140.0,
+                "sell_high": 147.32,
+                "rationale": "Support near 10-day low (129.45), resistance near 10-day high (147.32), overbought conditions (RSI 56.9, Bollinger %B 0.97) but positive momentum (+4.08% 5-day) and dividend news."
+            }
+        },
+        "consensus": {
+            "buy_low": 136.21,
+            "buy_high": 141.56,
+            "sell_low": 142.85,
+            "sell_high": 147.78,
+            "consensus_cv": 0.0233
+        },
+        "signal": "SKIP",
+        "upside_pct": 0.91
     }
 }
